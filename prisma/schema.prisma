@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(STAFF)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions Transaction[]
+  dailyPrices  DailyPrice[]
+}
+
+enum UserRole {
+  STAFF
+  ADMIN
+}
+
+model Customer {
+  id                        String   @id @default(cuid())
+  fullName                  String
+  phoneNumber               String
+  address                   String
+  isBusiness                Boolean  @default(false)
+  businessName              String?
+  businessVerificationNotes String?  @db.Text
+  identityVerified          Boolean  @default(false)
+  identityVerificationNotes String?  @db.Text
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  cards        MembershipCard[]
+  transactions Transaction[]
+}
+
+model MembershipCard {
+  id           String            @id @default(cuid())
+  token        String            @unique
+  customerId   String
+  status       CardStatus        @default(ACTIVE)
+  issuedAt     DateTime          @default(now())
+  lastScannedAt DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([customerId])
+}
+
+enum CardStatus {
+  ACTIVE
+  LOST
+  DISABLED
+}
+
+model Transaction {
+  id           String            @id @default(cuid())
+  customerId   String
+  createdByUserId String
+  type         TransactionType
+  status       TransactionStatus @default(OPEN)
+  goldSpot     Float
+  silverSpot   Float
+  platinumSpot Float
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  customer      Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdBy     User       @relation(fields: [createdByUserId], references: [id])
+  lineItems     LineItem[]
+
+  @@index([customerId])
+  @@index([type, status])
+}
+
+enum TransactionType {
+  SCRAP
+  MELT
+}
+
+enum TransactionStatus {
+  OPEN
+  PRINTED
+  VOID
+}
+
+model LineItem {
+  id          String      @id @default(cuid())
+  transactionId String
+  metalType   MetalType
+  purityLabel String
+  dwt         Float       @default(0)
+  pricePerOz  Float       @default(0)
+  lineTotal   Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+}
+
+enum MetalType {
+  GOLD
+  SILVER
+  PLATINUM
+}
+
+model DailyPrice {
+  id           String   @id @default(cuid())
+  date         DateTime @unique @db.Date
+  gold         Float
+  silver       Float
+  platinum     Float
+  createdByUserId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy User @relation(fields: [createdByUserId], references: [id])
+
+  @@index([date])
+}
+

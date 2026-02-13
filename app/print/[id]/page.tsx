@@ -1,0 +1,40 @@
+import { redirect } from "next/navigation"
+import { getSession } from "@/lib/auth"
+import { prisma } from "@/lib/db"
+import { PrintView } from "@/components/print-view"
+
+export default async function PrintPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const session = await getSession()
+  if (!session) {
+    redirect("/login")
+  }
+
+  const { id } = await params
+  const transaction = await prisma.transaction.findUnique({
+    where: { id },
+    include: {
+      customer: true,
+      lineItems: {
+        orderBy: [
+          { metalType: "asc" },
+          { purityLabel: "asc" },
+        ],
+      },
+    },
+  })
+
+  if (!transaction) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <p>Transaction not found</p>
+      </div>
+    )
+  }
+
+  return <PrintView transaction={transaction} />
+}
+
