@@ -317,7 +317,7 @@ export function PricingTable({
       </Card>
 
       {/* Metal Type Carousel */}
-      <div className="relative z-10" style={{ touchAction: "pan-x" }}>
+      <div className="relative z-10">
         <Carousel
           showIndicators={true}
           showArrows={true}

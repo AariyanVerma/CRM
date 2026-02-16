@@ -166,7 +166,7 @@ export function ScanPageClient({
       </Card>
 
       {/* Main Transaction Carousel */}
-      <div className="w-full">
+      <div className="w-full" style={{ touchAction: "pan-y" }}>
         <Carousel
           showIndicators={false}
           showArrows={false}

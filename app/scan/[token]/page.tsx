@@ -134,8 +134,8 @@ export default async function ScanPage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
+    <div className="min-h-screen bg-background" style={{ overflowY: "auto", height: "100vh" }}>
+      <header className="border-b sticky top-0 z-50 bg-background">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Transaction</h1>
           <div className="flex items-center gap-4">
@@ -145,7 +145,7 @@ export default async function ScanPage({
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8" style={{ touchAction: "pan-y" }}>
         <ScanPageClient
           customer={card.customer}
           scrapTransaction={scrapTransaction}

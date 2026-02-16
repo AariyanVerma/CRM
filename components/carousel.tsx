@@ -200,34 +200,35 @@ export function Carousel({
     if (nested) {
       e.stopPropagation() // Prevent event from bubbling to parent carousel
     }
+    // Don't prevent default here - allow page to scroll if it's a vertical gesture
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
     isHorizontalSwipe.current = false
     if (autoPlayTimer.current) {
       clearInterval(autoPlayTimer.current)
     }
+    // Allow the event to bubble up for vertical scrolling
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (disableTouch) return
-    if (nested) {
-      e.stopPropagation() // Prevent event from bubbling to parent carousel
-    }
+    
     const currentX = e.touches[0].clientX
     const currentY = e.touches[0].clientY
     const deltaX = Math.abs(currentX - touchStartX.current)
     const deltaY = Math.abs(currentY - touchStartY.current)
     
-    // Determine if this is a horizontal swipe
-    if (!isHorizontalSwipe.current && deltaX > 10) {
-      isHorizontalSwipe.current = deltaX > deltaY
+    // Determine if this is a horizontal swipe (only after some movement)
+    if (!isHorizontalSwipe.current && (deltaX > 10 || deltaY > 10)) {
+      isHorizontalSwipe.current = deltaX > deltaY && deltaX > 15
     }
     
-    // Only prevent default and move carousel if it's a horizontal swipe
-    if (isHorizontalSwipe.current) {
+    // Only prevent default and move carousel if it's clearly a horizontal swipe
+    // Allow vertical scrolling if it's a vertical gesture
+    if (isHorizontalSwipe.current && deltaX > 15) {
       e.preventDefault()
       if (nested) {
-        e.stopPropagation()
+        e.stopPropagation() // Prevent event from bubbling to parent carousel
       }
       touchEndX.current = currentX
       
@@ -240,7 +241,13 @@ export function Carousel({
         containerRef.current.style.transition = "none"
         containerRef.current.style.transform = `translateX(calc(-${baseTranslatePercent}% + ${offsetPercent}px))`
       }
+    } else if (deltaY > deltaX && deltaY > 15) {
+      // This is a vertical scroll - don't interfere, let it bubble up to page
+      isHorizontalSwipe.current = false
+      // Don't prevent default or stop propagation - allow page scrolling
+      return
     }
+    // If neither condition is met, don't interfere with default behavior
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -344,7 +351,7 @@ export function Carousel({
     <div 
       className={cn("relative w-full overflow-hidden", className)} 
       style={{ 
-        touchAction: nested ? "pan-y" : "pan-y pinch-zoom",
+        touchAction: "pan-y pinch-zoom", // Always allow vertical scrolling
         position: "relative",
         zIndex: nested ? 10 : 0,
       }}
@@ -355,7 +362,7 @@ export function Carousel({
         style={{
           width: `${containerWidthPercent}%`,
           willChange: "transform",
-          touchAction: nested ? "pan-x" : "pan-x",
+          touchAction: "pan-y pan-x", // Allow both vertical and horizontal
         }}
         onTouchStart={disableTouch ? undefined : handleTouchStart}
         onTouchMove={disableTouch ? undefined : handleTouchMove}

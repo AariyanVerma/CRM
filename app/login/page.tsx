@@ -6,11 +6,12 @@ import { ThemeToggle } from "@/components/theme-toggle"
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { redirect?: string }
+  searchParams: Promise<{ redirect?: string }>
 }) {
+  const { redirect: redirectUrl } = await searchParams
   const session = await getSession()
   if (session) {
-    redirect(searchParams.redirect || "/dashboard")
+    redirect(redirectUrl || "/dashboard")
   }
 
   async function handleLogin(formData: FormData) {
@@ -24,7 +25,8 @@ export default async function LoginPage({
     }
 
     await createSession(user.id)
-    redirect(searchParams.redirect || "/dashboard")
+    const { redirect: redirectUrl } = await searchParams
+    redirect(redirectUrl || "/dashboard")
   }
 
   return (
