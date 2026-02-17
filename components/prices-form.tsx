@@ -20,16 +20,20 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [prices, setPrices] = useState({
+    gold: initialPrices?.gold || 0,
+    silver: initialPrices?.silver || 0,
+    platinum: initialPrices?.platinum || 0,
+  })
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
     const data = {
-      gold: parseFloat(formData.get("gold") as string),
-      silver: parseFloat(formData.get("silver") as string),
-      platinum: parseFloat(formData.get("platinum") as string),
+      gold: prices.gold,
+      silver: prices.silver,
+      platinum: prices.platinum,
     }
 
     try {
@@ -37,6 +41,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: 'include', // Ensure cookies are sent
       })
 
       if (!res.ok) {
@@ -44,6 +49,16 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
         throw new Error(error.message || "Failed to save prices")
       }
 
+      // Update local state from response
+      const result = await res.json()
+      if (result.gold && result.silver && result.platinum) {
+        setPrices({
+          gold: result.gold,
+          silver: result.silver,
+          platinum: result.platinum,
+        })
+      }
+      
       toast({
         title: "Prices saved",
         description: "Daily prices have been updated successfully.",
@@ -79,7 +94,8 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
               type="number"
               step="0.01"
               required
-              defaultValue={initialPrices?.gold || ""}
+              value={prices.gold || ""}
+              onChange={(e) => setPrices(prev => ({ ...prev, gold: parseFloat(e.target.value) || 0 }))}
               placeholder="2000.00"
             />
           </div>
@@ -92,7 +108,8 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
               type="number"
               step="0.01"
               required
-              defaultValue={initialPrices?.silver || ""}
+              value={prices.silver || ""}
+              onChange={(e) => setPrices(prev => ({ ...prev, silver: parseFloat(e.target.value) || 0 }))}
               placeholder="25.00"
             />
           </div>
@@ -105,7 +122,8 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
               type="number"
               step="0.01"
               required
-              defaultValue={initialPrices?.platinum || ""}
+              value={prices.platinum || ""}
+              onChange={(e) => setPrices(prev => ({ ...prev, platinum: parseFloat(e.target.value) || 0 }))}
               placeholder="1000.00"
             />
           </div>

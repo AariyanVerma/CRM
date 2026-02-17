@@ -128,6 +128,7 @@ export default async function ScanPage({
           scrapTransaction={scrapTransaction}
           meltTransaction={meltTransaction}
           userRole={session.role}
+          userId={session.id}
         />
       </main>
     </div>

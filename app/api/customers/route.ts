@@ -2,6 +2,40 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
+export async function GET(request: NextRequest) {
+  try {
+    await requireAuth()
+    const { searchParams } = new URL(request.url)
+    const query = searchParams.get("q") || ""
+
+    const customers = await prisma.customer.findMany({
+      where: {
+        OR: [
+          { fullName: { contains: query, mode: "insensitive" } },
+          { phoneNumber: { contains: query, mode: "insensitive" } },
+          { businessName: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        businessName: true,
+      },
+      take: 20,
+      orderBy: { fullName: "asc" },
+    })
+
+    return NextResponse.json(customers)
+  } catch (error) {
+    console.error("Error fetching customers:", error)
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await requireAuth()

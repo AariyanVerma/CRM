@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { usePricePolling } from "@/hooks/use-price-polling"
+import { useTransactionPolling } from "@/hooks/use-transaction-polling"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -56,6 +58,7 @@ export function PricingTable({
   })
   const [savingPrice, setSavingPrice] = useState<Record<string, boolean>>({})
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
+  const lastEditTimeRef = useRef<Record<string, number>>({}) // Track when each field was last edited
 
   // Initialize DWT values from line items
   useEffect(() => {
@@ -66,6 +69,66 @@ export function PricingTable({
     })
     setDwtValues(values)
   }, [transaction.lineItems])
+
+  // Poll for price updates (fast polling for real-time updates)
+  usePricePolling(
+    useCallback((prices) => {
+      setSpotPrices({
+        gold: prices.gold,
+        silver: prices.silver,
+        platinum: prices.platinum,
+      })
+    }, []),
+    { interval: 500, enabled: true }
+  )
+
+  // Poll for transaction line items updates (real-time DWT sync)
+  useTransactionPolling(
+    transaction.id,
+    useCallback((lineItems) => {
+      // Update DWT values from polled line items
+      const values: Record<string, number> = {}
+      lineItems.forEach((item) => {
+        const key = `${item.metalType}-${item.purityLabel}`
+        values[key] = item.dwt
+      })
+      
+      // Only update if values actually changed and field wasn't recently edited
+      setDwtValues((prev) => {
+        const now = Date.now()
+        const updated = { ...prev }
+        let hasChanges = false
+        
+        // Update existing or add new values
+        Object.keys(values).forEach((key) => {
+          const lastEditTime = lastEditTimeRef.current[key] || 0
+          const timeSinceEdit = now - lastEditTime
+          
+          // Only update if value changed and field wasn't edited in last 2 seconds
+          if (prev[key] !== values[key] && timeSinceEdit > 2000) {
+            updated[key] = values[key]
+            hasChanges = true
+          }
+        })
+        
+        // Remove deleted items (only if not recently edited)
+        Object.keys(prev).forEach((key) => {
+          if (!(key in values) && prev[key] !== 0) {
+            const lastEditTime = lastEditTimeRef.current[key] || 0
+            const timeSinceEdit = now - lastEditTime
+            
+            if (timeSinceEdit > 2000) {
+              delete updated[key]
+              hasChanges = true
+            }
+          }
+        })
+        
+        return hasChanges ? updated : prev
+      })
+    }, []),
+    { interval: 500, enabled: true }
+  )
 
   // Debounced save function
   const debouncedSave = useCallback(
@@ -89,21 +152,34 @@ export function PricingTable({
             })
 
             if (!res.ok) {
-              throw new Error("Failed to save")
+              const errorData = await res.json().catch(() => ({}))
+              throw new Error(errorData.message || "Failed to save")
             }
+
+            // Clear saving state immediately after successful save
+            setSaving((prev) => {
+              const updated = { ...prev }
+              delete updated[key]
+              return updated
+            })
 
             toast({
               title: "Saved",
               description: `${purity} ${metalType} updated`,
             })
           } catch (error) {
+            // Clear saving state on error
+            setSaving((prev) => {
+              const updated = { ...prev }
+              delete updated[key]
+              return updated
+            })
+            
             toast({
               title: "Error",
-              description: "Failed to save line item",
+              description: error instanceof Error ? error.message : "Failed to save line item",
               variant: "destructive",
             })
-          } finally {
-            setSaving((prev) => ({ ...prev, [key]: false }))
           }
         }, 400)
       }
@@ -115,6 +191,7 @@ export function PricingTable({
     if (numValue < 0) return
 
     const key = `${metalType}-${purity}`
+    lastEditTimeRef.current[key] = Date.now() // Mark as recently edited
     setDwtValues((prev) => ({ ...prev, [key]: numValue }))
     debouncedSave(metalType, purity, numValue)
   }
@@ -141,13 +218,24 @@ export function PricingTable({
                 metalType,
                 price,
               }),
+              credentials: 'include', // Ensure cookies are sent
             })
 
             if (!res.ok) {
-              throw new Error("Failed to update price")
+              const errorData = await res.json().catch(() => ({ message: "Failed to update price" }))
+              throw new Error(errorData.message || "Failed to update price")
             }
 
             const updated = await res.json()
+            
+            // Clear saving state immediately after successful save
+            setSavingPrice((prev) => {
+              const updated = { ...prev }
+              delete updated[metalType]
+              return updated
+            })
+            
+            // Update prices from response
             setSpotPrices({
               gold: updated.gold,
               silver: updated.silver,
@@ -159,13 +247,18 @@ export function PricingTable({
               description: `${metalType} spot price updated to $${price.toFixed(2)}`,
             })
           } catch (error) {
+            // Clear saving state on error
+            setSavingPrice((prev) => {
+              const updated = { ...prev }
+              delete updated[metalType]
+              return updated
+            })
+            
             toast({
               title: "Error",
-              description: "Failed to update price",
+              description: error instanceof Error ? error.message : "Failed to update price",
               variant: "destructive",
             })
-          } finally {
-            setSavingPrice((prev) => ({ ...prev, [metalType]: false }))
           }
         }, 1000)
       }
@@ -282,7 +375,7 @@ export function PricingTable({
               <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
                 <div className="flex items-center justify-center gap-2">
                   <DollarSign className="h-4 w-4 text-primary drop-shadow-lg" />
-                  <span className="drop-shadow-md">Price/oz</span>
+                  <span className="drop-shadow-md">Price/DWT</span>
                 </div>
               </th>
               <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">

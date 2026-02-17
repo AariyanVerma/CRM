@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle } from "lucide-react"
 import { IssueCardDialog } from "@/components/issue-card-dialog"
+import { TransactionActions } from "@/components/transaction-actions"
 import { Badge } from "@/components/ui/badge"
 import { BackButton } from "@/components/back-button"
 import { PageHeader } from "@/components/page-header"
@@ -194,9 +195,9 @@ export default async function CustomerDetailPage({
                   {customer.transactions.map((tx) => (
                     <div
                       key={tx.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <Badge variant={tx.type === "SCRAP" ? "default" : "secondary"}>
                             {tx.type}
@@ -209,7 +210,14 @@ export default async function CustomerDetailPage({
                           {tx.lineItems.length} line items
                         </p>
                       </div>
-                      <Badge variant="outline">{tx.status}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{tx.status}</Badge>
+                        <TransactionActions
+                          transaction={tx}
+                          customerId={customer.id}
+                          userRole={session.role}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -1,16 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PricingTable } from "@/components/pricing-table"
-import { Building2, User, Phone, MapPin, Calendar, Clock } from "lucide-react"
+import { Building2, User, Phone, MapPin, Calendar, Clock, Sparkles, Flame, TrendingUp, Coins, Scale } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Printer } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { Carousel } from "@/components/carousel"
+import { useTransactionPolling } from "@/hooks/use-transaction-polling"
 
 interface Customer {
   id: string
@@ -45,20 +46,45 @@ export function ScanPageClient({
   scrapTransaction,
   meltTransaction,
   userRole,
+  userId,
 }: {
   customer: Customer
   scrapTransaction: Transaction
   meltTransaction: Transaction
   userRole: "ADMIN" | "STAFF"
+  userId: string
 }) {
   const router = useRouter()
   const { toast } = useToast()
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState<Date | null>(null)
+  const [mounted, setMounted] = useState(false)
+  const [scrapLineItems, setScrapLineItems] = useState<LineItem[]>(scrapTransaction.lineItems)
+  const [meltLineItems, setMeltLineItems] = useState<LineItem[]>(meltTransaction.lineItems)
 
   useEffect(() => {
+    setMounted(true)
+    setCurrentDate(new Date())
     const timer = setInterval(() => setCurrentDate(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Poll for scrap transaction updates
+  useTransactionPolling(
+    scrapTransaction.id,
+    (lineItems) => {
+      setScrapLineItems(lineItems)
+    },
+    { interval: 500, enabled: true }
+  )
+
+  // Poll for melt transaction updates
+  useTransactionPolling(
+    meltTransaction.id,
+    (lineItems) => {
+      setMeltLineItems(lineItems)
+    },
+    { interval: 500, enabled: true }
+  )
 
   async function handlePrint(type: "SCRAP" | "MELT") {
     const transaction = type === "SCRAP" ? scrapTransaction : meltTransaction
@@ -92,52 +118,84 @@ export function ScanPageClient({
     }
   }
 
+  // Calculate transaction totals from current line items (reactive to polling updates)
+  const scrapTotal = useMemo(() => 
+    scrapLineItems.reduce((sum, item) => sum + item.lineTotal, 0),
+    [scrapLineItems]
+  )
+  const scrapDwt = useMemo(() => 
+    scrapLineItems.reduce((sum, item) => sum + item.dwt, 0),
+    [scrapLineItems]
+  )
+  const meltTotal = useMemo(() => 
+    meltLineItems.reduce((sum, item) => sum + item.lineTotal, 0),
+    [meltLineItems]
+  )
+  const meltDwt = useMemo(() => 
+    meltLineItems.reduce((sum, item) => sum + item.dwt, 0),
+    [meltLineItems]
+  )
+
+  // Combined totals across both transactions
+  const grandTotal = useMemo(() => scrapTotal + meltTotal, [scrapTotal, meltTotal])
+  const grandTotalDwt = useMemo(() => scrapDwt + meltDwt, [scrapDwt, meltDwt])
+
   return (
     <div className="space-y-6">
       {/* Back Button */}
       <BackButton href="/customers" />
 
       {/* Customer Header Card */}
-      <Card className="border-2">
-        <CardContent className="p-3 sm:p-4 md:p-6">
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3">
+      <Card className="border-2 shadow-lg bg-gradient-to-br from-background via-background to-muted/20">
+        <CardContent className="p-4 sm:p-6 md:p-8">
+          <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-primary/20">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
               {customer.isBusiness ? (
-                <Building2 className="h-5 w-5 text-muted-foreground" />
+                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               ) : (
-                <User className="h-5 w-5 text-muted-foreground" />
+                <User className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               )}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                {customer.fullName}
+              </h2>
+              {customer.businessName && (
+                <p className="text-sm sm:text-base text-muted-foreground mt-1">{customer.businessName}</p>
+              )}
+            </div>
+          </div>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div className="p-2 rounded-md bg-primary/10">
+                <Phone className="h-5 w-5 text-primary" />
+              </div>
               <div>
-                <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold">{customer.fullName}</p>
-                {customer.businessName && (
-                  <p className="text-sm text-muted-foreground">{customer.businessName}</p>
-                )}
+                <p className="text-xs text-muted-foreground font-medium">Phone</p>
+                <p className="font-semibold text-sm sm:text-base">{customer.phoneNumber}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Phone className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Phone</p>
-                <p className="font-semibold">{customer.phoneNumber}</p>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div className="p-2 rounded-md bg-primary/10">
+                <MapPin className="h-5 w-5 text-primary" />
               </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Address</p>
+                <p className="text-xs text-muted-foreground font-medium">Address</p>
                 <p className="font-semibold text-sm">{customer.address}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div className="p-2 rounded-md bg-primary/10">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
               <div>
-                <p className="text-sm text-muted-foreground">Date & Time</p>
-                <p className="font-semibold text-sm">
-                  {currentDate.toLocaleDateString()} {currentDate.toLocaleTimeString()}
+                <p className="text-xs text-muted-foreground font-medium">Date & Time</p>
+                <p className="font-semibold text-sm" suppressHydrationWarning>
+                  {mounted && currentDate
+                    ? `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`
+                    : 'Loading...'}
                 </p>
               </div>
             </div>
@@ -154,8 +212,41 @@ export function ScanPageClient({
           nested={false}
         >
           <div className="space-y-4 w-full">
-            <div className="text-center mb-4 py-2 touch-none">
-              <h3 className="text-2xl font-bold">SCRAP</h3>
+            <div className="text-center mb-4 touch-none">
+              <div className="text-center mb-4 touch-none">
+                <div className="inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border-2 border-amber-500/30 shadow-lg backdrop-blur-sm mb-4">
+                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent drop-shadow-md">
+                    SCRAP
+                  </h3>
+                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
+                </div>
+              </div>
+              {/* Transaction Summary Card */}
+              <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-yellow-500/5 shadow-md">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-amber-500/20">
+                        <Scale className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Total DWT</p>
+                        <p className="text-lg font-bold text-amber-700">{scrapDwt.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-amber-500/20">
+                        <TrendingUp className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Total Value</p>
+                        <p className="text-lg font-bold text-amber-700">${scrapTotal.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
             <div className="relative z-0">
               <PricingTable
@@ -167,8 +258,41 @@ export function ScanPageClient({
             </div>
           </div>
           <div className="space-y-4 w-full">
-            <div className="text-center mb-4 py-2 touch-none">
-              <h3 className="text-2xl font-bold">MELT</h3>
+            <div className="text-center mb-4 touch-none">
+              <div className="text-center mb-4 touch-none">
+                <div className="inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-indigo-500/10 border-2 border-blue-500/30 shadow-lg backdrop-blur-sm mb-4">
+                  <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-blue-500 drop-shadow-md" />
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-md">
+                    MELT
+                  </h3>
+                  <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-blue-500 drop-shadow-md" />
+                </div>
+              </div>
+              {/* Transaction Summary Card */}
+              <Card className="border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/5 via-cyan-500/5 to-indigo-500/5 shadow-md">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-500/20">
+                        <Scale className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Total DWT</p>
+                        <p className="text-lg font-bold text-blue-700">{meltDwt.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-500/20">
+                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Total Value</p>
+                        <p className="text-lg font-bold text-blue-700">${meltTotal.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
             <div className="relative z-0">
               <PricingTable
@@ -181,6 +305,37 @@ export function ScanPageClient({
           </div>
         </Carousel>
       </div>
+
+      {/* Combined Totals Card */}
+      <Card className="border-2 border-primary/30 shadow-xl bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <TrendingUp className="h-6 w-6 text-primary" />
+              Grand Total
+            </h3>
+            <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-sm px-3 py-1">
+              Combined
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
+              <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
+                <Scale className="h-4 w-4" />
+                Total DWT (SCRAP + MELT)
+              </p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">{grandTotalDwt.toFixed(2)}</p>
+            </div>
+            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
+              <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
+                <Coins className="h-4 w-4" />
+                Total Value (SCRAP + MELT)
+              </p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">${grandTotal.toFixed(2)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -36,7 +36,25 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(price)
+    // Update all OPEN transactions to use the new spot prices
+    const updatedTransactions = await prisma.transaction.updateMany({
+      where: {
+        status: "OPEN",
+      },
+      data: {
+        goldSpot: parseFloat(gold),
+        silverSpot: parseFloat(silver),
+        platinumSpot: parseFloat(platinum),
+      },
+    })
+
+    return NextResponse.json({
+      id: price.id,
+      date: price.date,
+      gold: price.gold,
+      silver: price.silver,
+      platinum: price.platinum,
+    })
   } catch (error) {
     console.error("Error saving prices:", error)
     return NextResponse.json(
@@ -97,6 +115,23 @@ export async function PATCH(request: NextRequest) {
         platinum: metalType.toLowerCase() === "platinum" ? parseFloat(price) : existing?.platinum || 1000,
         createdByUserId: session.id,
       },
+    })
+
+    // Update all OPEN transactions to use the new spot prices
+    const updateTransactionData: { goldSpot?: number; silverSpot?: number; platinumSpot?: number } = {}
+    if (metalType.toLowerCase() === "gold") {
+      updateTransactionData.goldSpot = parseFloat(price)
+    } else if (metalType.toLowerCase() === "silver") {
+      updateTransactionData.silverSpot = parseFloat(price)
+    } else if (metalType.toLowerCase() === "platinum") {
+      updateTransactionData.platinumSpot = parseFloat(price)
+    }
+
+    await prisma.transaction.updateMany({
+      where: {
+        status: "OPEN",
+      },
+      data: updateTransactionData,
     })
 
     return NextResponse.json(priceData)

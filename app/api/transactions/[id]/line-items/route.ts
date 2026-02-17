@@ -8,12 +8,61 @@ import {
   calculateLineTotal,
 } from "@/lib/pricing"
 
+// GET endpoint to fetch line items
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireAuth()
+    const { id } = await params
+
+    // Get transaction with line items
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        lineItems: {
+          orderBy: [
+            { metalType: 'asc' },
+            { purityLabel: 'asc' },
+          ],
+        },
+      },
+    })
+
+    if (!transaction) {
+      return NextResponse.json(
+        { message: "Transaction not found" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      lineItems: transaction.lineItems,
+      updatedAt: transaction.updatedAt,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching line items:", error)
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+// POST endpoint to create/update line items
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const session = await requireAuth()
 
     const { id } = await params
     const body = await request.json()
@@ -75,6 +124,7 @@ export async function POST(
         await prisma.lineItem.delete({
           where: { id: existingItem.id },
         })
+        
         return NextResponse.json({ deleted: true })
       } else {
         // Update existing
@@ -86,6 +136,7 @@ export async function POST(
             lineTotal,
           },
         })
+        
         return NextResponse.json(updated)
       }
     } else {
@@ -103,6 +154,7 @@ export async function POST(
           lineTotal,
         },
       })
+      
       return NextResponse.json(created)
     }
   } catch (error) {
@@ -113,4 +165,3 @@ export async function POST(
     )
   }
 }
-

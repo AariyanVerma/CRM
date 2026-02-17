@@ -15,3 +15,4 @@ Place metal icon images in this directory:
 ## Fallback:
 If images are not found, the system will display a colored circle with the first letter of the metal name (G, S, P).
 
+
