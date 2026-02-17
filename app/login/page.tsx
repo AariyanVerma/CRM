@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { getSession, createSession, verifyCredentials } from "@/lib/auth"
 import { LoginForm } from "@/components/login-form"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Logo } from "@/components/logo"
 
 export default async function LoginPage({
   searchParams,
@@ -32,8 +33,8 @@ export default async function LoginPage({
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">NFC Membership CRM</h1>
+        <div className="container mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex justify-between items-center">
+          <Logo size="xl" showText={false} />
           <ThemeToggle />
         </div>
       </header>

@@ -112,3 +112,5 @@ curl -k https://192.168.1.108:3000
 3. Restart your tablet
 4. Try accessing from a different device to isolate the issue
 
+
+

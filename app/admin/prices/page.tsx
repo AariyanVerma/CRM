@@ -2,9 +2,8 @@ import { redirect } from "next/navigation"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { PricesForm } from "@/components/prices-form"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LogoutButton } from "@/components/logout-button"
 import { BackButton } from "@/components/back-button"
+import { PageHeader } from "@/components/page-header"
 
 export default async function PricesPage() {
   const session = await requireAdmin().catch(() => null)
@@ -21,15 +20,7 @@ export default async function PricesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Daily Prices</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <PageHeader title="Daily Prices" />
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="space-y-6">

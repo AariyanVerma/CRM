@@ -27,8 +27,7 @@ export function NFCScanCard() {
       const isHTTPS = typeof window !== "undefined" && window.location.protocol === "https:"
       
       if (!isSecureContext && !isLocalhost) {
-        const currentUrl = typeof window !== "undefined" ? window.location.href : ""
-        setError(`NFC requires HTTPS. You're accessing via: ${currentUrl}. Quick fix: Run "npx ngrok http 3000" on your laptop, then use the HTTPS URL on your tablet.`)
+        setError("NFC requires a secure connection (HTTPS).")
         return false
       }
 
@@ -36,7 +35,7 @@ export function NFCScanCard() {
         setNfcSupported(true)
         return true
       } else {
-        setError("Web NFC is not supported in this browser. Try Chrome on Android or Samsung Internet.")
+        setError("NFC scanning is not supported in this browser.")
         return false
       }
     }
@@ -334,34 +333,11 @@ export function NFCScanCard() {
       <CardContent className="flex flex-col items-center justify-center py-16 px-8">
         {error ? (
           <>
-            <AlertCircle className="w-16 h-16 text-destructive mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-destructive">NFC Not Available</h2>
-            <p className="text-muted-foreground text-center text-sm mb-4">
-              {error}
+            <AlertCircle className="w-12 h-12 text-destructive mb-4 animate-pulse" />
+            <h2 className="text-lg font-semibold mb-2 text-destructive">NFC Not Available</h2>
+            <p className="text-muted-foreground text-center text-sm max-w-sm">
+              NFC scanning is not supported in this browser. Please use the manual entry option below.
             </p>
-            <div className="text-xs text-muted-foreground text-center space-y-2">
-              <p className="font-semibold">Solutions:</p>
-              <p>
-                <strong>Option 1:</strong> Use ngrok for HTTPS tunnel
-                <br />
-                <code className="bg-muted px-2 py-1 rounded text-[10px] block mt-1">
-                  npx ngrok http 3000
-                </code>
-              </p>
-              <p>
-                <strong>Option 2:</strong> Set up local HTTPS
-                <br />
-                See HTTPS_SETUP.md in project
-              </p>
-              <p>
-                <strong>Option 3:</strong> Use manual entry below
-              </p>
-              <p className="pt-2 border-t">
-                Also ensure:
-                <br />• Chrome on Android (latest)
-                <br />• NFC enabled in device settings
-              </p>
-            </div>
           </>
         ) : scanning ? (
           <>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, ReactNode } from "react"
+import { useState, useEffect, useRef, useCallback, ReactNode } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -28,6 +28,7 @@ export function Carousel({
 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const isTransitioningRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number>(0)
   const touchEndX = useRef<number>(0)
@@ -57,19 +58,87 @@ export function Carousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const goToNext = useCallback(() => {
+    // Move to next slide by incrementing real index
+    if (isTransitioningRef.current) {
+      // If already transitioning, skip this call to prevent queueing
+      return
+    }
+    
+    setIsTransitioning(true)
+    isTransitioningRef.current = true
+    
+    setRealIndex((prevRealIndex) => {
+      const newRealIndex = prevRealIndex + 1
+      const normalizedIndex = ((newRealIndex - startIndex) % itemCount + itemCount) % itemCount
+      
+      setCurrentIndex(normalizedIndex)
+      
+      if (containerRef.current) {
+        containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
+        const translatePercent = newRealIndex * slideWidthPercent
+        containerRef.current.style.transform = `translateX(-${translatePercent}%)`
+      }
+      
+      // Reset position seamlessly after transition
+      setTimeout(() => {
+        if (containerRef.current) {
+          // Check if we've reached the end of the duplicated set
+          if (newRealIndex >= itemCount * 2) {
+            // Instantly jump to equivalent position in middle set (no transition = invisible)
+            containerRef.current.style.transition = "none"
+            const resetIndex = startIndex + normalizedIndex
+            setRealIndex(resetIndex)
+            const translatePercent = resetIndex * slideWidthPercent
+            containerRef.current.style.transform = `translateX(-${translatePercent}%)`
+          }
+        }
+        setIsTransitioning(false)
+        isTransitioningRef.current = false
+      }, 500)
+      
+      return newRealIndex
+    })
+  }, [itemCount, startIndex, slideWidthPercent])
+
   useEffect(() => {
     if (autoPlay) {
-      autoPlayTimer.current = setInterval(() => {
-        goToNext()
-      }, autoPlayInterval)
-      return () => {
+      // Clear any existing timer first
+      if (autoPlayTimer.current) {
+        clearInterval(autoPlayTimer.current)
+        autoPlayTimer.current = null
+      }
+      
+      // Start auto-play after a delay to ensure initial render is complete
+      const startAutoPlay = () => {
         if (autoPlayTimer.current) {
           clearInterval(autoPlayTimer.current)
         }
+        autoPlayTimer.current = setInterval(() => {
+          // Only advance if not currently transitioning
+          if (!isTransitioningRef.current) {
+            goToNext()
+          }
+        }, autoPlayInterval)
+      }
+      
+      // Small delay to ensure carousel is initialized
+      const timeout = setTimeout(startAutoPlay, 100)
+      
+      return () => {
+        if (autoPlayTimer.current) {
+          clearInterval(autoPlayTimer.current)
+          autoPlayTimer.current = null
+        }
+        clearTimeout(timeout)
+      }
+    } else {
+      if (autoPlayTimer.current) {
+        clearInterval(autoPlayTimer.current)
+        autoPlayTimer.current = null
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, autoPlayInterval])
+  }, [autoPlay, autoPlayInterval, goToNext])
 
   const goToSlide = (index: number, smooth = true) => {
     if (isTransitioning) return
@@ -127,39 +196,12 @@ export function Carousel({
           }
         }
         setIsTransitioning(false)
+        isTransitioningRef.current = false
       }, 500)
     } else {
       setIsTransitioning(false)
+      isTransitioningRef.current = false
     }
-  }
-
-  const goToNext = () => {
-    // Move to next slide by incrementing real index
-    if (isTransitioning) return
-    setIsTransitioning(true)
-    const newRealIndex = realIndex + 1
-    const normalizedIndex = ((newRealIndex - startIndex) % itemCount + itemCount) % itemCount
-    
-    setCurrentIndex(normalizedIndex)
-    setRealIndex(newRealIndex)
-    
-    if (containerRef.current) {
-      containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
-      const translatePercent = newRealIndex * slideWidthPercent
-      containerRef.current.style.transform = `translateX(-${translatePercent}%)`
-    }
-    
-    // Reset position seamlessly after transition
-    setTimeout(() => {
-      if (containerRef.current && newRealIndex >= itemCount * 2) {
-        containerRef.current.style.transition = "none"
-        const resetIndex = startIndex + normalizedIndex
-        setRealIndex(resetIndex)
-        const translatePercent = resetIndex * slideWidthPercent
-        containerRef.current.style.transform = `translateX(-${translatePercent}%)`
-      }
-      setIsTransitioning(false)
-    }, 500)
   }
 
   const goToPrev = () => {
@@ -188,6 +230,7 @@ export function Carousel({
         containerRef.current.style.transform = `translateX(-${translatePercent}%)`
       }
       setIsTransitioning(false)
+      isTransitioningRef.current = false
     }, 500)
   }
 
@@ -204,8 +247,9 @@ export function Carousel({
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
     isHorizontalSwipe.current = false
-    if (autoPlayTimer.current) {
+    if (autoPlay && autoPlayTimer.current) {
       clearInterval(autoPlayTimer.current)
+      autoPlayTimer.current = null
     }
     // Allow the event to bubble up for vertical scrolling
   }
@@ -278,9 +322,12 @@ export function Carousel({
 
     isHorizontalSwipe.current = false
 
-    if (autoPlay) {
+    // Restart auto-play if it was stopped
+    if (autoPlay && !autoPlayTimer.current) {
       autoPlayTimer.current = setInterval(() => {
-        goToNext()
+        if (!isTransitioningRef.current) {
+          goToNext()
+        }
       }, autoPlayInterval)
     }
   }
@@ -293,8 +340,9 @@ export function Carousel({
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true
     dragStartX.current = e.clientX
-    if (autoPlayTimer.current) {
+    if (autoPlay && autoPlayTimer.current) {
       clearInterval(autoPlayTimer.current)
+      autoPlayTimer.current = null
     }
   }
 
@@ -331,12 +379,15 @@ export function Carousel({
         containerRef.current.style.transform = `translateX(-${translatePercent}%)`
       }
     }
-    
+
     dragOffset.current = 0
     
-    if (autoPlay) {
+    // Restart auto-play if it was stopped
+    if (autoPlay && !autoPlayTimer.current) {
       autoPlayTimer.current = setInterval(() => {
-        goToNext()
+        if (!isTransitioningRef.current) {
+          goToNext()
+        }
       }, autoPlayInterval)
     }
   }

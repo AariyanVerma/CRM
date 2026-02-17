@@ -5,11 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LogoutButton } from "@/components/logout-button"
 import { IssueCardDialog } from "@/components/issue-card-dialog"
 import { Badge } from "@/components/ui/badge"
 import { BackButton } from "@/components/back-button"
+import { PageHeader } from "@/components/page-header"
 
 export default async function CustomerDetailPage({
   params,
@@ -61,15 +60,7 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Customer Details</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+        <PageHeader title="Customer Details" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">

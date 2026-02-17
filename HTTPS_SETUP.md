@@ -94,3 +94,5 @@ Once HTTPS is set up:
 3. The NFC scanner should automatically start
 4. Tap your membership card on the screen
 
+
+

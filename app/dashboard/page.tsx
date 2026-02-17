@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Users, CreditCard, DollarSign, TrendingUp } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LogoutButton } from "@/components/logout-button"
 import { BackButton } from "@/components/back-button"
+import { PageHeader } from "@/components/page-header"
+import { UserMenu } from "@/components/user-menu"
+import { MetalPricesCarousel } from "@/components/metal-prices-carousel"
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -31,18 +32,17 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{session.email}</span>
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <PageHeader 
+        title="Dashboard" 
+        rightContent={
+          <>
+            <span className="hidden sm:inline text-sm text-muted-foreground">{session.email}</span>
+            <UserMenu email={session.email} role={session.role} />
+          </>
+        }
+      />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <div className="space-y-6">
           <BackButton href="/" label="Home" />
           <div>
@@ -94,16 +94,15 @@ export default async function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today&apos;s Gold</CardTitle>
+                <CardTitle className="text-sm font-medium">Metal Prices</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  ${todayPrices?.gold.toFixed(2) || 'N/A'}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Spot price per oz
-                </p>
+              <CardContent className="pt-2">
+                <MetalPricesCarousel
+                  gold={todayPrices?.gold ?? null}
+                  silver={todayPrices?.silver ?? null}
+                  platinum={todayPrices?.platinum ?? null}
+                />
               </CardContent>
             </Card>
           </div>
@@ -135,7 +134,7 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <Link href="/scan" className="block">
-                  <Button className="w-full">Manual Scan Entry</Button>
+                  <Button className="w-full">Scan Entry</Button>
                 </Link>
               </CardContent>
             </Card>

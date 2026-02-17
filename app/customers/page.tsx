@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Plus, Search } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LogoutButton } from "@/components/logout-button"
 import { CustomersList } from "@/components/customers-list"
 import { BackButton } from "@/components/back-button"
+import { PageHeader } from "@/components/page-header"
 
 export default async function CustomersPage({
   searchParams,
@@ -47,17 +46,9 @@ export default async function CustomersPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Customers</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <PageHeader title="Customers" />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <div className="space-y-6">
           <BackButton href="/dashboard" />
           <div className="flex justify-between items-center">

@@ -3,10 +3,9 @@ import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LogoutButton } from "@/components/logout-button"
 import { UsersList } from "@/components/users-list"
 import { BackButton } from "@/components/back-button"
+import { PageHeader } from "@/components/page-header"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
@@ -22,15 +21,7 @@ export default async function UsersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Manage Users</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <PageHeader title="Manage Users" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { ScanPageClient } from "@/components/scan-page-client"
+import { PageHeader } from "@/components/page-header"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoutButton } from "@/components/logout-button"
 
@@ -25,15 +26,7 @@ export default async function ScanPage({
   if (!card || card.status !== "ACTIVE") {
     return (
       <div className="min-h-screen bg-background">
-        <header className="border-b">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Invalid Card</h1>
-            <div className="flex items-center gap-4">
-              <ThemeToggle />
-              <LogoutButton />
-            </div>
-          </div>
-        </header>
+        <PageHeader title="Invalid Card" />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-muted-foreground">Card not found or inactive</p>
@@ -63,15 +56,7 @@ export default async function ScanPage({
   if (!todayPrice) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="border-b">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">No Prices Set</h1>
-            <div className="flex items-center gap-4">
-              <ThemeToggle />
-              <LogoutButton />
-            </div>
-          </div>
-        </header>
+        <PageHeader title="No Prices Set" />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-muted-foreground">
@@ -135,21 +120,14 @@ export default async function ScanPage({
 
   return (
     <div className="min-h-screen bg-background" style={{ overflowY: "auto", height: "100vh" }}>
-      <header className="border-b sticky top-0 z-50 bg-background">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Transaction</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <PageHeader title="Transaction" />
 
-      <main className="container mx-auto px-4 py-8" style={{ touchAction: "pan-y" }}>
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8" style={{ touchAction: "pan-y", maxWidth: "100vw", overflowX: "hidden" }}>
         <ScanPageClient
           customer={card.customer}
           scrapTransaction={scrapTransaction}
           meltTransaction={meltTransaction}
+          userRole={session.role}
         />
       </main>
     </div>

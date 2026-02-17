@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React from "react"
+import { Logo } from "@/components/logo"
 
 interface Customer {
   id: string
@@ -33,10 +34,6 @@ interface Transaction {
 }
 
 export function PrintView({ transaction }: { transaction: Transaction }) {
-  useEffect(() => {
-    // Auto-print when component mounts
-    window.print()
-  }, [])
 
   // Group line items by metal type
   const groupedItems: Record<string, LineItem[]> = {
@@ -66,22 +63,47 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         @media print {
           @page {
             size: 4in 6in;
-            margin: 0.25in;
+            margin: 0.2in;
           }
-          body {
+          * {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            color-adjust: exact;
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: white;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+          }
+          ::-webkit-scrollbar {
+            display: none;
+          }
+          * {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
           }
           .no-print {
-            display: none;
+            display: none !important;
+          }
+        }
+        @media screen {
+          body {
+            background: #f5f5f5;
           }
         }
       `}</style>
 
-      <div className="max-w-full mx-auto print:max-w-none">
+      <div className="max-w-full mx-auto print:max-w-none print:w-full">
         {/* Header */}
         <div className="mb-4 pb-3 border-b-2 border-black">
-          <h1 className="text-2xl font-bold mb-1">PRECIOUS METALS TRANSACTION</h1>
+          <div className="mb-2 flex justify-center">
+            <Logo size="lg" showText={false} className="print:max-h-16" />
+          </div>
+          <h1 className="text-2xl font-bold mb-1">NEW YORK GOLD MARKET</h1>
+          <p className="text-sm font-semibold mb-2">Precious Metals Transaction</p>
           <div className="text-sm space-y-1">
             <p>
               <strong>Customer:</strong> {transaction.customer.fullName}

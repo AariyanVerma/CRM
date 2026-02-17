@@ -44,10 +44,12 @@ export function ScanPageClient({
   customer,
   scrapTransaction,
   meltTransaction,
+  userRole,
 }: {
   customer: Customer
   scrapTransaction: Transaction
   meltTransaction: Transaction
+  userRole: "ADMIN" | "STAFF"
 }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -61,30 +63,8 @@ export function ScanPageClient({
   async function handlePrint(type: "SCRAP" | "MELT") {
     const transaction = type === "SCRAP" ? scrapTransaction : meltTransaction
     
-    // Mark as printed
-    try {
-      const res = await fetch(`/api/transactions/${transaction.id}/print`, {
-        method: "POST",
-      })
-
-      if (!res.ok) {
-        throw new Error("Failed to mark transaction as printed")
-      }
-
-      // Open print window
-      window.open(`/print/${transaction.id}`, "_blank")
-      
-      toast({
-        title: "Printing",
-        description: `${type} transaction is being printed.`,
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print",
-        variant: "destructive",
-      })
-    }
+    // Navigate to print preview page
+    window.location.href = `/print/${transaction.id}`
   }
 
   async function handleNewTransaction(type: "SCRAP" | "MELT") {
@@ -119,8 +99,8 @@ export function ScanPageClient({
 
       {/* Customer Header Card */}
       <Card className="border-2">
-        <CardContent className="p-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-3">
               {customer.isBusiness ? (
                 <Building2 className="h-5 w-5 text-muted-foreground" />
@@ -182,6 +162,7 @@ export function ScanPageClient({
                 transaction={scrapTransaction}
                 onPrint={() => handlePrint("SCRAP")}
                 onNewTransaction={() => handleNewTransaction("SCRAP")}
+                userRole={userRole}
               />
             </div>
           </div>
@@ -194,6 +175,7 @@ export function ScanPageClient({
                 transaction={meltTransaction}
                 onPrint={() => handlePrint("MELT")}
                 onNewTransaction={() => handleNewTransaction("MELT")}
+                userRole={userRole}
               />
             </div>
           </div>

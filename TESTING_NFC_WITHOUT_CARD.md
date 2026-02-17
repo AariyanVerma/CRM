@@ -99,3 +99,5 @@ But note: This token won't exist in your database, so you'll get an "Invalid Car
 
 For now, use **Option 1 (Manual Entry)** to test the full system. The NFC scanning is just an alternative input method - the rest of the system works identically whether you scan or enter manually.
 
+
+
