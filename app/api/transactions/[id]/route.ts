@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getIO } from "@/lib/ioServer"
 
 export async function PATCH(
   request: NextRequest,
@@ -24,6 +25,14 @@ export async function PATCH(
       data: { status },
     })
 
+    // Emit socket event after successful status update
+    try {
+      const io = getIO()
+      io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })
+    } catch (error) {
+      console.error("Error emitting socket event:", error)
+    }
+
     return NextResponse.json(transaction)
   } catch (error) {
     console.error("Error updating transaction:", error)
@@ -46,6 +55,14 @@ export async function DELETE(
     await prisma.transaction.delete({
       where: { id },
     })
+
+    // Emit socket event after successful deletion
+    try {
+      const io = getIO()
+      io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })
+    } catch (error) {
+      console.error("Error emitting socket event:", error)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -92,7 +92,7 @@ export function NFCScanCard() {
             toast({
               title: "Card Detected",
               description: "Card detected but not in expected format. This card may not be a membership card.",
-              variant: "default",
+              variant: "warning",
             })
             setTimeout(() => {
               if (ndefReaderRef.current) {
@@ -107,7 +107,7 @@ export function NFCScanCard() {
             toast({
               title: "Card Detected",
               description: "Card detected but contains no readable data. This may not be a membership card.",
-              variant: "default",
+              variant: "warning",
             })
             // Restart scanning
             setTimeout(() => {
@@ -221,6 +221,7 @@ export function NFCScanCard() {
               toast({
                 title: "Card Scanned!",
                 description: "Redirecting to transaction page...",
+                variant: "success",
               })
               router.push(`/scan/${token}`)
               return
@@ -234,6 +235,7 @@ export function NFCScanCard() {
               toast({
                 title: "Card Scanned!",
                 description: "Redirecting to transaction page...",
+                variant: "success",
               })
               router.push(`/scan/${trimmedText}`)
               return
@@ -251,7 +253,7 @@ export function NFCScanCard() {
           toast({
             title: "Card Detected",
             description: "Card detected but doesn't contain a membership token. This may be a different type of card (debit/credit). Please use a membership card or enter token manually.",
-            variant: "default",
+            variant: "warning",
           })
           // Restart scanning after error
           setTimeout(() => {

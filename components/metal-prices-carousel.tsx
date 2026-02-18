@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Carousel } from "@/components/carousel"
-import { usePricePolling } from "@/hooks/use-price-polling"
+import { useSocketPrices } from "@/hooks/use-socket-prices"
 
 interface MetalPricesCarouselProps {
   gold: number | null
@@ -14,8 +14,8 @@ interface MetalPricesCarouselProps {
 export function MetalPricesCarousel({ gold, silver, platinum }: MetalPricesCarouselProps) {
   const [prices, setPrices] = useState({ gold, silver, platinum })
 
-  // Poll for price updates (fast polling for real-time updates)
-  usePricePolling(
+  // Socket-based price updates (real-time push updates)
+  useSocketPrices(
     useCallback((newPrices) => {
       setPrices({
         gold: newPrices.gold,
@@ -23,7 +23,7 @@ export function MetalPricesCarousel({ gold, silver, platinum }: MetalPricesCarou
         platinum: newPrices.platinum,
       })
     }, []),
-    { interval: 500, enabled: true }
+    { enabled: true }
   )
 
   const metals = [

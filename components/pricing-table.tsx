@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { usePricePolling } from "@/hooks/use-price-polling"
-import { useTransactionPolling } from "@/hooks/use-transaction-polling"
+import { useSocketPrices } from "@/hooks/use-socket-prices"
+import { useSocketTransaction } from "@/hooks/use-socket-transaction"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Loader2 } from "lucide-react"
+import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles } from "lucide-react"
 import {
   getPricingRows,
   type MetalType,
@@ -56,11 +55,11 @@ export function PricingTable({
     silver: transaction.silverSpot,
     platinum: transaction.platinumSpot,
   })
-  const [percentage, setPercentage] = useState(95)
-  const [savingPrice, setSavingPrice] = useState<Record<string, boolean>>({})
-  const [savingPercentage, setSavingPercentage] = useState(false)
+  const [percentage, setPercentage] = useState<number | string>(95)
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const lastEditTimeRef = useRef<Record<string, number>>({}) // Track when each field was last edited
+  const isTypingRef = useRef<Record<string, boolean>>({}) // Track if user is actively typing
+  const pendingPriceRef = useRef<Record<string, number>>({}) // Track pending price values
 
   // Initialize DWT values from line items
   useEffect(() => {
@@ -72,21 +71,24 @@ export function PricingTable({
     setDwtValues(values)
   }, [transaction.lineItems])
 
-  // Poll for price updates (fast polling for real-time updates)
-  usePricePolling(
+  // Socket-based price updates (real-time push updates)
+  useSocketPrices(
     useCallback((prices) => {
       setSpotPrices({
         gold: prices.gold,
         silver: prices.silver,
         platinum: prices.platinum,
       })
-      setPercentage(prices.percentage || 95)
+      // Only update percentage if user is not currently typing
+      if (!isTypingRef.current['percentage']) {
+        setPercentage(prices.percentage || 95)
+      }
     }, []),
-    { interval: 500, enabled: true }
+    { enabled: true }
   )
 
-  // Poll for transaction line items updates (real-time DWT sync)
-  useTransactionPolling(
+  // Socket-based transaction line items updates (real-time DWT sync)
+  useSocketTransaction(
     transaction.id,
     useCallback((lineItems) => {
       // Update DWT values from polled line items
@@ -130,7 +132,7 @@ export function PricingTable({
         return hasChanges ? updated : prev
       })
     }, []),
-    { interval: 500, enabled: true }
+    { enabled: true }
   )
 
   // Debounced save function
@@ -169,6 +171,7 @@ export function PricingTable({
             toast({
               title: "Saved",
               description: `${purity} ${metalType} updated`,
+              variant: "success",
             })
           } catch (error) {
             // Clear saving state on error
@@ -205,23 +208,34 @@ export function PricingTable({
     debouncedSave(metalType, purity, 0)
   }
 
-  // Debounced price update function
+  // Debounced price update function with longer delay
   const debouncedPriceUpdate = useCallback(
     (() => {
       let timeout: NodeJS.Timeout | null = null
       return (metalType: string, price: number) => {
+        // Store pending price
+        pendingPriceRef.current[metalType] = price
+        // Mark as typing
+        isTypingRef.current[metalType] = true
+        
         if (timeout) clearTimeout(timeout)
         timeout = setTimeout(async () => {
-          setSavingPrice((prev) => ({ ...prev, [metalType]: true }))
+          // Check if user is still typing (if they typed again, this will be cancelled)
+          if (!isTypingRef.current[metalType]) return
+          
+          // Get the latest pending price
+          const priceToSave = pendingPriceRef.current[metalType]
+          isTypingRef.current[metalType] = false
+          
           try {
             const res = await fetch("/api/admin/prices", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 metalType,
-                price,
+                price: priceToSave,
               }),
-              credentials: 'include', // Ensure cookies are sent
+              credentials: 'include',
             })
 
             if (!res.ok) {
@@ -231,54 +245,51 @@ export function PricingTable({
 
             const updated = await res.json()
             
-            // Clear saving state immediately after successful save
-            setSavingPrice((prev) => {
-              const updated = { ...prev }
-              delete updated[metalType]
-              return updated
-            })
-            
-            // Update prices from response
-            setSpotPrices({
-              gold: updated.gold,
-              silver: updated.silver,
-              platinum: updated.platinum,
-            })
-            if (updated.percentage !== undefined) {
-              setPercentage(updated.percentage)
+            // Only update from response if user is not currently typing
+            if (!isTypingRef.current[metalType]) {
+              setSpotPrices((prev) => ({
+                ...prev,
+                gold: updated.gold,
+                silver: updated.silver,
+                platinum: updated.platinum,
+              }))
+              if (updated.percentage !== undefined) {
+                setPercentage(updated.percentage)
+              }
             }
 
             toast({
               title: "Price updated",
-              description: `${metalType} spot price updated to $${price.toFixed(2)}`,
+              description: `${metalType} spot price updated to $${priceToSave.toFixed(2)}`,
+              variant: "success",
             })
           } catch (error) {
-            // Clear saving state on error
-            setSavingPrice((prev) => {
-              const updated = { ...prev }
-              delete updated[metalType]
-              return updated
-            })
-            
             toast({
               title: "Error",
               description: error instanceof Error ? error.message : "Failed to update price",
               variant: "destructive",
             })
           }
-        }, 1000)
+        }, 2500) // Increased to 2.5 seconds to give admin more time
       }
     })()
   , [toast])
 
-  // Debounced percentage update function
+  // Debounced percentage update function with longer delay
   const debouncedPercentageUpdate = useCallback(
     (() => {
       let timeout: NodeJS.Timeout | null = null
       return (percentageValue: number) => {
+        // Mark as typing
+        isTypingRef.current['percentage'] = true
+        
         if (timeout) clearTimeout(timeout)
         timeout = setTimeout(async () => {
-          setSavingPercentage(true)
+          // Check if user is still typing
+          if (!isTypingRef.current['percentage']) return
+          
+          isTypingRef.current['percentage'] = false
+          
           try {
             const res = await fetch("/api/admin/prices", {
               method: "PATCH",
@@ -297,11 +308,16 @@ export function PricingTable({
             }
 
             const updated = await res.json()
-            setPercentage(updated.percentage || 95)
+            
+            // Only update from response if user is not currently typing
+            if (!isTypingRef.current['percentage']) {
+              setPercentage(updated.percentage || 95)
+            }
 
             toast({
               title: "Percentage updated",
               description: `Percentage updated to ${percentageValue.toFixed(2)}%`,
+              variant: "success",
             })
           } catch (error) {
             toast({
@@ -309,10 +325,8 @@ export function PricingTable({
               description: error instanceof Error ? error.message : "Failed to update percentage",
               variant: "destructive",
             })
-          } finally {
-            setSavingPercentage(false)
           }
-        }, 1000)
+        }, 2500) // Increased to 2.5 seconds to give admin more time
       }
     })()
   , [toast, spotPrices.gold])
@@ -322,17 +336,46 @@ export function PricingTable({
     if (numValue < 0) return
 
     const metalKey = metalType.toLowerCase()
+    
+    // Update local state immediately for responsive UI
     setSpotPrices((prev) => ({
       ...prev,
       [metalKey]: numValue,
     }))
+    
+    // Debounce the save
     debouncedPriceUpdate(metalKey, numValue)
   }
 
   function handlePercentageChange(value: string) {
-    const numValue = parseFloat(value) || 95
+    // Mark as typing immediately
+    isTypingRef.current['percentage'] = true
+    
+    // Allow empty string for clearing the field
+    if (value === "" || value === null || value === undefined) {
+      setPercentage("") // Allow empty to clear field
+      // Clear the typing flag after a short delay to allow clearing
+      setTimeout(() => {
+        if (value === "") {
+          isTypingRef.current['percentage'] = false
+        }
+      }, 100)
+      return
+    }
+    
+    const numValue = parseFloat(value)
+    
+    // If not a valid number, don't update
+    if (isNaN(numValue)) {
+      return
+    }
+    
     if (numValue < 0 || numValue > 100) return
+    
+    // Update local state immediately for responsive UI
     setPercentage(numValue)
+    
+    // Debounce the save
     debouncedPercentageUpdate(numValue)
   }
 
@@ -373,7 +416,7 @@ export function PricingTable({
         (item) => item.metalType === metalType && item.purityLabel === purity
       )
 
-      const rows = getPricingRows(metalType, spotPrice, { [purity]: dwt }, metalType === "GOLD" ? percentage : 95)
+      const rows = getPricingRows(metalType, spotPrice, { [purity]: dwt }, metalType === "GOLD" ? (typeof percentage === 'number' ? percentage : 95) : 95)
       const row = rows.find((r) => r.purity === purity)!
 
       return {
@@ -483,9 +526,6 @@ export function PricingTable({
                       }`}
                       placeholder="0.00"
                     />
-                    {row.saving && (
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    )}
                   </div>
                 </td>
                 <td className={`p-2 sm:p-3 md:p-4 text-center font-bold overflow-hidden text-ellipsis text-base sm:text-lg ${
@@ -598,11 +638,6 @@ export function PricingTable({
                   className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="0.00"
                 />
-                {savingPrice[metalType.toLowerCase()] && (
-                  <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
-                    Saving...
-                  </Badge>
-                )}
               </div>
               {metalType === "GOLD" && (
                 <>
@@ -613,16 +648,11 @@ export function PricingTable({
                       step="0.01"
                       min="0"
                       max="100"
-                      value={percentage || ""}
+                      value={percentage === "" ? "" : (percentage || "")}
                       onChange={(e) => handlePercentageChange(e.target.value)}
                       className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                       placeholder="95.00"
                     />
-                    {savingPercentage && (
-                      <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
-                        Saving...
-                      </Badge>
-                    )}
                   </div>
                 </>
               )}
@@ -776,11 +806,6 @@ export function PricingTable({
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
-                  {savingPrice.gold && (
-                    <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
-                      Saving...
-                    </Badge>
-                  )}
                 </div>
                 <label className="text-base sm:text-lg md:text-xl font-black text-foreground">%</label>
                 <div className="flex items-center gap-3">
@@ -789,16 +814,11 @@ export function PricingTable({
                     step="0.01"
                     min="0"
                     max="100"
-                    value={percentage || ""}
+                    value={percentage === "" ? "" : (percentage || "")}
                     onChange={(e) => handlePercentageChange(e.target.value)}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
-                  {savingPercentage && (
-                    <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
-                      Saving...
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}
@@ -848,11 +868,6 @@ export function PricingTable({
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
-                  {savingPrice.silver && (
-                    <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
-                      Saving...
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}
@@ -902,11 +917,6 @@ export function PricingTable({
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
-                  {savingPrice.platinum && (
-                    <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
-                      Saving...
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}

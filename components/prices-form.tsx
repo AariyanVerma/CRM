@@ -66,6 +66,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
       toast({
         title: "Prices saved",
         description: "Daily prices have been updated successfully.",
+        variant: "success",
       })
       router.refresh()
     } catch (error) {

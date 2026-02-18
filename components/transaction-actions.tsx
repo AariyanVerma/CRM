@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -103,6 +103,7 @@ export function TransactionActions({
       toast({
         title: "Transaction updated",
         description: "Transaction status has been updated successfully.",
+        variant: "success",
       })
       setEditOpen(false)
       onUpdate?.()
@@ -134,6 +135,7 @@ export function TransactionActions({
       toast({
         title: "Transaction deleted",
         description: "Transaction has been deleted successfully.",
+        variant: "success",
       })
       setDeleteOpen(false)
       onUpdate?.()
@@ -176,6 +178,7 @@ export function TransactionActions({
       toast({
         title: "Transaction moved",
         description: "Transaction has been moved to the selected customer.",
+        variant: "success",
       })
       setMoveOpen(false)
       onUpdate?.()

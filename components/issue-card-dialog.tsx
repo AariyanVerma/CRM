@@ -39,6 +39,7 @@ export function IssueCardDialog({ customerId }: { customerId: string }) {
       toast({
         title: "Card issued",
         description: "New NFC card has been issued successfully.",
+        variant: "success",
       })
       setOpen(false)
       router.refresh()

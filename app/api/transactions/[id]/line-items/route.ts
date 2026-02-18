@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getIO } from "@/lib/ioServer"
 import {
   calculateGoldPricePerOz,
   calculateSilverPricePerOz,
@@ -136,6 +137,14 @@ export async function POST(
           where: { id: existingItem.id },
         })
         
+        // Emit socket event after successful deletion
+        try {
+          const io = getIO()
+          io.to(`tx:${id}`).emit("line_items_changed", { transactionId: id })
+        } catch (error) {
+          console.error("Error emitting socket event:", error)
+        }
+        
         return NextResponse.json({ deleted: true })
       } else {
         // Update existing
@@ -147,6 +156,14 @@ export async function POST(
             lineTotal,
           },
         })
+        
+        // Emit socket event after successful update
+        try {
+          const io = getIO()
+          io.to(`tx:${id}`).emit("line_items_changed", { transactionId: id })
+        } catch (error) {
+          console.error("Error emitting socket event:", error)
+        }
         
         return NextResponse.json(updated)
       }
@@ -165,6 +182,14 @@ export async function POST(
           lineTotal,
         },
       })
+      
+      // Emit socket event after successful creation
+      try {
+        const io = getIO()
+        io.to(`tx:${id}`).emit("line_items_changed", { transactionId: id })
+      } catch (error) {
+        console.error("Error emitting socket event:", error)
+      }
       
       return NextResponse.json(created)
     }

@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Printer } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { Carousel } from "@/components/carousel"
-import { useTransactionPolling } from "@/hooks/use-transaction-polling"
+import { useSocketTransaction } from "@/hooks/use-socket-transaction"
 
 interface Customer {
   id: string
@@ -68,22 +68,22 @@ export function ScanPageClient({
     return () => clearInterval(timer)
   }, [])
 
-  // Poll for scrap transaction updates
-  useTransactionPolling(
+  // Socket-based scrap transaction updates
+  useSocketTransaction(
     scrapTransaction.id,
     (lineItems) => {
       setScrapLineItems(lineItems)
     },
-    { interval: 500, enabled: true }
+    { enabled: true }
   )
 
-  // Poll for melt transaction updates
-  useTransactionPolling(
+  // Socket-based melt transaction updates
+  useSocketTransaction(
     meltTransaction.id,
     (lineItems) => {
       setMeltLineItems(lineItems)
     },
-    { interval: 500, enabled: true }
+    { enabled: true }
   )
 
   async function handlePrint(type: "SCRAP" | "MELT") {
@@ -106,6 +106,7 @@ export function ScanPageClient({
       toast({
         title: "New Transaction",
         description: `New ${type} transaction created.`,
+        variant: "success",
       })
       
       router.refresh()

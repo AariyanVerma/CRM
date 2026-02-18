@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getIO } from "@/lib/ioServer"
 
 export async function POST(
   request: NextRequest,
@@ -14,6 +15,14 @@ export async function POST(
       where: { id },
       data: { status: "PRINTED" },
     })
+
+    // Emit socket event after successful status update
+    try {
+      const io = getIO()
+      io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })
+    } catch (error) {
+      console.error("Error emitting socket event:", error)
+    }
 
     return NextResponse.json(transaction)
   } catch (error) {

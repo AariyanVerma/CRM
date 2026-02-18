@@ -47,6 +47,7 @@ export function NewCustomerForm() {
       toast({
         title: "Customer created",
         description: "Customer record has been created successfully.",
+        variant: "success",
       })
       router.push(`/customers/${customer.id}`)
     } catch (error) {

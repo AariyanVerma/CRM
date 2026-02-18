@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getIO } from "@/lib/ioServer"
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +50,16 @@ export async function POST(request: NextRequest) {
         platinumSpot: parseFloat(platinum),
       },
     })
+
+    // Emit socket event after successful price update
+    try {
+      const io = getIO()
+      io.to("prices").emit("prices_changed", { 
+        updatedAt: price.updatedAt.getTime() 
+      })
+    } catch (error) {
+      console.error("Error emitting socket event:", error)
+    }
 
     return NextResponse.json({
       id: price.id,
@@ -140,6 +151,16 @@ export async function PATCH(request: NextRequest) {
       },
       data: updateTransactionData,
     })
+
+    // Emit socket event after successful price update
+    try {
+      const io = getIO()
+      io.to("prices").emit("prices_changed", { 
+        updatedAt: priceData.updatedAt.getTime() 
+      })
+    } catch (error) {
+      console.error("Error emitting socket event:", error)
+    }
 
     return NextResponse.json(priceData)
   } catch (error) {

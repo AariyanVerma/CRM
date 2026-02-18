@@ -47,6 +47,7 @@ export function NewUserForm() {
       toast({
         title: "User created",
         description: "New user account has been created successfully.",
+        variant: "success",
       })
       router.push("/admin/users")
     } catch (error) {
