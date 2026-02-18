@@ -87,12 +87,23 @@ export async function POST(
       )
     }
 
+    // Get latest percentage from DailyPrice for gold calculations
+    let percentage = 95
+    if (metalType === "GOLD") {
+      const latestPrice = await prisma.dailyPrice.findFirst({
+        orderBy: { date: 'desc' },
+        select: { percentage: true },
+      })
+      percentage = latestPrice?.percentage || 95
+    }
+
     // Calculate price per oz based on metal type
     let pricePerOz = 0
     if (metalType === "GOLD") {
       pricePerOz = calculateGoldPricePerOz(
         purityLabel as any,
-        transaction.goldSpot
+        transaction.goldSpot,
+        percentage
       )
     } else if (metalType === "SILVER") {
       pricePerOz = calculateSilverPricePerOz(

@@ -56,7 +56,9 @@ export function PricingTable({
     silver: transaction.silverSpot,
     platinum: transaction.platinumSpot,
   })
+  const [percentage, setPercentage] = useState(95)
   const [savingPrice, setSavingPrice] = useState<Record<string, boolean>>({})
+  const [savingPercentage, setSavingPercentage] = useState(false)
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const lastEditTimeRef = useRef<Record<string, number>>({}) // Track when each field was last edited
 
@@ -78,6 +80,7 @@ export function PricingTable({
         silver: prices.silver,
         platinum: prices.platinum,
       })
+      setPercentage(prices.percentage || 95)
     }, []),
     { interval: 500, enabled: true }
   )
@@ -241,6 +244,9 @@ export function PricingTable({
               silver: updated.silver,
               platinum: updated.platinum,
             })
+            if (updated.percentage !== undefined) {
+              setPercentage(updated.percentage)
+            }
 
             toast({
               title: "Price updated",
@@ -265,6 +271,52 @@ export function PricingTable({
     })()
   , [toast])
 
+  // Debounced percentage update function
+  const debouncedPercentageUpdate = useCallback(
+    (() => {
+      let timeout: NodeJS.Timeout | null = null
+      return (percentageValue: number) => {
+        if (timeout) clearTimeout(timeout)
+        timeout = setTimeout(async () => {
+          setSavingPercentage(true)
+          try {
+            const res = await fetch("/api/admin/prices", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                metalType: "gold",
+                price: spotPrices.gold,
+                percentage: percentageValue,
+              }),
+              credentials: 'include',
+            })
+
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => ({ message: "Failed to update percentage" }))
+              throw new Error(errorData.message || "Failed to update percentage")
+            }
+
+            const updated = await res.json()
+            setPercentage(updated.percentage || 95)
+
+            toast({
+              title: "Percentage updated",
+              description: `Percentage updated to ${percentageValue.toFixed(2)}%`,
+            })
+          } catch (error) {
+            toast({
+              title: "Error",
+              description: error instanceof Error ? error.message : "Failed to update percentage",
+              variant: "destructive",
+            })
+          } finally {
+            setSavingPercentage(false)
+          }
+        }, 1000)
+      }
+    })()
+  , [toast, spotPrices.gold])
+
   function handlePriceChange(metalType: MetalType, value: string) {
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
@@ -275,6 +327,13 @@ export function PricingTable({
       [metalKey]: numValue,
     }))
     debouncedPriceUpdate(metalKey, numValue)
+  }
+
+  function handlePercentageChange(value: string) {
+    const numValue = parseFloat(value) || 95
+    if (numValue < 0 || numValue > 100) return
+    setPercentage(numValue)
+    debouncedPercentageUpdate(numValue)
   }
 
   function getRowsForMetal(metalType: MetalType) {
@@ -314,7 +373,7 @@ export function PricingTable({
         (item) => item.metalType === metalType && item.purityLabel === purity
       )
 
-      const rows = getPricingRows(metalType, spotPrice, { [purity]: dwt })
+      const rows = getPricingRows(metalType, spotPrice, { [purity]: dwt }, metalType === "GOLD" ? percentage : 95)
       const row = rows.find((r) => r.purity === purity)!
 
       return {
@@ -498,8 +557,8 @@ export function PricingTable({
 
     return (
       <Card>
-        <CardHeader className="p-3 sm:p-6">
-          <CardTitle className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 flex items-center justify-center gap-3 sm:gap-4">
+        <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
+          <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
             <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
               {!imageErrors[metalType] ? (
                 <img
@@ -545,10 +604,32 @@ export function PricingTable({
                   </Badge>
                 )}
               </div>
+              {metalType === "GOLD" && (
+                <>
+                  <label className="text-base sm:text-lg md:text-xl font-black text-foreground">%</label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={percentage || ""}
+                      onChange={(e) => handlePercentageChange(e.target.value)}
+                      className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      placeholder="95.00"
+                    />
+                    {savingPercentage && (
+                      <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
+                        Saving...
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </CardHeader>
-        <CardContent className="p-2 sm:p-6">{renderMetalTable(metalType)}</CardContent>
+        <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderMetalTable(metalType)}</CardContent>
       </Card>
     )
   }
@@ -654,8 +735,8 @@ export function PricingTable({
       {/* All Metal Tables Stacked */}
       <div className="space-y-4">
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 flex items-center justify-center gap-3 sm:gap-4">
+          <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
+            <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.GOLD ? (
                   <img
@@ -701,15 +782,33 @@ export function PricingTable({
                     </Badge>
                   )}
                 </div>
+                <label className="text-base sm:text-lg md:text-xl font-black text-foreground">%</label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={percentage || ""}
+                    onChange={(e) => handlePercentageChange(e.target.value)}
+                    className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="95.00"
+                  />
+                  {savingPercentage && (
+                    <Badge variant="outline" className="text-sm sm:text-base whitespace-nowrap font-semibold">
+                      Saving...
+                    </Badge>
+                  )}
+                </div>
               </div>
             )}
           </CardHeader>
-          <CardContent className="p-2 sm:p-6">{renderMetalTable("GOLD")}</CardContent>
+          <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderMetalTable("GOLD")}</CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 flex items-center justify-center gap-3 sm:gap-4">
+          <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
+            <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.SILVER ? (
                   <img
@@ -758,12 +857,12 @@ export function PricingTable({
               </div>
             )}
           </CardHeader>
-          <CardContent className="p-2 sm:p-6">{renderMetalTable("SILVER")}</CardContent>
+          <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderMetalTable("SILVER")}</CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-4 sm:mb-6 flex items-center justify-center gap-3 sm:gap-4">
+          <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
+            <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.PLATINUM ? (
                   <img
@@ -812,7 +911,7 @@ export function PricingTable({
               </div>
             )}
           </CardHeader>
-          <CardContent className="p-2 sm:p-6">{renderMetalTable("PLATINUM")}</CardContent>
+          <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderMetalTable("PLATINUM")}</CardContent>
         </Card>
       </div>
 

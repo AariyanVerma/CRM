@@ -1,6 +1,6 @@
 /**
  * Pricing formulas for precious metals
- * All formulas return price per ounce (oz)
+ * All formulas return price per pennyweight (DWT)
  */
 
 export type MetalType = 'GOLD' | 'SILVER' | 'PLATINUM'
@@ -25,26 +25,31 @@ function purityToValue(purity: string): number {
 }
 
 /**
- * Calculate gold price per ounce
- * Formula: (purityValue - 0.50) * (goldPriceToday / 24) * 99.9 / 20 / 100
- * purityValue is the karat value (24, 22, 18, etc.)
+ * Calculate gold price per pennyweight (DWT)
+ * Formula: ((spotPrice * (karat - 0.5)) / 24) * ((percentage / 20) / 100)
+ * Where:
+ * - spotPrice = gold spot price
+ * - karat = karat value (24, 22, 18, etc.)
+ * - percentage = percentage value (default 95)
  */
 export function calculateGoldPricePerOz(
   purity: GoldPurity,
-  goldSpotPrice: number
+  goldSpotPrice: number,
+  percentage: number = 95
 ): number {
   // Extract karat value (24, 22, 18, etc.)
   const karatValue = parseInt(purity.replace('K', ''))
-  const result = (karatValue - 0.50) * (goldSpotPrice / 24) * 99.9 / 20 / 100
+  // Formula: ((spotPrice * (karat - 0.5)) / 24) * ((percentage / 20) / 100)
+  const result = ((goldSpotPrice * (karatValue - 0.5)) / 24) * ((percentage / 20) / 100)
   return Math.max(0, result) // Ensure non-negative
 }
 
 /**
- * Calculate silver price per ounce
+ * Calculate silver price per pennyweight (DWT)
  * Formulas:
- * - 925: 823.5 * silverPriceToday / 1000
- * - 900: 821.25 * silverPriceToday / 1000
- * - 800: 730 * silverPriceToday / 1000
+ * - 925: 823.5 * silverSpotPrice / 1000
+ * - 900: 821.25 * silverSpotPrice / 1000
+ * - 800: 730 * silverSpotPrice / 1000
  */
 export function calculateSilverPricePerOz(
   purity: SilverPurity,
@@ -59,8 +64,8 @@ export function calculateSilverPricePerOz(
 }
 
 /**
- * Calculate platinum price per ounce
- * Formula: (platinumPriceToday * (purity/1000)) * ((85 / DWT) / 100)
+ * Calculate platinum price per pennyweight (DWT)
+ * Formula: (platinumSpotPrice * (purity/1000)) * ((85 / DWT) / 100)
  * Handle DWT=0 safely => 0
  */
 export function calculatePlatinumPricePerOz(
@@ -87,13 +92,14 @@ export function calculateLineTotal(pricePerOz: number, dwt: number): number {
 export function getPricingRows(
   metalType: MetalType,
   spotPrice: number,
-  currentDwtValues: Record<string, number> = {}
+  currentDwtValues: Record<string, number> = {},
+  percentage: number = 95
 ) {
   switch (metalType) {
     case 'GOLD':
       return GOLD_PURITIES.map(purity => {
         const dwt = currentDwtValues[purity] || 0
-        const pricePerOz = calculateGoldPricePerOz(purity, spotPrice)
+        const pricePerOz = calculateGoldPricePerOz(purity, spotPrice, percentage)
         const lineTotal = calculateLineTotal(pricePerOz, dwt)
         return {
           purity,

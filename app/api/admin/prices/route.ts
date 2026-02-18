@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const session = await requireAdmin()
 
     const body = await request.json()
-    const { gold, silver, platinum } = body
+    const { gold, silver, platinum, percentage } = body
 
     if (!gold || !silver || !platinum) {
       return NextResponse.json(
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
         gold: parseFloat(gold),
         silver: parseFloat(silver),
         platinum: parseFloat(platinum),
+        percentage: percentage !== undefined ? parseFloat(percentage) : undefined,
         createdByUserId: session.id,
       },
       create: {
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
         gold: parseFloat(gold),
         silver: parseFloat(silver),
         platinum: parseFloat(platinum),
+        percentage: percentage !== undefined ? parseFloat(percentage) : 95,
         createdByUserId: session.id,
       },
     })
@@ -54,6 +56,7 @@ export async function POST(request: NextRequest) {
       gold: price.gold,
       silver: price.silver,
       platinum: price.platinum,
+      percentage: price.percentage,
     })
   } catch (error) {
     console.error("Error saving prices:", error)
@@ -69,7 +72,7 @@ export async function PATCH(request: NextRequest) {
     const session = await requireAdmin()
 
     const body = await request.json()
-    const { metalType, price } = body
+    const { metalType, price, percentage } = body
 
     if (!metalType || price === undefined || price === null) {
       return NextResponse.json(
@@ -88,12 +91,15 @@ export async function PATCH(request: NextRequest) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const updateData: { gold?: number; silver?: number; platinum?: number; createdByUserId: string } = {
+    const updateData: { gold?: number; silver?: number; platinum?: number; percentage?: number; createdByUserId: string } = {
       createdByUserId: session.id,
     }
 
     if (metalType.toLowerCase() === "gold") {
       updateData.gold = parseFloat(price)
+      if (percentage !== undefined && percentage !== null) {
+        updateData.percentage = parseFloat(percentage)
+      }
     } else if (metalType.toLowerCase() === "silver") {
       updateData.silver = parseFloat(price)
     } else if (metalType.toLowerCase() === "platinum") {
@@ -113,6 +119,7 @@ export async function PATCH(request: NextRequest) {
         gold: metalType.toLowerCase() === "gold" ? parseFloat(price) : existing?.gold || 2000,
         silver: metalType.toLowerCase() === "silver" ? parseFloat(price) : existing?.silver || 25,
         platinum: metalType.toLowerCase() === "platinum" ? parseFloat(price) : existing?.platinum || 1000,
+        percentage: existing?.percentage || 95,
         createdByUserId: session.id,
       },
     })

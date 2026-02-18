@@ -72,6 +72,7 @@ async function main() {
           gold: 2000.0,
           silver: 25.0,
           platinum: 1000.0,
+          percentage: 95.0,
           createdByUserId: admin.id,
         },
       })

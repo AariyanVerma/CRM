@@ -6,6 +6,7 @@ interface DailyPrice {
   gold: number
   silver: number
   platinum: number
+  percentage: number
   timestamp?: number
 }
 
@@ -92,6 +93,7 @@ export function usePricePolling(
         gold: data.gold,
         silver: data.silver,
         platinum: data.platinum,
+        percentage: data.percentage || 95,
         timestamp: data.timestamp,
       }
 
@@ -100,7 +102,8 @@ export function usePricePolling(
         !lastPricesRef.current ||
         lastPricesRef.current.gold !== prices.gold ||
         lastPricesRef.current.silver !== prices.silver ||
-        lastPricesRef.current.platinum !== prices.platinum
+        lastPricesRef.current.platinum !== prices.platinum ||
+        lastPricesRef.current.percentage !== prices.percentage
 
       const timestampChanged = 
         prices.timestamp && 

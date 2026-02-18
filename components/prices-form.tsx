@@ -14,6 +14,7 @@ interface DailyPrice {
   gold: number
   silver: number
   platinum: number
+  percentage?: number
 }
 
 export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null }) {
@@ -24,6 +25,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
     gold: initialPrices?.gold || 0,
     silver: initialPrices?.silver || 0,
     platinum: initialPrices?.platinum || 0,
+    percentage: initialPrices?.percentage || 95,
   })
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -34,6 +36,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
       gold: prices.gold,
       silver: prices.silver,
       platinum: prices.platinum,
+      percentage: prices.percentage,
     }
 
     try {
@@ -56,6 +59,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
           gold: result.gold,
           silver: result.silver,
           platinum: result.platinum,
+          percentage: result.percentage || 95,
         })
       }
       
@@ -80,7 +84,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
       <CardHeader>
         <CardTitle>Set Today&apos;s Prices</CardTitle>
         <CardDescription>
-          Update spot prices for gold, silver, and platinum. These prices will be
+          Update spot prices for gold, silver, and platinum, and the percentage for gold calculations. These prices will be
           used for all new transactions created today.
         </CardDescription>
       </CardHeader>
@@ -97,6 +101,22 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
               value={prices.gold || ""}
               onChange={(e) => setPrices(prev => ({ ...prev, gold: parseFloat(e.target.value) || 0 }))}
               placeholder="2000.00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="percentage">Percentage (for gold price calculation) *</Label>
+            <Input
+              id="percentage"
+              name="percentage"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              required
+              value={prices.percentage || ""}
+              onChange={(e) => setPrices(prev => ({ ...prev, percentage: parseFloat(e.target.value) || 95 }))}
+              placeholder="95.00"
             />
           </div>
 
