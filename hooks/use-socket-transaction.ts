@@ -12,6 +12,9 @@ interface LineItem {
   lineTotal: number
 }
 
+// Track initialized transactions to prevent duplicate fetches
+const initializedTransactions = new Set<string>()
+
 export function useSocketTransaction(
   transactionId: string,
   onLineItemsUpdate: (lineItems: LineItem[]) => void,
@@ -21,6 +24,7 @@ export function useSocketTransaction(
   const [isConnected, setIsConnected] = useState(false)
   const lastLineItemsRef = useRef<LineItem[] | null>(null)
   const callbackRef = useRef(onLineItemsUpdate)
+  const hasInitializedRef = useRef(false)
 
   // Keep callback ref updated
   useEffect(() => {
@@ -28,13 +32,23 @@ export function useSocketTransaction(
   }, [onLineItemsUpdate])
 
   useEffect(() => {
-    if (!transactionId || !enabled) return
+    if (!transactionId || !enabled || hasInitializedRef.current) return
+    hasInitializedRef.current = true
 
     const socket = getSocket()
     
-    // Initial fetch on mount
+    // Initial fetch on mount (only once per transaction)
     const fetchInitialLineItems = async () => {
+      // Skip if already initialized for this transaction
+      if (initializedTransactions.has(transactionId)) {
+        if (lastLineItemsRef.current) {
+          callbackRef.current(lastLineItemsRef.current)
+        }
+        return
+      }
+
       try {
+        initializedTransactions.add(transactionId)
         const res = await fetch(`/api/transactions/${transactionId}/line-items`, {
           credentials: "include",
           cache: "no-store",
@@ -47,12 +61,13 @@ export function useSocketTransaction(
         }
       } catch (error) {
         console.error("Error fetching initial line items:", error)
+        initializedTransactions.delete(transactionId)
       }
     }
 
     fetchInitialLineItems()
 
-    // Join transaction room
+    // Join transaction room (idempotent)
     socket.emit("join_tx", { transactionId })
 
     // Listen for connection status
@@ -108,7 +123,9 @@ export function useSocketTransaction(
       socket.off("line_items_changed", onLineItemsChanged)
       socket.off("transaction_changed", onTransactionChanged)
       socket.emit("leave_tx", { transactionId })
-      // Note: We don't disconnect the socket here as it's a singleton
+      hasInitializedRef.current = false
+      // Note: We don't remove from initializedTransactions here as the transaction
+      // might still be used by other components
     }
   }, [transactionId, enabled])
 

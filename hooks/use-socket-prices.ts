@@ -11,6 +11,10 @@ interface DailyPrice {
   timestamp?: number
 }
 
+// Global flag to prevent multiple initial fetches across components
+let initialPricesFetched = false
+let initialPricesPromise: Promise<DailyPrice | null> | null = null
+
 export function useSocketPrices(
   onPriceUpdate: (prices: DailyPrice) => void,
   options: { enabled?: boolean } = {}
@@ -19,6 +23,7 @@ export function useSocketPrices(
   const [isConnected, setIsConnected] = useState(false)
   const lastPricesRef = useRef<DailyPrice | null>(null)
   const callbackRef = useRef(onPriceUpdate)
+  const hasInitializedRef = useRef(false)
 
   // Keep callback ref updated
   useEffect(() => {
@@ -26,37 +31,64 @@ export function useSocketPrices(
   }, [onPriceUpdate])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || hasInitializedRef.current) return
+    hasInitializedRef.current = true
 
     const socket = getSocket()
     
-    // Initial fetch on mount
+    // Shared initial fetch - only fetch once globally
     const fetchInitialPrices = async () => {
-      try {
-        const res = await fetch("/api/prices/current", {
-          credentials: "include",
-          cache: "no-store",
-        })
-        if (res.ok) {
-          const data = await res.json()
-          const prices: DailyPrice = {
-            gold: data.gold,
-            silver: data.silver,
-            platinum: data.platinum,
-            percentage: data.percentage || 95,
-            timestamp: data.timestamp,
-          }
+      // If already fetching, wait for that promise
+      if (initialPricesPromise) {
+        const prices = await initialPricesPromise
+        if (prices) {
           lastPricesRef.current = prices
           callbackRef.current(prices)
         }
-      } catch (error) {
-        console.error("Error fetching initial prices:", error)
+        return
       }
+
+      // If already fetched, use cached value
+      if (initialPricesFetched && lastPricesRef.current) {
+        callbackRef.current(lastPricesRef.current)
+        return
+      }
+
+      // Start new fetch
+      initialPricesPromise = (async () => {
+        try {
+          const res = await fetch("/api/prices/current", {
+            credentials: "include",
+            cache: "no-store",
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const prices: DailyPrice = {
+              gold: data.gold,
+              silver: data.silver,
+              platinum: data.platinum,
+              percentage: data.percentage || 95,
+              timestamp: data.timestamp,
+            }
+            initialPricesFetched = true
+            lastPricesRef.current = prices
+            callbackRef.current(prices)
+            return prices
+          }
+        } catch (error) {
+          console.error("Error fetching initial prices:", error)
+        }
+        return null
+      })()
+
+      const prices = await initialPricesPromise
+      initialPricesPromise = null
+      return prices
     }
 
     fetchInitialPrices()
 
-    // Join prices room
+    // Join prices room (idempotent - safe to call multiple times)
     socket.emit("join_prices")
 
     // Listen for connection status
@@ -110,8 +142,7 @@ export function useSocketPrices(
       socket.off("connect", onConnect)
       socket.off("disconnect", onDisconnect)
       socket.off("prices_changed", onPricesChanged)
-      // Note: We don't disconnect the socket here as it's a singleton
-      // and may be used by other components
+      hasInitializedRef.current = false
     }
   }, [enabled])
 

@@ -68,7 +68,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
         description: "Daily prices have been updated successfully.",
         variant: "success",
       })
-      router.refresh()
+      // Socket.IO will handle real-time updates, no need for router.refresh()
     } catch (error) {
       toast({
         title: "Error",
