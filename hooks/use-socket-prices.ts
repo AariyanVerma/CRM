@@ -7,7 +7,12 @@ interface DailyPrice {
   gold: number
   silver: number
   platinum: number
-  percentage: number
+  scrapGoldPercentage: number
+  scrapSilverPercentage: number
+  scrapPlatinumPercentage: number
+  meltGoldPercentage: number
+  meltSilverPercentage: number
+  meltPlatinumPercentage: number
   timestamp?: number
 }
 
@@ -67,7 +72,12 @@ export function useSocketPrices(
               gold: data.gold,
               silver: data.silver,
               platinum: data.platinum,
-              percentage: data.percentage || 95,
+              scrapGoldPercentage: data.scrapGoldPercentage || 95,
+              scrapSilverPercentage: data.scrapSilverPercentage || 95,
+              scrapPlatinumPercentage: data.scrapPlatinumPercentage || 95,
+              meltGoldPercentage: data.meltGoldPercentage || 95,
+              meltSilverPercentage: data.meltSilverPercentage || 95,
+              meltPlatinumPercentage: data.meltPlatinumPercentage || 95,
               timestamp: data.timestamp,
             }
             initialPricesFetched = true
@@ -114,7 +124,12 @@ export function useSocketPrices(
             gold: data.gold,
             silver: data.silver,
             platinum: data.platinum,
-            percentage: data.percentage || 95,
+            scrapGoldPercentage: data.scrapGoldPercentage || 95,
+            scrapSilverPercentage: data.scrapSilverPercentage || 95,
+            scrapPlatinumPercentage: data.scrapPlatinumPercentage || 95,
+            meltGoldPercentage: data.meltGoldPercentage || 95,
+            meltSilverPercentage: data.meltSilverPercentage || 95,
+            meltPlatinumPercentage: data.meltPlatinumPercentage || 95,
             timestamp: data.timestamp,
           }
 
@@ -124,7 +139,12 @@ export function useSocketPrices(
             lastPricesRef.current.gold !== prices.gold ||
             lastPricesRef.current.silver !== prices.silver ||
             lastPricesRef.current.platinum !== prices.platinum ||
-            lastPricesRef.current.percentage !== prices.percentage
+            lastPricesRef.current.scrapGoldPercentage !== prices.scrapGoldPercentage ||
+            lastPricesRef.current.scrapSilverPercentage !== prices.scrapSilverPercentage ||
+            lastPricesRef.current.scrapPlatinumPercentage !== prices.scrapPlatinumPercentage ||
+            lastPricesRef.current.meltGoldPercentage !== prices.meltGoldPercentage ||
+            lastPricesRef.current.meltSilverPercentage !== prices.meltSilverPercentage ||
+            lastPricesRef.current.meltPlatinumPercentage !== prices.meltPlatinumPercentage
 
           if (pricesChanged) {
             lastPricesRef.current = prices

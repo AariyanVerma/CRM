@@ -1,7 +1,50 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAdmin } from "@/lib/auth"
+import { requireAuth, requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { getIO } from "@/lib/ioServer"
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireAuth()
+    const { id } = await params
+
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        lineItems: {
+          orderBy: [
+            { metalType: 'asc' },
+            { purityLabel: 'asc' },
+          ],
+        },
+      },
+    })
+
+    if (!transaction) {
+      return NextResponse.json(
+        { message: "Transaction not found" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(transaction, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching transaction:", error)
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -13,16 +56,23 @@ export async function PATCH(
     const body = await request.json()
     const { status } = body
 
-    if (!status || !["OPEN", "PRINTED", "VOID"].includes(status)) {
+    // Build update data object
+    const updateData: any = {}
+    
+    if (status && ["OPEN", "PRINTED", "VOID"].includes(status)) {
+      updateData.status = status
+    }
+
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
-        { message: "Invalid status" },
+        { message: "No valid fields to update" },
         { status: 400 }
       )
     }
 
     const transaction = await prisma.transaction.update({
       where: { id },
-      data: { status },
+      data: updateData,
     })
 
     // Emit socket event after successful status update

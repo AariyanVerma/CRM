@@ -72,7 +72,12 @@ async function main() {
           gold: 2000.0,
           silver: 25.0,
           platinum: 1000.0,
-          percentage: 95.0,
+          scrapGoldPercentage: 95.0,
+          scrapSilverPercentage: 95.0,
+          scrapPlatinumPercentage: 95.0,
+          meltGoldPercentage: 95.0,
+          meltSilverPercentage: 95.0,
+          meltPlatinumPercentage: 95.0,
           createdByUserId: admin.id,
         },
       })

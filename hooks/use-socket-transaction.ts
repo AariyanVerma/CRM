@@ -10,6 +10,7 @@ interface LineItem {
   dwt: number
   pricePerOz: number
   lineTotal: number
+  purityPercentage?: number | null
 }
 
 // Track initialized transactions to prevent duplicate fetches
@@ -18,18 +19,23 @@ const initializedTransactions = new Set<string>()
 export function useSocketTransaction(
   transactionId: string,
   onLineItemsUpdate: (lineItems: LineItem[]) => void,
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; onTransactionChanged?: (transactionId: string) => void } = {}
 ) {
-  const { enabled = true } = options
+  const { enabled = true, onTransactionChanged } = options
   const [isConnected, setIsConnected] = useState(false)
   const lastLineItemsRef = useRef<LineItem[] | null>(null)
   const callbackRef = useRef(onLineItemsUpdate)
+  const transactionChangedCallbackRef = useRef(onTransactionChanged)
   const hasInitializedRef = useRef(false)
 
-  // Keep callback ref updated
+  // Keep callback refs updated
   useEffect(() => {
     callbackRef.current = onLineItemsUpdate
   }, [onLineItemsUpdate])
+
+  useEffect(() => {
+    transactionChangedCallbackRef.current = onTransactionChanged
+  }, [onTransactionChanged])
 
   useEffect(() => {
     if (!transactionId || !enabled || hasInitializedRef.current) return
@@ -109,10 +115,15 @@ export function useSocketTransaction(
 
     socket.on("line_items_changed", onLineItemsChanged)
 
-    // Listen for transaction changes (status, etc.)
+    // Listen for transaction changes (status, percentages, etc.)
     const onTransactionChanged = async () => {
       // Refetch line items when transaction changes
       onLineItemsChanged()
+      
+      // Call the optional transaction changed callback
+      if (transactionChangedCallbackRef.current) {
+        transactionChangedCallbackRef.current(transactionId)
+      }
     }
 
     socket.on("transaction_changed", onTransactionChanged)

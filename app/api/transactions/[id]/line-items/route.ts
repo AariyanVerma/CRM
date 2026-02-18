@@ -3,9 +3,12 @@ import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { getIO } from "@/lib/ioServer"
 import {
-  calculateGoldPricePerOz,
-  calculateSilverPricePerOz,
-  calculatePlatinumPricePerOz,
+  calculateScrapGoldPricePerDWT,
+  calculateScrapSilverPricePerDWT,
+  calculateScrapPlatinumPricePerDWT,
+  calculateMeltGoldPricePerDWT,
+  calculateMeltSilverPricePerDWT,
+  calculateMeltPlatinumPricePerDWT,
   calculateLineTotal,
 } from "@/lib/pricing"
 
@@ -67,7 +70,7 @@ export async function POST(
 
     const { id } = await params
     const body = await request.json()
-    const { metalType, purityLabel, dwt } = body
+    const { metalType, purityLabel, dwt, purityPercentage } = body
 
     if (!metalType || !purityLabel || dwt === undefined) {
       return NextResponse.json(
@@ -88,38 +91,76 @@ export async function POST(
       )
     }
 
-    // Get latest percentage from DailyPrice for gold calculations
-    let percentage = 95
-    if (metalType === "GOLD") {
-      const latestPrice = await prisma.dailyPrice.findFirst({
-        orderBy: { date: 'desc' },
-        select: { percentage: true },
-      })
-      percentage = latestPrice?.percentage || 95
+    // Get today's DailyPrice for percentages
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayPrice = await prisma.dailyPrice.findFirst({
+      where: {
+        date: { lte: today },
+      },
+      orderBy: { date: "desc" },
+    })
+
+    const parsedDwt = parseFloat(dwt) || 0
+
+    // Calculate price per DWT based on transaction type and metal type
+    let pricePerDWT = 0
+    
+    if (transaction.type === "SCRAP") {
+      // Use SCRAP formulas - get percentage from DailyPrice
+      const percentageKey = `scrap${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage` as keyof typeof todayPrice
+      const percentage = todayPrice ? (todayPrice[percentageKey] as number) ?? 95 : 95
+      
+      if (metalType === "GOLD") {
+        pricePerDWT = calculateScrapGoldPricePerDWT(
+          purityLabel as any,
+          transaction.goldSpot,
+          percentage
+        )
+      } else if (metalType === "SILVER") {
+        pricePerDWT = calculateScrapSilverPricePerDWT(
+          purityLabel as any,
+          transaction.silverSpot,
+          percentage
+        )
+      } else if (metalType === "PLATINUM") {
+        pricePerDWT = calculateScrapPlatinumPricePerDWT(
+          purityLabel as any,
+          transaction.platinumSpot,
+          percentage
+        )
+      }
+    } else {
+      // Use MELT formulas - get percentage from DailyPrice
+      const purityPct = parseFloat(purityPercentage) || 0
+      const percentageKey = `melt${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage` as keyof typeof todayPrice
+      const percentage = todayPrice ? (todayPrice[percentageKey] as number) ?? 95 : 95
+      
+      if (metalType === "GOLD") {
+        pricePerDWT = calculateMeltGoldPricePerDWT(
+          transaction.goldSpot,
+          purityPct,
+          parsedDwt,
+          percentage
+        )
+      } else if (metalType === "SILVER") {
+        pricePerDWT = calculateMeltSilverPricePerDWT(
+          transaction.silverSpot,
+          purityPct,
+          parsedDwt,
+          percentage
+        )
+      } else if (metalType === "PLATINUM") {
+        pricePerDWT = calculateMeltPlatinumPricePerDWT(
+          transaction.platinumSpot,
+          purityPct,
+          parsedDwt,
+          percentage
+        )
+      }
     }
 
-    // Calculate price per oz based on metal type
-    let pricePerOz = 0
-    if (metalType === "GOLD") {
-      pricePerOz = calculateGoldPricePerOz(
-        purityLabel as any,
-        transaction.goldSpot,
-        percentage
-      )
-    } else if (metalType === "SILVER") {
-      pricePerOz = calculateSilverPricePerOz(
-        purityLabel as any,
-        transaction.silverSpot
-      )
-    } else if (metalType === "PLATINUM") {
-      pricePerOz = calculatePlatinumPricePerOz(
-        purityLabel as any,
-        transaction.platinumSpot,
-        parseFloat(dwt) || 0
-      )
-    }
-
-    const lineTotal = calculateLineTotal(pricePerOz, parseFloat(dwt) || 0)
+    const lineTotal = calculateLineTotal(pricePerDWT, parsedDwt)
 
     // Upsert line item
     const existingItem = await prisma.lineItem.findFirst({
@@ -131,8 +172,10 @@ export async function POST(
     })
 
     if (existingItem) {
-      if (dwt === 0 || dwt === "") {
-        // Delete if DWT is 0
+      // For MELT transactions, allow saving purity percentage even if DWT is 0
+      // For SCRAP transactions, delete line item if DWT is 0
+      if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
+        // Delete if DWT is 0 for SCRAP transactions
         await prisma.lineItem.delete({
           where: { id: existingItem.id },
         })
@@ -148,13 +191,24 @@ export async function POST(
         return NextResponse.json({ deleted: true })
       } else {
         // Update existing
+        const updateData: any = {
+          dwt: parsedDwt,
+          pricePerOz: pricePerDWT,
+          lineTotal,
+        }
+        
+        // Include purity percentage for MELT transactions (always include, even if 0)
+        if (transaction.type === "MELT") {
+          // Always save purityPercentage, defaulting to 0 if not provided
+          const purityPct = purityPercentage !== undefined && purityPercentage !== null 
+            ? parseFloat(purityPercentage.toString()) 
+            : 0
+          updateData.purityPercentage = purityPct
+        }
+        
         const updated = await prisma.lineItem.update({
           where: { id: existingItem.id },
-          data: {
-            dwt: parseFloat(dwt),
-            pricePerOz,
-            lineTotal,
-          },
+          data: updateData,
         })
         
         // Emit socket event after successful update
@@ -168,19 +222,32 @@ export async function POST(
         return NextResponse.json(updated)
       }
     } else {
-      if (dwt === 0 || dwt === "") {
+      // For MELT transactions, allow creating line item even if DWT is 0 (to save purity percentage)
+      // For SCRAP transactions, skip if DWT is 0
+      if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
         return NextResponse.json({ skipped: true })
       }
       // Create new
+      const createData: any = {
+        transactionId: id,
+        metalType,
+        purityLabel,
+        dwt: parsedDwt,
+        pricePerOz: pricePerDWT,
+        lineTotal,
+      }
+      
+      // Include purity percentage for MELT transactions (always include, even if 0)
+      if (transaction.type === "MELT") {
+        // Always save purityPercentage, defaulting to 0 if not provided
+        const purityPct = purityPercentage !== undefined && purityPercentage !== null 
+          ? parseFloat(purityPercentage.toString()) 
+          : 0
+        createData.purityPercentage = purityPct
+      }
+      
       const created = await prisma.lineItem.create({
-        data: {
-          transactionId: id,
-          metalType,
-          purityLabel,
-          dwt: parseFloat(dwt),
-          pricePerOz,
-          lineTotal,
-        },
+        data: createData,
       })
       
       // Emit socket event after successful creation

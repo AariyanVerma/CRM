@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
         gold: true,
         silver: true,
         platinum: true,
-        percentage: true,
+        scrapGoldPercentage: true,
+        scrapSilverPercentage: true,
+        scrapPlatinumPercentage: true,
+        meltGoldPercentage: true,
+        meltSilverPercentage: true,
+        meltPlatinumPercentage: true,
         updatedAt: true,
       },
     })
@@ -28,7 +33,12 @@ export async function GET(request: NextRequest) {
         gold: 2000,
         silver: 25,
         platinum: 1000,
-        percentage: 95,
+        scrapGoldPercentage: 95,
+        scrapSilverPercentage: 95,
+        scrapPlatinumPercentage: 95,
+        meltGoldPercentage: 95,
+        meltSilverPercentage: 95,
+        meltPlatinumPercentage: 95,
         timestamp: Date.now(),
       })
     }
@@ -38,7 +48,12 @@ export async function GET(request: NextRequest) {
       gold: latestPrice.gold,
       silver: latestPrice.silver,
       platinum: latestPrice.platinum,
-      percentage: latestPrice.percentage,
+      scrapGoldPercentage: latestPrice.scrapGoldPercentage,
+      scrapSilverPercentage: latestPrice.scrapSilverPercentage,
+      scrapPlatinumPercentage: latestPrice.scrapPlatinumPercentage,
+      meltGoldPercentage: latestPrice.meltGoldPercentage,
+      meltSilverPercentage: latestPrice.meltSilverPercentage,
+      meltPlatinumPercentage: latestPrice.meltPlatinumPercentage,
       timestamp: latestPrice.updatedAt.getTime(),
     }, {
       headers: {

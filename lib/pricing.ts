@@ -4,6 +4,7 @@
  */
 
 export type MetalType = 'GOLD' | 'SILVER' | 'PLATINUM'
+export type TransactionType = 'SCRAP' | 'MELT'
 
 export type GoldPurity = '24K' | '22K' | '21K' | '18K' | '16K' | '14K' | '13K' | '12K' | '10K' | '9K'
 export type SilverPurity = '925' | '900' | '800'
@@ -25,71 +26,107 @@ function purityToValue(purity: string): number {
 }
 
 /**
- * Calculate gold price per pennyweight (DWT)
+ * Calculate SCRAP gold price per pennyweight (DWT)
  * Formula: ((spotPrice * (karat - 0.5)) / 24) * ((percentage / 20) / 100)
  * Where:
  * - spotPrice = gold spot price
  * - karat = karat value (24, 22, 18, etc.)
- * - percentage = percentage value (default 95)
+ * - percentage = scrap gold percentage
  */
-export function calculateGoldPricePerOz(
+export function calculateScrapGoldPricePerDWT(
   purity: GoldPurity,
   goldSpotPrice: number,
   percentage: number = 95
 ): number {
-  // Extract karat value (24, 22, 18, etc.)
   const karatValue = parseInt(purity.replace('K', ''))
-  // Formula: ((spotPrice * (karat - 0.5)) / 24) * ((percentage / 20) / 100)
   const result = ((goldSpotPrice * (karatValue - 0.5)) / 24) * ((percentage / 20) / 100)
-  return Math.max(0, result) // Ensure non-negative
-}
-
-/**
- * Calculate silver price per pennyweight (DWT)
- * Formulas:
- * - 925: 823.5 * silverSpotPrice / 1000
- * - 900: 821.25 * silverSpotPrice / 1000
- * - 800: 730 * silverSpotPrice / 1000
- */
-export function calculateSilverPricePerOz(
-  purity: SilverPurity,
-  silverSpotPrice: number
-): number {
-  const multipliers: Record<SilverPurity, number> = {
-    '925': 823.5,
-    '900': 821.25,
-    '800': 730,
-  }
-  return (multipliers[purity] * silverSpotPrice) / 1000
-}
-
-/**
- * Calculate platinum price per pennyweight (DWT)
- * Formula: (platinumSpotPrice * (purity/1000)) * ((85 / DWT) / 100)
- * Handle DWT=0 safely => 0
- */
-export function calculatePlatinumPricePerOz(
-  purity: PlatinumPurity,
-  platinumSpotPrice: number,
-  dwt: number
-): number {
-  if (dwt === 0) return 0
-  const purityValue = purityToValue(purity) / 1000
-  const result = (platinumSpotPrice * purityValue) * ((85 / dwt) / 100)
   return Math.max(0, result)
 }
 
 /**
- * Calculate line total: pricePerOz * dwt
+ * Calculate SCRAP silver price per pennyweight (DWT)
+ * Formula: ((metal spot price /oz * purity)/20) * (scrap silver percentage/100)
  */
-export function calculateLineTotal(pricePerOz: number, dwt: number): number {
-  return pricePerOz * dwt
+export function calculateScrapSilverPricePerDWT(
+  purity: SilverPurity,
+  silverSpotPrice: number,
+  percentage: number = 95
+): number {
+  const purityValue = parseFloat(purity)
+  const result = ((silverSpotPrice * purityValue) / 20) * (percentage / 100)
+  return Math.max(0, result)
 }
 
 /**
- * Get all pricing rows for a metal type
+ * Calculate SCRAP platinum price per pennyweight (DWT)
+ * Formula: ((metal spot price /oz * purity)/1000) * ((scrap platinum percentage/20)/100)
  */
-export function getPricingRows(
+export function calculateScrapPlatinumPricePerDWT(
+  purity: PlatinumPurity,
+  platinumSpotPrice: number,
+  percentage: number = 95
+): number {
+  const purityValue = parseFloat(purity)
+  const result = ((platinumSpotPrice * purityValue) / 1000) * ((percentage / 20) / 100)
+  return Math.max(0, result)
+}
+
+/**
+ * Calculate MELT gold price per pennyweight (DWT)
+ * Formula: ((spot price/oz * purity percentage)/100) * ((dwt/20) * melt gold percentage)
+ */
+export function calculateMeltGoldPricePerDWT(
+  goldSpotPrice: number,
+  purityPercentage: number,
+  dwt: number,
+  percentage: number = 95
+): number {
+  if (dwt === 0) return 0
+  const result = ((goldSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage)
+  return Math.max(0, result)
+}
+
+/**
+ * Calculate MELT silver price per pennyweight (DWT)
+ * Formula: ((spot price/oz * purity percentage)/100) * ((dwt/20) * melt silver percentage)
+ */
+export function calculateMeltSilverPricePerDWT(
+  silverSpotPrice: number,
+  purityPercentage: number,
+  dwt: number,
+  percentage: number = 95
+): number {
+  if (dwt === 0) return 0
+  const result = ((silverSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage)
+  return Math.max(0, result)
+}
+
+/**
+ * Calculate MELT platinum price per pennyweight (DWT)
+ * Formula: ((spot price/oz * purity percentage)/100) * ((dwt/20) * melt platinum percentage)
+ */
+export function calculateMeltPlatinumPricePerDWT(
+  platinumSpotPrice: number,
+  purityPercentage: number,
+  dwt: number,
+  percentage: number = 95
+): number {
+  if (dwt === 0) return 0
+  const result = ((platinumSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage)
+  return Math.max(0, result)
+}
+
+/**
+ * Calculate line total: pricePerDWT * dwt
+ */
+export function calculateLineTotal(pricePerDWT: number, dwt: number): number {
+  return pricePerDWT * dwt
+}
+
+/**
+ * Get all pricing rows for SCRAP metal type
+ */
+export function getScrapPricingRows(
   metalType: MetalType,
   spotPrice: number,
   currentDwtValues: Record<string, number> = {},
@@ -99,11 +136,11 @@ export function getPricingRows(
     case 'GOLD':
       return GOLD_PURITIES.map(purity => {
         const dwt = currentDwtValues[purity] || 0
-        const pricePerOz = calculateGoldPricePerOz(purity, spotPrice, percentage)
-        const lineTotal = calculateLineTotal(pricePerOz, dwt)
+        const pricePerDWT = calculateScrapGoldPricePerDWT(purity, spotPrice, percentage)
+        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
         return {
           purity,
-          pricePerOz,
+          pricePerDWT,
           dwt,
           lineTotal,
         }
@@ -111,11 +148,11 @@ export function getPricingRows(
     case 'SILVER':
       return SILVER_PURITIES.map(purity => {
         const dwt = currentDwtValues[purity] || 0
-        const pricePerOz = calculateSilverPricePerOz(purity, spotPrice)
-        const lineTotal = calculateLineTotal(pricePerOz, dwt)
+        const pricePerDWT = calculateScrapSilverPricePerDWT(purity, spotPrice, percentage)
+        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
         return {
           purity,
-          pricePerOz,
+          pricePerDWT,
           dwt,
           lineTotal,
         }
@@ -123,11 +160,11 @@ export function getPricingRows(
     case 'PLATINUM':
       return PLATINUM_PURITIES.map(purity => {
         const dwt = currentDwtValues[purity] || 0
-        const pricePerOz = calculatePlatinumPricePerOz(purity, spotPrice, dwt)
-        const lineTotal = calculateLineTotal(pricePerOz, dwt)
+        const pricePerDWT = calculateScrapPlatinumPricePerDWT(purity, spotPrice, percentage)
+        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
         return {
           purity,
-          pricePerOz,
+          pricePerDWT,
           dwt,
           lineTotal,
         }
@@ -135,3 +172,102 @@ export function getPricingRows(
   }
 }
 
+/**
+ * Get all pricing rows for MELT metal type
+ */
+export function getMeltPricingRows(
+  metalType: MetalType,
+  spotPrice: number,
+  currentDwtValues: Record<string, number> = {},
+  currentPurityPercentages: Record<string, number> = {},
+  percentage: number = 95
+) {
+  switch (metalType) {
+    case 'GOLD':
+      return GOLD_PURITIES.map(purity => {
+        const dwt = currentDwtValues[purity] || 0
+        const purityPercentage = currentPurityPercentages[purity] || 0
+        const pricePerDWT = calculateMeltGoldPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
+        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
+        return {
+          purity,
+          pricePerDWT,
+          dwt,
+          purityPercentage,
+          lineTotal,
+        }
+      })
+    case 'SILVER':
+      return SILVER_PURITIES.map(purity => {
+        const dwt = currentDwtValues[purity] || 0
+        const purityPercentage = currentPurityPercentages[purity] || 0
+        const pricePerDWT = calculateMeltSilverPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
+        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
+        return {
+          purity,
+          pricePerDWT,
+          dwt,
+          purityPercentage,
+          lineTotal,
+        }
+      })
+    case 'PLATINUM':
+      return PLATINUM_PURITIES.map(purity => {
+        const dwt = currentDwtValues[purity] || 0
+        const purityPercentage = currentPurityPercentages[purity] || 0
+        const pricePerDWT = calculateMeltPlatinumPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
+        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
+        return {
+          purity,
+          pricePerDWT,
+          dwt,
+          purityPercentage,
+          lineTotal,
+        }
+      })
+  }
+}
+
+// Legacy function for backward compatibility (SCRAP only)
+export function getPricingRows(
+  metalType: MetalType,
+  spotPrice: number,
+  currentDwtValues: Record<string, number> = {},
+  percentage: number = 95
+) {
+  return getScrapPricingRows(metalType, spotPrice, currentDwtValues, percentage)
+}
+
+// Legacy functions for backward compatibility
+export function calculateGoldPricePerOz(
+  purity: GoldPurity,
+  goldSpotPrice: number,
+  percentage: number = 95
+): number {
+  return calculateScrapGoldPricePerDWT(purity, goldSpotPrice, percentage)
+}
+
+export function calculateSilverPricePerOz(
+  purity: SilverPurity,
+  silverSpotPrice: number
+): number {
+  // Legacy: uses old formula, but should use calculateScrapSilverPricePerDWT with percentage
+  const multipliers: Record<SilverPurity, number> = {
+    '925': 823.5,
+    '900': 821.25,
+    '800': 730,
+  }
+  return (multipliers[purity] * silverSpotPrice) / 1000
+}
+
+export function calculatePlatinumPricePerOz(
+  purity: PlatinumPurity,
+  platinumSpotPrice: number,
+  dwt: number
+): number {
+  // Legacy: uses old formula, but should use calculateScrapPlatinumPricePerDWT with percentage
+  if (dwt === 0) return 0
+  const purityValue = purityToValue(purity) / 1000
+  const result = (platinumSpotPrice * purityValue) * ((85 / dwt) / 100)
+  return Math.max(0, result)
+}
