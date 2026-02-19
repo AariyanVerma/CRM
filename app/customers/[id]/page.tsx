@@ -211,7 +211,18 @@ export default async function CustomerDetailPage({
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{tx.status}</Badge>
+                        <Badge 
+                          variant="outline"
+                          className={
+                            tx.status === "PRINTED"
+                              ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
+                              : tx.status === "VOID"
+                              ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
+                              : "bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600"
+                          }
+                        >
+                          {tx.status}
+                        </Badge>
                         <TransactionActions
                           transaction={tx}
                           customerId={customer.id}

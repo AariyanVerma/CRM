@@ -8,12 +8,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const session = await requireAuth()
 
     const { id } = await params
     const transaction = await prisma.transaction.update({
       where: { id },
-      data: { status: "PRINTED" },
+      data: { 
+        status: "PRINTED",
+        completedByUserId: session.id,
+        completedAt: new Date(),
+      },
     })
 
     // Emit socket event after successful status update

@@ -8,11 +8,14 @@ export function LogoutButton() {
   const router = useRouter()
 
   async function handleLogout() {
-    const res = await fetch("/api/auth/logout", { method: "POST" })
-    if (res.ok) {
-      router.push("/login")
-      router.refresh()
-    }
+    // Optimistically navigate first for faster UX
+    window.history.replaceState(null, '', '/login')
+    router.replace("/login")
+    
+    // Then destroy session in background (don't wait for it)
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {
+      // Silently handle errors - user is already logged out on client side
+    })
   }
 
   return (

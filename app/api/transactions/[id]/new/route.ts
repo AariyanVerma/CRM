@@ -43,7 +43,11 @@ export async function POST(
     // Close existing transaction
     await prisma.transaction.update({
       where: { id },
-      data: { status: "PRINTED" },
+      data: { 
+        status: "PRINTED",
+        completedByUserId: session.id,
+        completedAt: new Date(),
+      },
     })
 
     // Create new transaction

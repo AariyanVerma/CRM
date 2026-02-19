@@ -75,8 +75,26 @@ export function ScanPageClient({
   async function handlePrint(type: "SCRAP" | "MELT") {
     const transaction = type === "SCRAP" ? scrapTransaction : meltTransaction
     
-    // Navigate to print preview page
-    window.location.href = `/print/${transaction.id}`
+    try {
+      // Mark transaction as printed before navigating
+      const res = await fetch(`/api/transactions/${transaction.id}/print`, {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to mark transaction as printed")
+      }
+
+      // Navigate to print preview page
+      window.location.href = `/print/${transaction.id}`
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to print transaction",
+        variant: "destructive",
+      })
+    }
   }
 
   async function handleNewTransaction(type: "SCRAP" | "MELT") {

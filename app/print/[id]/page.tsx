@@ -18,6 +18,18 @@ export default async function PrintPage({
     where: { id },
     include: {
       customer: true,
+      createdBy: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+      completedBy: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
       lineItems: {
         orderBy: [
           { metalType: "asc" },

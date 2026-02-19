@@ -18,7 +18,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  transactions Transaction[]
+  createdTransactions   Transaction[] @relation("CreatedTransactions")
+  completedTransactions Transaction[] @relation("CompletedTransactions")
   dailyPrices  DailyPrice[]
 }
 
@@ -70,16 +71,19 @@ model Transaction {
   id              String            @id @default(cuid())
   customerId      String
   createdByUserId String
+  completedByUserId String? // User who completed/printed the transaction
   type            TransactionType
   status          TransactionStatus @default(OPEN)
   goldSpot        Float
   silverSpot      Float
   platinumSpot    Float
+  completedAt     DateTime? // Date and time when transaction was completed/printed
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  createdBy User       @relation(fields: [createdByUserId], references: [id])
+  createdBy User       @relation("CreatedTransactions", fields: [createdByUserId], references: [id])
+  completedBy User?    @relation("CompletedTransactions", fields: [completedByUserId], references: [id])
   lineItems LineItem[]
 
   @@index([customerId])

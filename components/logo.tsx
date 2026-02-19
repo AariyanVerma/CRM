@@ -7,9 +7,10 @@ interface LogoProps {
   className?: string
   showText?: boolean
   size?: "sm" | "md" | "lg" | "xl"
+  href?: string // Optional href - defaults to "/" (home page)
 }
 
-export function Logo({ className = "", showText = false, size = "lg" }: LogoProps) {
+export function Logo({ className = "", showText = false, size = "lg", href = "/" }: LogoProps) {
   const [imageError, setImageError] = useState(false)
 
   // Rectangular logo: more width, less height
@@ -37,7 +38,7 @@ export function Logo({ className = "", showText = false, size = "lg" }: LogoProp
   }
 
   return (
-    <Link href="/" className={`flex items-center gap-2 ${className}`}>
+    <Link href={href} className={`flex items-center gap-2 ${className}`}>
       {/* Logo Image - Place your logo.png in the public folder */}
       <div className={`relative ${sizeClasses[size]} flex-shrink-0`}>
         {!imageError ? (

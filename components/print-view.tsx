@@ -1,8 +1,9 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Logo } from "@/components/logo"
 import { formatDecimal } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 interface Customer {
   id: string
@@ -30,11 +31,76 @@ interface Transaction {
   silverSpot: number
   platinumSpot: number
   createdAt: Date
+  completedAt: Date | null
   customer: Customer
+  createdBy: {
+    id: string
+    email: string
+  }
+  completedBy: {
+    id: string
+    email: string
+  } | null
   lineItems: LineItem[]
 }
 
 export function PrintView({ transaction }: { transaction: Transaction }) {
+  const { toast } = useToast()
+  const [printing, setPrinting] = useState(false)
+  const hasMarkedAsPrinted = useRef(false)
+
+  // Function to mark transaction as printed (silently, no toast)
+  const markAsPrinted = async () => {
+    // Only mark once and if status is still OPEN
+    if (hasMarkedAsPrinted.current || transaction.status !== "OPEN") {
+      return
+    }
+
+    hasMarkedAsPrinted.current = true
+    try {
+      const res = await fetch(`/api/transactions/${transaction.id}/print`, {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to mark transaction as printed")
+      }
+
+      // Silently update status - no toast notification
+    } catch (error) {
+      // Only show error toast, not success
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to mark transaction as printed",
+        variant: "destructive",
+      })
+      hasMarkedAsPrinted.current = false // Reset on error so user can try again
+    }
+  }
+
+  // Listen for browser print events (Ctrl+P, Cmd+P, or browser print menu)
+  useEffect(() => {
+    const handleBeforePrint = async () => {
+      // Silently mark as printed when print dialog opens
+      await markAsPrinted()
+    }
+
+    window.addEventListener("beforeprint", handleBeforePrint)
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint)
+    }
+  }, [transaction.id, transaction.status])
+
+  // Handle print button click - mark as printed first, then print
+  const handlePrint = async () => {
+    // Mark as printed silently (no toast)
+    await markAsPrinted()
+    // Small delay to ensure API call completes
+    await new Promise(resolve => setTimeout(resolve, 100))
+    // Open browser print dialog
+    window.print()
+  }
 
   // Group line items by metal type
   const groupedItems: Record<string, LineItem[]> = {
@@ -125,18 +191,35 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
 
         {/* Transaction Info */}
         <div className="mb-4 pb-3 border-b border-gray-700">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-lg font-bold text-black">
-                Type: {transaction.type}
-              </p>
-              <p className="text-xs text-gray-900">
-                Date: {new Date(transaction.createdAt).toLocaleString()}
-              </p>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-lg font-bold text-black">
+                  Type: {transaction.type}
+                </p>
+                <p className="text-xs text-gray-900">
+                  Created: {new Date(transaction.createdAt).toLocaleString()}
+                </p>
+                {transaction.completedAt && (
+                  <p className="text-xs text-gray-900">
+                    Completed: {new Date(transaction.completedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-900">Transaction ID</p>
+                <p className="text-sm font-mono text-black">{transaction.id.slice(0, 8)}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-900">Transaction ID</p>
-              <p className="text-sm font-mono text-black">{transaction.id.slice(0, 8)}</p>
+            <div className="text-xs text-gray-900 space-y-1">
+              <p>
+                <strong>Created By:</strong> {transaction.createdBy.email}
+              </p>
+              {transaction.completedBy && (
+                <p>
+                  <strong>Completed By:</strong> {transaction.completedBy.email}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -220,10 +303,11 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
       {/* Print Button (hidden when printing) */}
       <div className="no-print mt-8 text-center">
         <button
-          onClick={() => window.print()}
-          className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90"
+          onClick={handlePrint}
+          disabled={printing}
+          className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Print
+          {printing ? "Updating..." : "Print"}
         </button>
       </div>
     </div>
