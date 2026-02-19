@@ -186,8 +186,9 @@ export function PricingTable({
           const lastEditTime = lastEditTimeRef.current[key] || 0
           const timeSinceEdit = now - lastEditTime
           
-          // Only update if value changed and field wasn't edited in last 2 seconds
-          if (prev[key] !== values[key] && timeSinceEdit > 2000) {
+          // Only update if value changed and field wasn't edited in last 3 seconds
+          // Increased from 2s to 3s to prevent socket updates from overwriting values while user is typing
+          if (prev[key] !== values[key] && timeSinceEdit > 3000) {
             updated[key] = values[key]
             hasChanges = true
           }
@@ -366,7 +367,7 @@ export function PricingTable({
               variant: "destructive",
             })
           }
-        }, 400)
+        }, 800) // Increased from 400ms to 800ms to wait longer for user to finish typing
       }
     })()
   , [transaction.id, transaction.type, toast, purityPercentages])
