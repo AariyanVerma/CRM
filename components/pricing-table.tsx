@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles } from "lucide-react"
+import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Star } from "lucide-react"
 import {
   getScrapPricingRows,
   getMeltPricingRows,
@@ -151,7 +151,8 @@ export function PricingTable({
       const purityValues: Record<string, number> = {}
       
       lineItems.forEach((item) => {
-        const key = `${item.metalType}-${item.purityLabel}`
+        // For MELT, use metal type as key; for SCRAP, use metalType-purityLabel
+        const key = transaction.type === "MELT" ? item.metalType : `${item.metalType}-${item.purityLabel}`
         values[key] = item.dwt
         // For MELT transactions, include purity percentage (including 0)
         if (transaction.type === "MELT") {
@@ -168,7 +169,8 @@ export function PricingTable({
       
       // Update lastSavedValuesRef from socket updates to prevent unnecessary POSTs
       lineItems.forEach((item: any) => {
-        const key = `${item.metalType}-${item.purityLabel}`
+        // For MELT, use metal type as key; for SCRAP, use metalType-purityLabel
+        const key = transaction.type === "MELT" ? item.metalType : `${item.metalType}-${item.purityLabel}`
         lastSavedValuesRef.current[key] = {
           dwt: item.dwt,
           purityPercentage: transaction.type === "MELT" ? (item.purityPercentage ?? undefined) : undefined
@@ -376,7 +378,8 @@ export function PricingTable({
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
 
-    const key = `${metalType}-${purity}`
+    // For MELT, use metal type as key; for SCRAP, use metalType-purity
+    const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     
     // CRITICAL: Only proceed if this is a real user change (not a programmatic update)
     // Check if value actually changed from current state
@@ -392,7 +395,9 @@ export function PricingTable({
     // Use current purity percentage if not provided
     const purityPctValue = purityPercentage ?? purityPercentages[key] ?? 0
     const currentPurityPercentage = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
-    debouncedSave(metalType, purity, numValue, currentPurityPercentage)
+    // For MELT, use metalType as purity parameter; for SCRAP, use actual purity
+    const purityParam = transaction.type === "MELT" ? metalType : purity
+    debouncedSave(metalType, purityParam, numValue, currentPurityPercentage)
   }
 
   // Debounced price update function with longer delay
@@ -588,7 +593,8 @@ export function PricingTable({
   }
 
   function handlePurityPercentageChange(metalType: MetalType, purity: string, value: string) {
-    const key = `${metalType}-${purity}`
+    // For MELT, use metal type as key; for SCRAP, use metalType-purity
+    const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     
     // CRITICAL: Only proceed if this is a real user change (not a programmatic update)
     // Check if value actually changed from current state
@@ -637,11 +643,14 @@ export function PricingTable({
     // Always save purity percentage, even if DWT is 0
     const currentDwt = dwtValues[key] || 0
     // Use debouncedSave which will save the purity percentage
-    debouncedSave(metalType, purity, currentDwt, numValue)
+    // For MELT, use metalType as purity parameter; for SCRAP, use actual purity
+    const purityParam = transaction.type === "MELT" ? metalType : purity
+    debouncedSave(metalType, purityParam, currentDwt, numValue)
   }
   
   function handlePurityPercentageFocus(metalType: MetalType, purity: string, e: React.FocusEvent<HTMLInputElement>) {
-    const key = `${metalType}-${purity}`
+    // For MELT, use metal type as key; for SCRAP, use metalType-purity
+    const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     const currentValue = purityPercentages[key] ?? 0
     
     // If the field has value 0, clear it when focused
@@ -657,7 +666,8 @@ export function PricingTable({
   }
   
   function handlePurityPercentageBlur(metalType: MetalType, purity: string, e: React.FocusEvent<HTMLInputElement>) {
-    const key = `${metalType}-${purity}`
+    // For MELT, use metal type as key instead of purity
+    const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     const value = e.target.value
     
     // If field is empty on blur, set it back to 0
@@ -667,12 +677,17 @@ export function PricingTable({
         [key]: 0
       }))
       const currentDwt = dwtValues[key] || 0
-      debouncedSave(metalType, purity, currentDwt, 0)
+      if (transaction.type === "MELT") {
+        debouncedSave(metalType, metalType, currentDwt, 0) // Use metalType as purity for MELT
+      } else {
+        debouncedSave(metalType, purity, currentDwt, 0)
+      }
     }
   }
 
   function handleClear(metalType: MetalType, purity: string) {
-    const key = `${metalType}-${purity}`
+    // For MELT, use metal type as key instead of purity
+    const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     setDwtValues((prev) => ({ ...prev, [key]: 0 }))
     if (transaction.type === "MELT") {
       setPurityPercentages((prev) => {
@@ -680,8 +695,10 @@ export function PricingTable({
         delete updated[key]
         return updated
       })
+      debouncedSave(metalType, metalType, 0) // Use metalType as purity for MELT
+    } else {
+      debouncedSave(metalType, purity, 0)
     }
-    debouncedSave(metalType, purity, 0)
   }
 
   function getRowsForMetal(metalType: MetalType) {
@@ -692,6 +709,38 @@ export function PricingTable({
         ? spotPrices.silver
         : spotPrices.platinum
 
+    if (transaction.type === "MELT") {
+      // For MELT: single row, use metal type as key
+      const key = metalType
+      const dwt = dwtValues[key] || 0
+      const purityPctValue = purityPercentages[key] ?? 0
+      const purityPercentage = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
+      
+      // Find existing line item (for MELT, we look for any line item with this metal type)
+      const existingItem = transaction.lineItems.find(
+        (item) => item.metalType === metalType
+      )
+      
+      const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+      const percentageKey = `melt${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+      const percentageValue = percentages[percentageKey]
+      const percentage = typeof percentageValue === 'number' ? percentageValue : (typeof percentageValue === 'string' && percentageValue !== '' ? parseFloat(percentageValue) || 95 : 95)
+      
+      const rows = getMeltPricingRows(metalType, spotPrice, { [key]: dwt }, { [key]: purityPercentage }, percentage)
+      const row = rows[0] // Single row for MELT
+      
+      return [{
+        purity: metalType, // Use metal type as purity identifier
+        dwt: row.dwt,
+        pricePerDWT: row.pricePerDWT,
+        lineTotal: row.lineTotal,
+        purityPercentage: row.purityPercentage,
+        saving: saving[key] || false,
+        existingItem,
+      }]
+    }
+
+    // For SCRAP: multiple rows based on purity
     const purities =
       metalType === "GOLD"
         ? GOLD_PURITIES
@@ -723,38 +772,23 @@ export function PricingTable({
 
       let pricePerDWT = 0
       let lineTotal = 0
-      let purityPercentage = 0
 
-      if (transaction.type === "SCRAP") {
-        // Use SCRAP formulas
-        const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-        const percentageKey = `scrap${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
-        const percentageValue = percentages[percentageKey]
-        const percentage = typeof percentageValue === 'number' ? percentageValue : (typeof percentageValue === 'string' && percentageValue !== '' ? parseFloat(percentageValue) || 95 : 95)
-        const rows = getScrapPricingRows(metalType, spotPrice, { [purity]: dwt }, percentage)
-        const row = rows.find((r) => r.purity === purity)!
-        pricePerDWT = row.pricePerDWT
-        lineTotal = row.lineTotal
-      } else {
-        // Use MELT formulas
-        const purityPctValue = purityPercentages[key] ?? 0
-        purityPercentage = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
-        const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-        const percentageKey = `melt${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
-        const percentageValue = percentages[percentageKey]
-        const percentage = typeof percentageValue === 'number' ? percentageValue : (typeof percentageValue === 'string' && percentageValue !== '' ? parseFloat(percentageValue) || 95 : 95)
-        const rows = getMeltPricingRows(metalType, spotPrice, { [purity]: dwt }, { [purity]: purityPercentage }, percentage)
-        const row = rows.find((r) => r.purity === purity)!
-        pricePerDWT = row.pricePerDWT
-        lineTotal = row.lineTotal
-      }
+      // Use SCRAP formulas
+      const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+      const percentageKey = `scrap${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+      const percentageValue = percentages[percentageKey]
+      const percentage = typeof percentageValue === 'number' ? percentageValue : (typeof percentageValue === 'string' && percentageValue !== '' ? parseFloat(percentageValue) || 95 : 95)
+      const rows = getScrapPricingRows(metalType, spotPrice, { [purity]: dwt }, percentage)
+      const row = rows.find((r) => r.purity === purity)!
+      pricePerDWT = row.pricePerDWT
+      lineTotal = row.lineTotal
 
       return {
         purity,
         dwt,
         pricePerDWT,
         lineTotal,
-        purityPercentage,
+        purityPercentage: undefined, // SCRAP doesn't use purity percentage
         saving: saving[key] || false,
         existingItem,
       }
@@ -770,16 +804,22 @@ export function PricingTable({
   }
 
   function handleClearAll(metalType: MetalType) {
-    const purities =
-      metalType === "GOLD"
-        ? GOLD_PURITIES
-        : metalType === "SILVER"
-        ? SILVER_PURITIES
-        : PLATINUM_PURITIES
-    
-    purities.forEach((purity) => {
-      handleClear(metalType, purity)
-    })
+    if (transaction.type === "MELT") {
+      // For MELT, just clear the single row
+      handleClear(metalType, metalType)
+    } else {
+      // For SCRAP, clear all purity rows
+      const purities =
+        metalType === "GOLD"
+          ? GOLD_PURITIES
+          : metalType === "SILVER"
+          ? SILVER_PURITIES
+          : PLATINUM_PURITIES
+      
+      purities.forEach((purity) => {
+        handleClear(metalType, purity)
+      })
+    }
   }
 
   function renderMetalTable(metalType: MetalType) {
@@ -791,25 +831,38 @@ export function PricingTable({
         <div className="min-w-full inline-block px-2 sm:px-0">
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
             <colgroup>
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '25%' }} />
-              <col style={{ width: '25%' }} />
-              <col style={{ width: '25%' }} />
-              <col style={{ width: '5%', minWidth: '40px' }} />
+              {transaction.type === "MELT" ? (
+                <>
+                  <col style={{ width: '33%' }} />
+                  <col style={{ width: '33%' }} />
+                  <col style={{ width: '33%' }} />
+                  <col style={{ width: '1%', minWidth: '40px' }} />
+                </>
+              ) : (
+                <>
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '5%', minWidth: '40px' }} />
+                </>
+              )}
             </colgroup>
           <thead>
             <tr className="border-b-2 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 shadow-xl">
-              <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
-                <div className="flex items-center justify-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary drop-shadow-lg" />
-                  <span className="drop-shadow-md">Purity</span>
-                </div>
-              </th>
+              {transaction.type !== "MELT" && (
+                <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
+                  <div className="flex items-center justify-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary drop-shadow-lg" />
+                    <span className="drop-shadow-md">Purity</span>
+                  </div>
+                </th>
+              )}
               <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
                 <div className="flex items-center justify-center gap-2">
                   {transaction.type === "MELT" ? (
                     <>
-                      <Calculator className="h-4 w-4 text-primary drop-shadow-lg" />
+                      <Sparkles className="h-4 w-4 text-primary drop-shadow-lg" />
                       <span className="drop-shadow-md">Purity %</span>
                     </>
                   ) : (
@@ -845,23 +898,27 @@ export function PricingTable({
                   row.dwt > 0 ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted/40'
                 }`}
               >
-                <td className="p-2 sm:p-3 md:p-4 font-bold text-center overflow-hidden text-ellipsis text-base sm:text-lg">
-                  {row.purity}
-                </td>
+                {transaction.type !== "MELT" && (
+                  <td className="p-2 sm:p-3 md:p-4 font-bold text-center overflow-hidden text-ellipsis text-base sm:text-lg">
+                    {row.purity}
+                  </td>
+                )}
                 {transaction.type === "MELT" ? (
                   <td className="p-2 sm:p-3 md:p-4 text-center">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={row.purityPercentage !== undefined && row.purityPercentage !== null && row.purityPercentage !== 0 ? row.purityPercentage : ""}
-                      onChange={(e) => handlePurityPercentageChange(metalType, row.purity, e.target.value)}
-                      onFocus={(e) => handlePurityPercentageFocus(metalType, row.purity, e)}
-                      onBlur={(e) => handlePurityPercentageBlur(metalType, row.purity, e)}
-                      className="w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                      placeholder="0.00"
-                    />
+                    <div className="flex justify-center items-center">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={row.purityPercentage !== undefined && row.purityPercentage !== null && row.purityPercentage !== 0 ? row.purityPercentage : ""}
+                        onChange={(e) => handlePurityPercentageChange(metalType, row.purity, e.target.value)}
+                        onFocus={(e) => handlePurityPercentageFocus(metalType, row.purity, e)}
+                        onBlur={(e) => handlePurityPercentageBlur(metalType, row.purity, e)}
+                        className="w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 mx-auto"
+                        placeholder="0.00"
+                      />
+                    </div>
                   </td>
                 ) : (
                   <td className="p-2 sm:p-3 md:p-4 text-center font-semibold overflow-hidden text-ellipsis text-base sm:text-lg text-muted-foreground">
@@ -914,7 +971,9 @@ export function PricingTable({
                   <span>Total</span>
                 </div>
               </td>
-              <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">—</td>
+              {transaction.type !== "MELT" && (
+                <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">—</td>
+              )}
               <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg text-primary">
                 {formatDecimal(totals.totalDwt)}
               </td>

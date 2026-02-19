@@ -9,6 +9,11 @@ export interface SessionUser {
   id: string
   email: string
   role: 'ADMIN' | 'STAFF'
+  firstName?: string | null
+  lastName?: string | null
+  address?: string | null
+  phoneNumber?: string | null
+  profileImageUrl?: string | null
 }
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -26,7 +31,16 @@ export async function getSession(): Promise<SessionUser | null> {
     
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        address: true,
+        phoneNumber: true,
+        profileImageUrl: true,
+      },
     })
 
     return user as SessionUser | null
@@ -51,9 +65,27 @@ export async function destroySession(): Promise<void> {
 }
 
 export async function verifyCredentials(email: string, password: string): Promise<SessionUser | null> {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  })
+  // Normalize email and use case-insensitive search
+  const normalizedEmail = email.toLowerCase().trim()
+  
+  // Use raw SQL for case-insensitive email lookup
+  const users = await prisma.$queryRaw<Array<{
+    id: string
+    email: string
+    passwordHash: string
+    role: string
+    firstName: string | null
+    lastName: string | null
+    address: string | null
+    phoneNumber: string | null
+    profileImageUrl: string | null
+  }>>`
+    SELECT id, email, "passwordHash", role, "firstName", "lastName", address, "phoneNumber", "profileImageUrl"
+    FROM "User" 
+    WHERE LOWER(email) = LOWER(${normalizedEmail}) 
+    LIMIT 1
+  `
+  const user = users[0] || null
 
   if (!user) {
     return null
@@ -68,6 +100,11 @@ export async function verifyCredentials(email: string, password: string): Promis
     id: user.id,
     email: user.email,
     role: user.role,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    address: user.address,
+    phoneNumber: user.phoneNumber,
+    profileImageUrl: user.profileImageUrl,
   }
 }
 

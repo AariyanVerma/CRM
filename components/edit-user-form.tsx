@@ -16,15 +16,42 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
+import { Trash2, Key } from "lucide-react"
 import { PasswordInput } from "@/components/password-input"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-export function NewUserForm() {
+interface EditUserFormProps {
+  user: {
+    id: string
+    email: string
+    role: "ADMIN" | "STAFF"
+    firstName?: string | null
+    lastName?: string | null
+    address?: string | null
+    phoneNumber?: string | null
+    profileImageUrl?: string | null
+  }
+}
+
+export function EditUserForm({ user }: EditUserFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [role, setRole] = useState<"ADMIN" | "STAFF">("STAFF")
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false)
+  const [role, setRole] = useState<"ADMIN" | "STAFF">(user.role)
   const [profileImage, setProfileImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(user.profileImageUrl || null)
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -61,7 +88,7 @@ export function NewUserForm() {
     const formData = new FormData(e.currentTarget)
     
     // Upload image first if provided
-    let profileImageUrl: string | null = null
+    let profileImageUrl: string | null = user.profileImageUrl || null
     if (profileImage) {
       try {
         const imageFormData = new FormData()
@@ -88,7 +115,7 @@ export function NewUserForm() {
 
     const data = {
       email: formData.get("email") as string,
-      password: formData.get("password") as string,
+      password: formData.get("password") as string || undefined,
       role,
       firstName: formData.get("firstName") as string || null,
       lastName: formData.get("lastName") as string || null,
@@ -98,40 +125,148 @@ export function NewUserForm() {
     }
 
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
 
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || "Failed to create user")
+        throw new Error(error.message || "Failed to update user")
       }
 
       toast({
-        title: "User created",
-        description: "New user account has been created successfully.",
+        title: "User updated",
+        description: "User information has been updated successfully.",
         variant: "success",
       })
       router.push("/admin/users")
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create user",
+        description: error instanceof Error ? error.message : "Failed to update user",
         variant: "destructive",
       })
       setLoading(false)
     }
   }
 
+  async function handleDelete() {
+    setDeleteLoading(true)
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.message || "Failed to delete user")
+      }
+
+      toast({
+        title: "User deleted",
+        description: "User has been deleted successfully.",
+        variant: "success",
+      })
+      router.push("/admin/users")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete user",
+        variant: "destructive",
+      })
+      setDeleteLoading(false)
+    }
+  }
+
+  async function handleResetPassword() {
+    const newPassword = prompt(`Enter new password for ${user.email} (min 6 characters):`)
+    if (!newPassword) return
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setResetPasswordLoading(true)
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.message || "Failed to reset password")
+      }
+
+      toast({
+        title: "Password Reset",
+        description: `Password has been reset for ${user.email}`,
+        variant: "success",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset password",
+        variant: "destructive",
+      })
+    } finally {
+      setResetPasswordLoading(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create New User</CardTitle>
-        <CardDescription>
-          Add a new staff member or admin to the system
-        </CardDescription>
+          <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Edit User</CardTitle>
+            <CardDescription>
+              Update user information and settings
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetPassword}
+              disabled={resetPasswordLoading || loading}
+            >
+              <Key className="h-4 w-4 mr-2" />
+              {resetPasswordLoading ? "Resetting..." : "Reset Password"}
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={deleteLoading}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete User
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the user account
+                    and all associated data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                    {deleteLoading ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -169,37 +304,68 @@ export function NewUserForm() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" name="firstName" type="text" autoComplete="given-name" />
+              <Input
+                id="firstName"
+                name="firstName"
+                type="text"
+                defaultValue={user.firstName || ""}
+                autoComplete="given-name"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" name="lastName" type="text" autoComplete="family-name" />
+              <Input
+                id="lastName"
+                name="lastName"
+                type="text"
+                defaultValue={user.lastName || ""}
+                autoComplete="family-name"
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email *</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              defaultValue={user.email}
+              autoComplete="email"
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Phone Number</Label>
-            <Input id="phoneNumber" name="phoneNumber" type="tel" autoComplete="tel" />
+            <Input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              defaultValue={user.phoneNumber || ""}
+              autoComplete="tel"
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Textarea id="address" name="address" rows={3} autoComplete="street-address" />
+            <Textarea
+              id="address"
+              name="address"
+              rows={3}
+              defaultValue={user.address || ""}
+              autoComplete="street-address"
+            />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password *</Label>
+            <Label htmlFor="password">New Password</Label>
             <PasswordInput
               id="password"
               name="password"
-              required
               autoComplete="new-password"
               minLength={6}
+              placeholder="Leave blank to keep current password"
             />
           </div>
 
@@ -218,7 +384,7 @@ export function NewUserForm() {
 
           <div className="flex gap-4">
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Creating..." : "Create User"}
+              {loading ? "Updating..." : "Update User"}
             </Button>
             <Button
               type="button"

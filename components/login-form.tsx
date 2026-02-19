@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
+import { PasswordInput } from "@/components/password-input"
 
 export function LoginForm({ action }: { action: (formData: FormData) => Promise<{ error?: string } | void> }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -52,10 +55,9 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               required
               autoComplete="current-password"
               disabled={loading}
@@ -64,7 +66,21 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setForgotPasswordOpen(true)}
+              className="text-sm text-primary hover:underline"
+              disabled={loading}
+            >
+              Forgot Password?
+            </button>
+          </div>
         </form>
+        <ForgotPasswordDialog
+          open={forgotPasswordOpen}
+          onOpenChange={setForgotPasswordOpen}
+        />
       </CardContent>
     </Card>
   )

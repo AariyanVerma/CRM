@@ -37,7 +37,15 @@ export async function PageHeader({
           {session && (
             <>
               <span className="hidden sm:inline text-sm text-muted-foreground">{session.email}</span>
-              <UserMenu email={session.email} role={session.role} />
+              <UserMenu
+                email={session.email}
+                role={session.role}
+                firstName={session.firstName}
+                lastName={session.lastName}
+                address={session.address}
+                phoneNumber={session.phoneNumber}
+                profileImageUrl={session.profileImageUrl}
+              />
             </>
           )}
           <ThemeToggle />

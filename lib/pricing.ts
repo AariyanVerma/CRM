@@ -174,6 +174,7 @@ export function getScrapPricingRows(
 
 /**
  * Get all pricing rows for MELT metal type
+ * For MELT, we return only a single row (no purity-based rows)
  */
 export function getMeltPricingRows(
   metalType: MetalType,
@@ -182,53 +183,35 @@ export function getMeltPricingRows(
   currentPurityPercentages: Record<string, number> = {},
   percentage: number = 95
 ) {
+  // For MELT, use a single key instead of purity-based keys
+  const meltKey = metalType // Use metal type as the key (e.g., "GOLD", "SILVER", "PLATINUM")
+  const dwt = currentDwtValues[meltKey] || 0
+  const purityPercentage = currentPurityPercentages[meltKey] || 0
+  
+  let pricePerDWT = 0
   switch (metalType) {
     case 'GOLD':
-      return GOLD_PURITIES.map(purity => {
-        const dwt = currentDwtValues[purity] || 0
-        const purityPercentage = currentPurityPercentages[purity] || 0
-        const pricePerDWT = calculateMeltGoldPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
-        // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
-        const lineTotal = pricePerDWT
-        return {
-          purity,
-          pricePerDWT,
-          dwt,
-          purityPercentage,
-          lineTotal,
-        }
-      })
+      pricePerDWT = calculateMeltGoldPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
+      break
     case 'SILVER':
-      return SILVER_PURITIES.map(purity => {
-        const dwt = currentDwtValues[purity] || 0
-        const purityPercentage = currentPurityPercentages[purity] || 0
-        const pricePerDWT = calculateMeltSilverPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
-        // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
-        const lineTotal = pricePerDWT
-        return {
-          purity,
-          pricePerDWT,
-          dwt,
-          purityPercentage,
-          lineTotal,
-        }
-      })
+      pricePerDWT = calculateMeltSilverPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
+      break
     case 'PLATINUM':
-      return PLATINUM_PURITIES.map(purity => {
-        const dwt = currentDwtValues[purity] || 0
-        const purityPercentage = currentPurityPercentages[purity] || 0
-        const pricePerDWT = calculateMeltPlatinumPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
-        // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
-        const lineTotal = pricePerDWT
-        return {
-          purity,
-          pricePerDWT,
-          dwt,
-          purityPercentage,
-          lineTotal,
-        }
-      })
+      pricePerDWT = calculateMeltPlatinumPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
+      break
   }
+  
+  // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
+  const lineTotal = pricePerDWT
+  
+  // Return single row
+  return [{
+    purity: meltKey, // Keep for compatibility but won't be displayed
+    pricePerDWT,
+    dwt,
+    purityPercentage,
+    lineTotal,
+  }]
 }
 
 // Legacy function for backward compatibility (SCRAP only)
