@@ -43,12 +43,14 @@ export function PricingTable({
   onNewTransaction,
   metalType,
   userRole = "STAFF",
+  onLineItemsUpdate,
 }: {
   transaction: Transaction
   onPrint: () => void
   onNewTransaction: () => void
   metalType?: MetalType
   userRole?: "ADMIN" | "STAFF"
+  onLineItemsUpdate?: (lineItems: LineItem[]) => void
 }) {
   const { toast } = useToast()
   const [dwtValues, setDwtValues] = useState<Record<string, number>>({})
@@ -69,31 +71,7 @@ export function PricingTable({
     meltPlatinum: 95,
   })
   
-  // Fetch initial percentages from DailyPrice on mount
-  useEffect(() => {
-    const fetchInitialPercentages = async () => {
-      try {
-        const res = await fetch("/api/prices/current", {
-          credentials: "include",
-          cache: "no-store",
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setPercentages({
-            scrapGold: data.scrapGoldPercentage || 95,
-            scrapSilver: data.scrapSilverPercentage || 95,
-            scrapPlatinum: data.scrapPlatinumPercentage || 95,
-            meltGold: data.meltGoldPercentage || 95,
-            meltSilver: data.meltSilverPercentage || 95,
-            meltPlatinum: data.meltPlatinumPercentage || 95,
-          })
-        }
-      } catch (error) {
-        console.error("Error fetching initial percentages:", error)
-      }
-    }
-    fetchInitialPercentages()
-  }, [])
+  // Percentages are now fetched via useSocketPrices hook - no need for duplicate fetch
   // Purity percentages for MELT (stored per line item)
   const [purityPercentages, setPurityPercentages] = useState<Record<string, number | string>>({})
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
@@ -163,6 +141,11 @@ export function PricingTable({
   useSocketTransaction(
     transaction.id,
     useCallback((lineItems) => {
+      // Notify parent component if callback provided
+      if (onLineItemsUpdate) {
+        onLineItemsUpdate(lineItems)
+      }
+      
       // Update DWT values and purity percentages from fetched line items
       const values: Record<string, number> = {}
       const purityValues: Record<string, number> = {}
@@ -180,6 +163,15 @@ export function PricingTable({
               purityValues[key] = purityNum
             }
           }
+        }
+      })
+      
+      // Update lastSavedValuesRef from socket updates to prevent unnecessary POSTs
+      lineItems.forEach((item: any) => {
+        const key = `${item.metalType}-${item.purityLabel}`
+        lastSavedValuesRef.current[key] = {
+          dwt: item.dwt,
+          purityPercentage: transaction.type === "MELT" ? (item.purityPercentage ?? undefined) : undefined
         }
       })
       
@@ -210,6 +202,8 @@ export function PricingTable({
             if (timeSinceEdit > 2000) {
               delete updated[key]
               hasChanges = true
+              // Remove from lastSavedValuesRef when item is deleted
+              delete lastSavedValuesRef.current[key]
             }
           }
         })
@@ -259,16 +253,39 @@ export function PricingTable({
           return hasChanges ? updated : prev
         })
       }
-    }, [transaction.type]),
+    }, [transaction.type, onLineItemsUpdate]),
     { enabled: true }
   )
 
-  // Debounced save function
+  // Track in-flight requests to prevent duplicate POSTs
+  const inFlightRequestsRef = useRef<Set<string>>(new Set())
+  // Track last saved values to prevent unnecessary POSTs
+  const lastSavedValuesRef = useRef<Record<string, { dwt: number; purityPercentage?: number }>>({})
+
+  // Debounced save function - ONLY called from user input handlers
   const debouncedSave = useCallback(
     (() => {
       const timeouts: Record<string, NodeJS.Timeout | null> = {}
       return (metalType: MetalType, purity: string, dwt: number, purityPercentage?: number) => {
         const key = `${metalType}-${purity}`
+        
+        // CRITICAL: Prevent POST if there's already a request in flight for this field
+        if (inFlightRequestsRef.current.has(key)) {
+          console.log(`[debouncedSave] Skipping POST for ${key} - request already in flight`)
+          return
+        }
+
+        // CRITICAL: Prevent POST if value hasn't actually changed from last saved value
+        const lastSaved = lastSavedValuesRef.current[key]
+        const currentDwt = parseFloat(dwt.toString()) || 0
+        const currentPurityPct = purityPercentage !== undefined ? purityPercentage : (typeof purityPercentages[key] === 'number' ? purityPercentages[key] : parseFloat(String(purityPercentages[key] || 0)))
+        
+        if (lastSaved && 
+            lastSaved.dwt === currentDwt && 
+            (transaction.type !== "MELT" || lastSaved.purityPercentage === currentPurityPct)) {
+          console.log(`[debouncedSave] Skipping POST for ${key} - value unchanged (dwt: ${currentDwt}, purity: ${currentPurityPct})`)
+          return
+        }
         
         // Clear existing timeout for this specific field
         if (timeouts[key]) {
@@ -276,25 +293,29 @@ export function PricingTable({
         }
         
         timeouts[key] = setTimeout(async () => {
+          // Double-check: still no request in flight
+          if (inFlightRequestsRef.current.has(key)) {
+            console.log(`[debouncedSave] Skipping POST for ${key} - request started during debounce`)
+            return
+          }
+
+          // Mark as in-flight
+          inFlightRequestsRef.current.add(key)
           setSaving((prev) => ({ ...prev, [key]: true }))
 
           try {
             const body: any = {
               metalType,
               purityLabel: purity,
-              dwt: parseFloat(dwt.toString()) || 0,
+              dwt: currentDwt,
             }
             
             // Include purity percentage for MELT transactions (always include, even if 0)
             if (transaction.type === "MELT") {
-              // Use the provided purityPercentage or get from state
-              const purityPctValue = purityPercentage !== undefined ? purityPercentage : (purityPercentages[key] ?? 0)
-              // Parse to number (handles both number and string states)
-              const purityPct = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
-              // Always include purityPercentage in the body, even if it's 0
-              body.purityPercentage = purityPct
+              body.purityPercentage = currentPurityPct
             }
 
+            console.log(`[debouncedSave] POST /api/transactions/${transaction.id}/line-items for ${key}`, body)
 
             const res = await fetch(`/api/transactions/${transaction.id}/line-items`, {
               method: "POST",
@@ -310,7 +331,14 @@ export function PricingTable({
 
             await res.json()
 
-            // Clear saving state immediately after successful save
+            // Update last saved values
+            lastSavedValuesRef.current[key] = {
+              dwt: currentDwt,
+              purityPercentage: transaction.type === "MELT" ? currentPurityPct : undefined
+            }
+
+            // Clear in-flight flag and saving state
+            inFlightRequestsRef.current.delete(key)
             setSaving((prev) => {
               const updated = { ...prev }
               delete updated[key]
@@ -324,7 +352,8 @@ export function PricingTable({
             })
           } catch (error) {
             console.error("Error saving line item:", error)
-            // Clear saving state on error
+            // Clear in-flight flag and saving state on error
+            inFlightRequestsRef.current.delete(key)
             setSaving((prev) => {
               const updated = { ...prev }
               delete updated[key]
@@ -347,6 +376,15 @@ export function PricingTable({
     if (numValue < 0) return
 
     const key = `${metalType}-${purity}`
+    
+    // CRITICAL: Only proceed if this is a real user change (not a programmatic update)
+    // Check if value actually changed from current state
+    const currentValue = dwtValues[key] ?? 0
+    if (currentValue === numValue) {
+      // Value hasn't changed, this might be a programmatic update - don't save
+      return
+    }
+    
     lastEditTimeRef.current[key] = Date.now() // Mark as recently edited
     setDwtValues((prev) => ({ ...prev, [key]: numValue }))
     
@@ -434,18 +472,8 @@ export function PricingTable({
           if (!isTypingRef.current[typingKey]) return
           
           try {
-            // Fetch current spot price from DailyPrice to avoid resetting it
-            const currentPricesRes = await fetch("/api/prices/current", {
-              credentials: "include",
-              cache: "no-store",
-            })
-            let currentSpotPrice = spotPrices[metalType.toLowerCase() as keyof typeof spotPrices]
-            
-            if (currentPricesRes.ok) {
-              const currentPrices = await currentPricesRes.json()
-              const metalKey = metalType.toLowerCase() as "gold" | "silver" | "platinum"
-              currentSpotPrice = currentPrices[metalKey] || currentSpotPrice
-            }
+            // Use current spot price from state (no need to fetch - we already have it)
+            const currentSpotPrice = spotPrices[metalType.toLowerCase() as keyof typeof spotPrices]
             
             // Update percentage in DailyPrice via prices API
             const percentageKey = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
@@ -561,21 +589,34 @@ export function PricingTable({
   function handlePurityPercentageChange(metalType: MetalType, purity: string, value: string) {
     const key = `${metalType}-${purity}`
     
-    // Mark as recently edited to prevent socket updates from overwriting
-    lastEditTimeRef.current[`purity-${key}`] = Date.now()
+    // CRITICAL: Only proceed if this is a real user change (not a programmatic update)
+    // Check if value actually changed from current state
+    const currentValue = purityPercentages[key]
+    const numValue = parseFloat(value)
+    const currentNumValue = typeof currentValue === 'number' ? currentValue : (currentValue ? parseFloat(String(currentValue)) : NaN)
     
     // Handle empty string - clear the field
     if (value === "" || value === null || value === undefined) {
-      setPurityPercentages(prev => {
-        const updated = { ...prev }
-        delete updated[key]
-        return updated
-      })
+      // Only clear if it's actually different from current state
+      if (currentValue !== undefined && currentValue !== null && currentValue !== "") {
+        setPurityPercentages(prev => {
+          const updated = { ...prev }
+          delete updated[key]
+          return updated
+        })
+      }
       // Don't save immediately when field is cleared, wait for user to enter a value
       return
     }
     
-    const numValue = parseFloat(value)
+    // If value hasn't changed, this might be a programmatic update - don't proceed
+    if (!isNaN(numValue) && !isNaN(currentNumValue) && numValue === currentNumValue) {
+      return
+    }
+    
+    // Mark as recently edited to prevent socket updates from overwriting
+    lastEditTimeRef.current[`purity-${key}`] = Date.now()
+    
     if (isNaN(numValue) || numValue < 0 || numValue > 100) {
       // Allow partial input (like "9." or "9.5")
       if (value.match(/^[0-9]*\.?[0-9]*$/)) {

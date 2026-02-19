@@ -69,23 +69,8 @@ export function ScanPageClient({
     return () => clearInterval(timer)
   }, [])
 
-  // Socket-based scrap transaction updates
-  useSocketTransaction(
-    scrapTransaction.id,
-    (lineItems) => {
-      setScrapLineItems(lineItems)
-    },
-    { enabled: true }
-  )
-
-  // Socket-based melt transaction updates
-  useSocketTransaction(
-    meltTransaction.id,
-    (lineItems) => {
-      setMeltLineItems(lineItems)
-    },
-    { enabled: true }
-  )
+  // NOTE: Removed duplicate useSocketTransaction hooks - PricingTable components handle socket updates
+  // and notify us via onLineItemsUpdate callback to prevent duplicate subscriptions
 
   async function handlePrint(type: "SCRAP" | "MELT") {
     const transaction = type === "SCRAP" ? scrapTransaction : meltTransaction
@@ -256,6 +241,7 @@ export function ScanPageClient({
                 onPrint={() => handlePrint("SCRAP")}
                 onNewTransaction={() => handleNewTransaction("SCRAP")}
                 userRole={userRole}
+                onLineItemsUpdate={setScrapLineItems}
               />
             </div>
           </div>
@@ -302,6 +288,7 @@ export function ScanPageClient({
                 onPrint={() => handlePrint("MELT")}
                 onNewTransaction={() => handleNewTransaction("MELT")}
                 userRole={userRole}
+                onLineItemsUpdate={setMeltLineItems}
               />
             </div>
           </div>

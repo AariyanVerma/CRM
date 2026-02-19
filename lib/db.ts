@@ -10,5 +10,6 @@ export const prisma =
     log: ['error', 'warn'], // Removed 'query' to reduce log spam
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Always cache Prisma client on globalThis to prevent multiple instances (works in both dev and production)
+globalForPrisma.prisma = prisma
 

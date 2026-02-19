@@ -17,9 +17,13 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // TEMPORARY: Log to identify runaway requests
+  const { id } = await params
+  const referer = request.headers.get('referer') || 'unknown'
+  console.log(`[API] GET /api/transactions/${id}/line-items - Referer: ${referer.substring(0, 100)}`)
+  
   try {
     const session = await requireAuth()
-    const { id } = await params
 
     // Get transaction with line items
     const transaction = await prisma.transaction.findUnique({
