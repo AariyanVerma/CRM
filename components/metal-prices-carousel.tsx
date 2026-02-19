@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Carousel } from "@/components/carousel"
 import { useSocketPrices } from "@/hooks/use-socket-prices"
+import { formatDecimal } from "@/lib/utils"
 
 interface MetalPricesCarouselProps {
   gold: number | null
@@ -58,7 +59,7 @@ export function MetalPricesCarousel({ gold, silver, platinum }: MetalPricesCarou
                   <span className="text-lg font-bold">{metal.name}</span>
                 </div>
                 <div className="text-2xl font-bold text-center">
-                  ${metal.price?.toFixed(2) || 'N/A'}
+                  ${metal.price !== null && metal.price !== undefined ? formatDecimal(metal.price) : 'N/A'}
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
                   Spot price per oz

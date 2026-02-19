@@ -16,6 +16,7 @@ import {
   SILVER_PURITIES,
   PLATINUM_PURITIES,
 } from "@/lib/pricing"
+import { formatDecimal } from "@/lib/utils"
 
 interface LineItem {
   id: string
@@ -394,7 +395,7 @@ export function PricingTable({
 
             toast({
               title: "Price updated",
-              description: `${metalType} spot price updated to $${priceToSave.toFixed(2)}`,
+              description: `${metalType} spot price updated to $${formatDecimal(priceToSave)}`,
               variant: "success",
             })
           } catch (error) {
@@ -433,11 +434,24 @@ export function PricingTable({
           if (!isTypingRef.current[typingKey]) return
           
           try {
+            // Fetch current spot price from DailyPrice to avoid resetting it
+            const currentPricesRes = await fetch("/api/prices/current", {
+              credentials: "include",
+              cache: "no-store",
+            })
+            let currentSpotPrice = spotPrices[metalType.toLowerCase() as keyof typeof spotPrices]
+            
+            if (currentPricesRes.ok) {
+              const currentPrices = await currentPricesRes.json()
+              const metalKey = metalType.toLowerCase() as "gold" | "silver" | "platinum"
+              currentSpotPrice = currentPrices[metalKey] || currentSpotPrice
+            }
+            
             // Update percentage in DailyPrice via prices API
             const percentageKey = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
             const requestBody: any = {
               metalType: metalType.toLowerCase(),
-              price: spotPrices[metalType.toLowerCase() as keyof typeof spotPrices],
+              price: currentSpotPrice,
               transactionType: transaction.type,
             }
             requestBody[percentageKey] = percentageValue
@@ -462,7 +476,7 @@ export function PricingTable({
 
             toast({
               title: "Percentage updated",
-              description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${percentageValue.toFixed(2)}%`,
+              description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}%`,
               variant: "success",
             })
           } catch (error) {
@@ -809,7 +823,7 @@ export function PricingTable({
                   </td>
                 ) : (
                   <td className="p-2 sm:p-3 md:p-4 text-center font-semibold overflow-hidden text-ellipsis text-base sm:text-lg text-muted-foreground">
-                    ${row.pricePerDWT.toFixed(2)}
+                    ${formatDecimal(row.pricePerDWT)}
                   </td>
                 )}
                 <td className="p-2 sm:p-3 md:p-4 text-center">
@@ -832,7 +846,7 @@ export function PricingTable({
                 <td className={`p-2 sm:p-3 md:p-4 text-center font-bold overflow-hidden text-ellipsis text-base sm:text-lg ${
                   row.lineTotal > 0 ? 'text-primary' : ''
                 }`}>
-                  ${row.lineTotal.toFixed(2)}
+                  ${formatDecimal(row.lineTotal)}
                 </td>
                 <td className="p-1 sm:p-2 text-center">
                   {row.dwt > 0 && (
@@ -860,10 +874,10 @@ export function PricingTable({
               </td>
               <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">—</td>
               <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg text-primary">
-                {totals.totalDwt.toFixed(2)}
+                {formatDecimal(totals.totalDwt)}
               </td>
               <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-lg sm:text-xl text-primary">
-                ${totals.totalPrice.toFixed(2)}
+                ${formatDecimal(totals.totalPrice)}
               </td>
               <td className="p-1 sm:p-2">
                 {totals.totalDwt > 0 && (
@@ -1000,7 +1014,7 @@ export function PricingTable({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Gold</p>
-                  <p className="text-lg sm:text-xl font-bold text-amber-600">${spotPrices.gold.toFixed(2)}</p>
+                  <p className="text-lg sm:text-xl font-bold text-amber-600">${formatDecimal(spotPrices.gold)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg border border-primary/30 shadow-md">
@@ -1028,7 +1042,7 @@ export function PricingTable({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Silver</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-600">${spotPrices.silver.toFixed(2)}</p>
+                  <p className="text-lg sm:text-xl font-bold text-gray-600">${formatDecimal(spotPrices.silver)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg border border-primary/30 shadow-md">
@@ -1056,7 +1070,7 @@ export function PricingTable({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Platinum</p>
-                  <p className="text-lg sm:text-xl font-bold text-slate-600">${spotPrices.platinum.toFixed(2)}</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-600">${formatDecimal(spotPrices.platinum)}</p>
                 </div>
               </div>
             </div>

@@ -120,9 +120,28 @@ export async function PATCH(request: NextRequest) {
       meltPlatinumPercentage,
     } = body
 
-    if (!metalType || price === undefined || price === null) {
+    if (!metalType) {
       return NextResponse.json(
-        { message: "Missing required fields" },
+        { message: "Missing required fields: metalType" },
+        { status: 400 }
+      )
+    }
+    
+    // Check if we're updating a percentage (price can be optional in this case)
+    const isUpdatingPercentage = transactionType && metalType && (
+      body[`${transactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`] !== undefined ||
+      scrapGoldPercentage !== undefined ||
+      scrapSilverPercentage !== undefined ||
+      scrapPlatinumPercentage !== undefined ||
+      meltGoldPercentage !== undefined ||
+      meltSilverPercentage !== undefined ||
+      meltPlatinumPercentage !== undefined
+    )
+    
+    // Price is required only if we're not updating a percentage
+    if (!isUpdatingPercentage && (price === undefined || price === null)) {
+      return NextResponse.json(
+        { message: "Missing required fields: price" },
         { status: 400 }
       )
     }
@@ -146,12 +165,19 @@ export async function PATCH(request: NextRequest) {
       createdByUserId: session.id,
     }
 
-    if (metalType.toLowerCase() === "gold") {
-      updateData.gold = parseFloat(price)
-    } else if (metalType.toLowerCase() === "silver") {
-      updateData.silver = parseFloat(price)
-    } else if (metalType.toLowerCase() === "platinum") {
-      updateData.platinum = parseFloat(price)
+    // Only update spot price if it's provided and different from existing
+    if (price !== undefined && price !== null) {
+      const priceValue = parseFloat(price)
+      const metalKey = metalType.toLowerCase()
+      
+      // Only update if the price is actually different from existing
+      if (metalKey === "gold" && (!existing || existing.gold !== priceValue)) {
+        updateData.gold = priceValue
+      } else if (metalKey === "silver" && (!existing || existing.silver !== priceValue)) {
+        updateData.silver = priceValue
+      } else if (metalKey === "platinum" && (!existing || existing.platinum !== priceValue)) {
+        updateData.platinum = priceValue
+      }
     }
 
     // Handle percentage updates based on transaction type and metal type

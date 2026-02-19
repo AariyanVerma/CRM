@@ -17,3 +17,15 @@ export function generateToken(): string {
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
+/**
+ * Truncate a number to 2 decimal places without rounding
+ * Returns the exact value up to 2 decimal places, formatted as a string
+ */
+export function formatDecimal(value: number): string {
+  if (isNaN(value) || !isFinite(value)) return '0.00'
+  // Truncate to 2 decimal places (no rounding)
+  const truncated = Math.trunc(value * 100) / 100
+  // Format to always show 2 decimal places
+  return truncated.toFixed(2)
+}
+

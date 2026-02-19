@@ -45,7 +45,7 @@ export function calculateScrapGoldPricePerDWT(
 
 /**
  * Calculate SCRAP silver price per pennyweight (DWT)
- * Formula: ((metal spot price /oz * purity)/20) * (scrap silver percentage/100)
+ * Formula: ((spot price of metal*purity)/1000)*((scrap silver percentage/20)/100)
  */
 export function calculateScrapSilverPricePerDWT(
   purity: SilverPurity,
@@ -53,7 +53,7 @@ export function calculateScrapSilverPricePerDWT(
   percentage: number = 95
 ): number {
   const purityValue = parseFloat(purity)
-  const result = ((silverSpotPrice * purityValue) / 20) * (percentage / 100)
+  const result = ((silverSpotPrice * purityValue) / 1000) * ((percentage / 20) / 100)
   return Math.max(0, result)
 }
 
@@ -72,8 +72,8 @@ export function calculateScrapPlatinumPricePerDWT(
 }
 
 /**
- * Calculate MELT gold price per pennyweight (DWT)
- * Formula: ((spot price/oz * purity percentage)/100) * ((dwt/20) * melt gold percentage)
+ * Calculate MELT gold final price
+ * Formula: ((spot price/oz × purity percentage)/100) × ((dwt/20) × melt gold percentage)/100
  */
 export function calculateMeltGoldPricePerDWT(
   goldSpotPrice: number,
@@ -82,13 +82,13 @@ export function calculateMeltGoldPricePerDWT(
   percentage: number = 95
 ): number {
   if (dwt === 0) return 0
-  const result = ((goldSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage)
+  const result = ((goldSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage) / 100
   return Math.max(0, result)
 }
 
 /**
- * Calculate MELT silver price per pennyweight (DWT)
- * Formula: ((spot price/oz * purity percentage)/100) * ((dwt/20) * melt silver percentage)
+ * Calculate MELT silver final price
+ * Formula: ((spot price/oz × purity percentage)/100) × ((dwt/20) × melt silver percentage)/100
  */
 export function calculateMeltSilverPricePerDWT(
   silverSpotPrice: number,
@@ -97,13 +97,13 @@ export function calculateMeltSilverPricePerDWT(
   percentage: number = 95
 ): number {
   if (dwt === 0) return 0
-  const result = ((silverSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage)
+  const result = ((silverSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage) / 100
   return Math.max(0, result)
 }
 
 /**
- * Calculate MELT platinum price per pennyweight (DWT)
- * Formula: ((spot price/oz * purity percentage)/100) * ((dwt/20) * melt platinum percentage)
+ * Calculate MELT platinum final price
+ * Formula: ((spot price/oz × purity percentage)/100) × ((dwt/20) × melt platinum percentage)/100
  */
 export function calculateMeltPlatinumPricePerDWT(
   platinumSpotPrice: number,
@@ -112,7 +112,7 @@ export function calculateMeltPlatinumPricePerDWT(
   percentage: number = 95
 ): number {
   if (dwt === 0) return 0
-  const result = ((platinumSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage)
+  const result = ((platinumSpotPrice * purityPercentage) / 100) * ((dwt / 20) * percentage) / 100
   return Math.max(0, result)
 }
 
@@ -188,7 +188,8 @@ export function getMeltPricingRows(
         const dwt = currentDwtValues[purity] || 0
         const purityPercentage = currentPurityPercentages[purity] || 0
         const pricePerDWT = calculateMeltGoldPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
-        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
+        // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
+        const lineTotal = pricePerDWT
         return {
           purity,
           pricePerDWT,
@@ -202,7 +203,8 @@ export function getMeltPricingRows(
         const dwt = currentDwtValues[purity] || 0
         const purityPercentage = currentPurityPercentages[purity] || 0
         const pricePerDWT = calculateMeltSilverPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
-        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
+        // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
+        const lineTotal = pricePerDWT
         return {
           purity,
           pricePerDWT,
@@ -216,7 +218,8 @@ export function getMeltPricingRows(
         const dwt = currentDwtValues[purity] || 0
         const purityPercentage = currentPurityPercentages[purity] || 0
         const pricePerDWT = calculateMeltPlatinumPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
-        const lineTotal = calculateLineTotal(pricePerDWT, dwt)
+        // For MELT: lineTotal = pricePerDWT (no multiplication by dwt)
+        const lineTotal = pricePerDWT
         return {
           purity,
           pricePerDWT,

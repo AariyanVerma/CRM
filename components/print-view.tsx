@@ -2,6 +2,7 @@
 
 import React from "react"
 import { Logo } from "@/components/logo"
+import { formatDecimal } from "@/lib/utils"
 
 interface Customer {
   id: string
@@ -144,9 +145,9 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         <div className="mb-4 pb-2 border-b border-gray-700 text-xs text-black">
           <p className="font-semibold mb-1">Price Snapshot:</p>
           <div className="flex gap-4">
-            <span>Gold: ${transaction.goldSpot.toFixed(2)}</span>
-            <span>Silver: ${transaction.silverSpot.toFixed(2)}</span>
-            <span>Platinum: ${transaction.platinumSpot.toFixed(2)}</span>
+            <span>Gold: ${formatDecimal(transaction.goldSpot)}</span>
+            <span>Silver: ${formatDecimal(transaction.silverSpot)}</span>
+            <span>Platinum: ${formatDecimal(transaction.platinumSpot)}</span>
           </div>
         </div>
 
@@ -175,10 +176,10 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
                       <tr key={item.id} className="border-b border-gray-700">
                         <td className="py-1 text-black">{metalType}</td>
                         <td className="py-1 text-black">{item.purityLabel}</td>
-                        <td className="text-right py-1 text-black">{item.dwt.toFixed(2)}</td>
-                        <td className="text-right py-1 text-black">${item.pricePerOz.toFixed(2)}</td>
+                        <td className="text-right py-1 text-black">{formatDecimal(item.dwt)}</td>
+                        <td className="text-right py-1 text-black">${formatDecimal(item.pricePerOz)}</td>
                         <td className="text-right py-1 font-semibold text-black">
-                          ${item.lineTotal.toFixed(2)}
+                          ${formatDecimal(item.lineTotal)}
                         </td>
                       </tr>
                     ))}
@@ -186,9 +187,9 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
                       <td colSpan={2} className="py-1 text-black">
                         {metalType} Subtotal
                       </td>
-                      <td className="text-right py-1 text-black">{metalDwt.toFixed(2)}</td>
+                      <td className="text-right py-1 text-black">{formatDecimal(metalDwt)}</td>
                       <td className="text-right py-1 text-black">—</td>
-                      <td className="text-right py-1 text-black">${metalTotal.toFixed(2)}</td>
+                      <td className="text-right py-1 text-black">${formatDecimal(metalTotal)}</td>
                     </tr>
                   </React.Fragment>
                 )
@@ -201,11 +202,11 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         <div className="mt-4 pt-3 border-t-2 border-black">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm font-semibold text-black">Total DWT: {totalDwt.toFixed(2)}</p>
+              <p className="text-sm font-semibold text-black">Total DWT: {formatDecimal(totalDwt)}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-black">Grand Total</p>
-              <p className="text-2xl font-bold text-black">${grandTotal.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-black">${formatDecimal(grandTotal)}</p>
             </div>
           </div>
         </div>

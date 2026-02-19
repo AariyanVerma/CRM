@@ -160,7 +160,11 @@ export async function POST(
       }
     }
 
-    const lineTotal = calculateLineTotal(pricePerDWT, parsedDwt)
+    // For MELT transactions: lineTotal = pricePerDWT (no multiplication by dwt)
+    // For SCRAP transactions: lineTotal = pricePerDWT × dwt
+    const lineTotal = transaction.type === "MELT" 
+      ? pricePerDWT 
+      : calculateLineTotal(pricePerDWT, parsedDwt)
 
     // Upsert line item
     const existingItem = await prisma.lineItem.findFirst({

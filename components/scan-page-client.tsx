@@ -12,6 +12,7 @@ import { Printer } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { Carousel } from "@/components/carousel"
 import { useSocketTransaction } from "@/hooks/use-socket-transaction"
+import { formatDecimal } from "@/lib/utils"
 
 interface Customer {
   id: string
@@ -233,7 +234,7 @@ export function ScanPageClient({
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground font-medium">Total DWT</p>
-                        <p className="text-lg font-bold text-amber-700">{scrapDwt.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-amber-700">{formatDecimal(scrapDwt)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -242,7 +243,7 @@ export function ScanPageClient({
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground font-medium">Total Value</p>
-                        <p className="text-lg font-bold text-amber-700">${scrapTotal.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-amber-700">${formatDecimal(scrapTotal)}</p>
                       </div>
                     </div>
                   </div>
@@ -279,7 +280,7 @@ export function ScanPageClient({
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground font-medium">Total DWT</p>
-                        <p className="text-lg font-bold text-blue-700">{meltDwt.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-blue-700">{formatDecimal(meltDwt)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -288,7 +289,7 @@ export function ScanPageClient({
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground font-medium">Total Value</p>
-                        <p className="text-lg font-bold text-blue-700">${meltTotal.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-blue-700">${formatDecimal(meltTotal)}</p>
                       </div>
                     </div>
                   </div>
@@ -325,14 +326,14 @@ export function ScanPageClient({
                 <Scale className="h-4 w-4" />
                 Total DWT (SCRAP + MELT)
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary">{grandTotalDwt.toFixed(2)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">{formatDecimal(grandTotalDwt)}</p>
             </div>
             <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
                 <Coins className="h-4 w-4" />
                 Total Value (SCRAP + MELT)
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary">${grandTotal.toFixed(2)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">${formatDecimal(grandTotal)}</p>
             </div>
           </div>
         </CardContent>
