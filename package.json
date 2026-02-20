@@ -9,7 +9,7 @@
     "build": "prisma generate && prisma migrate deploy && NODE_OPTIONS='--max-old-space-size=2048' next build --webpack",
     "start": "next start",
     "start:prod": "NODE_ENV=production next start",
-    "start:server": "NODE_ENV=production node server.production.js",
+    "start:server": "node server.production.js",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
