@@ -183,6 +183,10 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
           body {
             background: #f5f5f5;
           }
+          .print-content {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
         }
       `}</style>
 
