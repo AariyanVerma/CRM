@@ -18,18 +18,35 @@ export default async function LoginPage({
 
   async function handleLogin(formData: FormData) {
     "use server"
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
+    try {
+      const email = formData.get("email") as string
+      const password = formData.get("password") as string
 
-    const user = await verifyCredentials(email, password)
-    if (!user) {
-      return { error: "Invalid email or password" }
+      if (!email || !password) {
+        return { error: "Email and password are required" }
+      }
+
+      const user = await verifyCredentials(email, password)
+      if (!user) {
+        return { error: "Invalid email or password" }
+      }
+
+      await createSession(user.id)
+      
+      // Get redirect URL from form data or use default
+      const redirectUrl = formData.get("redirect") as string | null
+      const targetUrl = redirectUrl || "/dashboard"
+      
+      // Use revalidatePath to ensure the redirect works properly
+      const { revalidatePath } = await import("next/cache")
+      revalidatePath("/")
+      revalidatePath("/dashboard")
+      
+      redirect(targetUrl)
+    } catch (error) {
+      console.error("Login error:", error)
+      return { error: "An error occurred during login. Please try again." }
     }
-
-    await createSession(user.id)
-    // Get redirect URL from form data or use default
-    const redirectUrl = formData.get("redirect") as string | null
-    redirect(redirectUrl || "/dashboard")
   }
 
   return (

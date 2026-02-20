@@ -51,11 +51,20 @@ export async function getSession(): Promise<SessionUser | null> {
 
 export async function createSession(userId: string): Promise<void> {
   const cookieStore = await cookies()
+  
+  // Determine if we should use secure cookies
+  // In production, use secure cookies only if we're on HTTPS
+  // This helps with custom domains that might not have SSL fully provisioned yet
+  const isProduction = process.env.NODE_ENV === 'production'
+  const useSecure = isProduction // Railway always uses HTTPS, so this should be true
+  
   cookieStore.set(SESSION_COOKIE_NAME, userId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: useSecure,
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/', // Ensure cookie is available for all paths
+    // Don't set domain - let browser handle it automatically for custom domains
   })
 }
 

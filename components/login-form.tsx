@@ -18,11 +18,28 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
     setError(null)
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const result = await action(formData)
-    
-    if (result?.error) {
-      setError(result.error)
+    try {
+      const formData = new FormData(e.currentTarget)
+      const result = await action(formData)
+      
+      if (result?.error) {
+        setError(result.error)
+        setLoading(false)
+      } else {
+        // Server action completed successfully
+        // The redirect should happen automatically via Next.js
+        // But if it doesn't (e.g., due to cookie issues), force a redirect
+        setTimeout(() => {
+          // Check if we're still on login page
+          if (window.location.pathname === "/login") {
+            // Force a full page reload to check session
+            window.location.href = "/dashboard"
+          }
+        }, 500)
+      }
+    } catch (error) {
+      console.error("Login form error:", error)
+      setError("An unexpected error occurred. Please try again.")
       setLoading(false)
     }
   }
