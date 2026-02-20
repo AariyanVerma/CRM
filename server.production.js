@@ -14,6 +14,7 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
+  console.log('✓ Next.js app prepared successfully');
   // Create HTTP server (HTTPS handled by reverse proxy/load balancer)
   const httpServer = createServer(async (req, res) => {
     try {
@@ -80,10 +81,18 @@ app.prepare().then(() => {
 
   // Start server
   httpServer.listen(port, hostname, (err) => {
-    if (err) throw err;
+    if (err) {
+      console.error('✗ Failed to start server:', err);
+      process.exit(1);
+    }
     console.log(`✓ Production server ready on http://${hostname}:${port}`);
     console.log(`✓ Socket.IO server initialized`);
     console.log(`✓ Environment: ${process.env.NODE_ENV || 'production'}`);
+    console.log(`✓ PORT: ${port}`);
+    console.log(`✓ HOSTNAME: ${hostname}`);
   });
+}).catch((err) => {
+  console.error('✗ Failed to prepare Next.js app:', err);
+  process.exit(1);
 });
 
