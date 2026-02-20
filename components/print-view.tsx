@@ -129,7 +129,7 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
       <style jsx global>{`
         @media print {
           @page {
-            size: 4in 6in;
+            size: 4in auto;
             margin: 0.2in;
           }
           * {
@@ -141,9 +141,12 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
             margin: 0;
             padding: 0;
             background: white;
-            overflow: hidden;
             width: 100%;
-            height: 100%;
+            height: auto;
+            min-height: 100%;
+          }
+          body {
+            page-break-inside: avoid;
           }
           ::-webkit-scrollbar {
             display: none;
@@ -155,6 +158,24 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
           .no-print {
             display: none !important;
           }
+          /* Prevent page breaks within transaction content */
+          .print-content {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          table {
+            page-break-inside: auto;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+          thead {
+            display: table-header-group;
+          }
+          tfoot {
+            display: table-footer-group;
+          }
         }
         @media screen {
           body {
@@ -163,7 +184,7 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         }
       `}</style>
 
-      <div className="max-w-full mx-auto print:max-w-none print:w-full">
+      <div className="max-w-full mx-auto print:max-w-none print:w-full print-content" style={{ width: '4in', maxWidth: '4in' }}>
         {/* Header */}
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="mb-2 flex justify-center">
