@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent horizontal overflow on mobile */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* Ensure proper mobile scaling */
+* {
+  box-sizing: border-box;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -55,11 +67,19 @@
   }
   html, body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
     overflow-y: auto;
+    width: 100%;
+    max-width: 100vw;
     height: 100%;
   }
   body {
     position: relative;
+  }
+  /* Prevent horizontal overflow on all containers */
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 
