@@ -10,7 +10,23 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-const app = next({ dev, hostname, port });
+// Handle uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('✗ Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('✗ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+console.log('🚀 Starting production server...');
+console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`   PORT: ${port}`);
+console.log(`   HOSTNAME: ${hostname}`);
+
+const app = next({ dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
