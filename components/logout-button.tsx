@@ -9,8 +9,8 @@ export function LogoutButton() {
 
   async function handleLogout() {
     // Optimistically navigate first for faster UX
-    window.history.replaceState(null, '', '/login')
-    router.replace("/login")
+    window.history.replaceState(null, '', '/')
+    router.replace("/")
     
     // Then destroy session in background (don't wait for it)
     fetch("/api/auth/logout", { method: "POST" }).catch(() => {
