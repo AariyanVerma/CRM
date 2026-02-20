@@ -37,11 +37,7 @@ export default async function LoginPage({
       const redirectUrl = formData.get("redirect") as string | null
       const targetUrl = redirectUrl || "/dashboard"
       
-      // Use revalidatePath to ensure the redirect works properly
-      const { revalidatePath } = await import("next/cache")
-      revalidatePath("/")
-      revalidatePath("/dashboard")
-      
+      // Redirect to dashboard - no need to revalidate cache
       redirect(targetUrl)
     } catch (error) {
       console.error("Login error:", error)
