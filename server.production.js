@@ -24,8 +24,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 console.log('🚀 Starting production server...');
 console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
-console.log(`   PORT: ${port}`);
+console.log(`   PORT (from env): ${process.env.PORT || 'not set'}`);
+console.log(`   PORT (parsed): ${port}`);
 console.log(`   HOSTNAME: ${hostname}`);
+console.log(`   Process PID: ${process.pid}`);
 
 const app = next({ dev });
 const handle = app.getRequestHandler();
@@ -105,16 +107,31 @@ app.prepare().then(() => {
   });
 
   // Start server
-  httpServer.listen(port, hostname, (err) => {
-    if (err) {
-      console.error('✗ Failed to start server:', err);
-      process.exit(1);
-    }
+  httpServer.listen(port, hostname, () => {
     console.log(`✓ Production server ready on http://${hostname}:${port}`);
     console.log(`✓ Socket.IO server initialized`);
     console.log(`✓ Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log(`✓ PORT: ${port}`);
     console.log(`✓ HOSTNAME: ${hostname}`);
+    console.log(`✓ Server is listening and ready to accept connections`);
+    
+    // Keep process alive
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      httpServer.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+  });
+  
+  // Handle server errors
+  httpServer.on('error', (err) => {
+    console.error('✗ HTTP Server error:', err);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use`);
+    }
+    process.exit(1);
   });
 }).catch((err) => {
   console.error('✗ Failed to prepare Next.js app:', err);
