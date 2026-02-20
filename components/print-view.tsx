@@ -184,7 +184,7 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         }
       `}</style>
 
-      <div className="max-w-full mx-auto print:max-w-none print:w-full print-content" style={{ width: '4in', maxWidth: '4in' }}>
+      <div className="max-w-4xl mx-auto print:max-w-none print:w-full print-content" style={{ width: 'auto', maxWidth: '100%' }}>
         {/* Header */}
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="mb-2 flex justify-center">
