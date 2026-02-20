@@ -74,11 +74,13 @@ PORT=3000
 3. **Scroll to "Build & Deploy" section**
 4. **Set these:**
 
-   - **Build Command**: `npm run build`
-   - **Start Command**: `npm run start:server`
+   - **Build Command**: `npm run build` (or leave empty for auto-detect)
+   - **Start Command**: `node server.production.js`
    - **Root Directory**: `/` (leave as default)
 
 5. **Click "Save"**
+
+**Important**: Use `node server.production.js` directly (not `npm run start:server`) to avoid npm wrapper issues. Make sure `NODE_ENV=production` is set in your environment variables (see Step 3).
 
 ## 🌐 Step 5: Get Your Railway URL
 
