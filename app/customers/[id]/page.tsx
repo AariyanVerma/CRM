@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle } from "lucide-react"
+import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle, Edit } from "lucide-react"
 import { IssueCardDialog } from "@/components/issue-card-dialog"
 import { TransactionActions } from "@/components/transaction-actions"
 import { Badge } from "@/components/ui/badge"
@@ -65,7 +65,17 @@ export default async function CustomerDetailPage({
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          <BackButton href="/customers" />
+          <div className="flex items-center justify-between">
+            <BackButton href="/customers" />
+            {session.role === "ADMIN" && (
+              <Link href={`/customers/${customer.id}/edit`}>
+                <Button variant="outline">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Customer
+                </Button>
+              </Link>
+            )}
+          </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <Card>

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, Building2, User } from "lucide-react"
+import { CreditCard, Building2, User, Edit } from "lucide-react"
 
 interface Customer {
   id: string
@@ -16,7 +16,12 @@ interface Customer {
   _count: { transactions: number }
 }
 
-export function CustomersList({ customers }: { customers: Customer[] }) {
+interface CustomersListProps {
+  customers: Customer[]
+  userRole?: "ADMIN" | "STAFF"
+}
+
+export function CustomersList({ customers, userRole }: CustomersListProps) {
   if (customers.length === 0) {
     return (
       <Card>
@@ -68,11 +73,20 @@ export function CustomersList({ customers }: { customers: Customer[] }) {
                 </Badge>
               </div>
 
-              <Link href={`/customers/${customer.id}`}>
-                <Button variant="outline" className="w-full">
-                  View Details
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link href={`/customers/${customer.id}`} className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    View Details
+                  </Button>
+                </Link>
+                {userRole === "ADMIN" && (
+                  <Link href={`/customers/${customer.id}/edit`}>
+                    <Button variant="outline" size="icon" title="Edit Customer">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

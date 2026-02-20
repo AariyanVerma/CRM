@@ -87,7 +87,7 @@ export default async function CustomersPage({
             </CardContent>
           </Card>
 
-          <CustomersList customers={customers} />
+          <CustomersList customers={customers} userRole={session.role} />
         </div>
       </main>
     </div>
