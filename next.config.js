@@ -19,8 +19,7 @@ const nextConfig = {
   turbopack: {},
   // Fix workspace root warning
   outputFileTracingRoot: require('path').join(__dirname),
-  // Production optimizations
-  output: 'standalone', // For better deployment compatibility
+  // Note: output: 'standalone' removed because we use custom server (server.production.js) with Socket.IO
   // Limit workers to reduce resource usage on shared hosting
   experimental: {
     workerThreads: false,
