@@ -5,16 +5,23 @@ import { formatDecimal } from "@/lib/utils"
 import { Calendar, Clock, DollarSign } from "lucide-react"
 
 export async function HomePageContent() {
-  // Get today's prices
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const todayPrice = await prisma.dailyPrice.findFirst({
-    where: {
-      date: { lte: today },
-    },
-    orderBy: { date: "desc" },
-  })
+  // Get today's prices (with error handling for build time)
+  let todayPrice = null
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    todayPrice = await prisma.dailyPrice.findFirst({
+      where: {
+        date: { lte: today },
+      },
+      orderBy: { date: "desc" },
+    })
+  } catch (error) {
+    // Silently fail during build or if database is unavailable
+    console.error("Error fetching daily prices:", error)
+    todayPrice = null
+  }
 
   // Get current date and time
   const now = new Date()
@@ -77,4 +84,5 @@ export async function HomePageContent() {
     </div>
   )
 }
+
 

@@ -13,14 +13,15 @@ import { PageHeader } from "@/components/page-header"
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: { q?: string }
+  searchParams: Promise<{ q?: string }>
 }) {
   const session = await getSession()
   if (!session) {
     redirect("/login")
   }
 
-  const searchQuery = searchParams.q || ""
+  const { q } = await searchParams
+  const searchQuery = q || ""
 
   const customers = await prisma.customer.findMany({
     where: searchQuery

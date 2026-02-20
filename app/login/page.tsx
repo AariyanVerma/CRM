@@ -27,7 +27,8 @@ export default async function LoginPage({
     }
 
     await createSession(user.id)
-    const { redirect: redirectUrl } = await searchParams
+    // Get redirect URL from form data or use default
+    const redirectUrl = formData.get("redirect") as string | null
     redirect(redirectUrl || "/dashboard")
   }
 

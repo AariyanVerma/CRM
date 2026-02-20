@@ -26,7 +26,10 @@ export function getIO(): SocketIOServer {
       throw new Error('Socket.IO server not initialized. Make sure server.js has set it up.')
     }
   }
-  return io
+  // TypeScript doesn't understand that io is not null after the check above
+  // Since we throw an error if io is null, we can safely assert it's not null here
+  return io as SocketIOServer
 }
+
 
 

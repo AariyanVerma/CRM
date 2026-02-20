@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,23 +8,22 @@ datasource db {
 }
 
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  passwordHash    String
-  role            UserRole @default(STAFF)
-  firstName       String?
-  lastName        String?
-  address         String?
-  phoneNumber     String?
-  profileImageUrl String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  createdTransactions   Transaction[] @relation("CreatedTransactions")
-  completedTransactions Transaction[] @relation("CompletedTransactions")
-  dailyPrices  DailyPrice[]
-  passwordResetTokens   PasswordResetToken[]
+  id                    String               @id @default(cuid())
+  email                 String               @unique
+  passwordHash          String
+  role                  UserRole             @default(STAFF)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  address               String?
+  firstName             String?
+  lastName              String?
+  phoneNumber           String?
+  profileImageUrl       String?
+  dailyPrices           DailyPrice[]
   passwordResetOTPs     PasswordResetOTP[]
+  passwordResetTokens   PasswordResetToken[]
+  completedTransactions Transaction[]        @relation("CompletedTransactions")
+  createdTransactions   Transaction[]        @relation("CreatedTransactions")
 }
 
 model PasswordResetToken {
@@ -37,8 +33,7 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
@@ -53,34 +48,27 @@ model PasswordResetOTP {
   verified  Boolean  @default(false)
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([otp])
   @@index([expiresAt])
 }
 
-enum UserRole {
-  STAFF
-  ADMIN
-}
-
 model Customer {
-  id                        String   @id @default(cuid())
+  id                        String           @id @default(cuid())
   fullName                  String
   phoneNumber               String
   address                   String
-  isBusiness                Boolean  @default(false)
+  isBusiness                Boolean          @default(false)
   businessName              String?
-  businessVerificationNotes String?  @db.Text
-  identityVerified          Boolean  @default(false)
-  identityVerificationNotes String?  @db.Text
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
-
-  cards        MembershipCard[]
-  transactions Transaction[]
+  businessVerificationNotes String?
+  identityVerified          Boolean          @default(false)
+  identityVerificationNotes String?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  cards                     MembershipCard[]
+  transactions              Transaction[]
 }
 
 model MembershipCard {
@@ -92,40 +80,79 @@ model MembershipCard {
   lastScannedAt DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer      Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([customerId])
+}
+
+model Transaction {
+  id                String            @id @default(cuid())
+  customerId        String
+  createdByUserId   String
+  type              TransactionType
+  status            TransactionStatus @default(OPEN)
+  goldSpot          Float
+  silverSpot        Float
+  platinumSpot      Float
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  completedAt       DateTime?
+  completedByUserId String?
+  lineItems         LineItem[]
+  completedBy       User?             @relation("CompletedTransactions", fields: [completedByUserId], references: [id])
+  createdBy         User              @relation("CreatedTransactions", fields: [createdByUserId], references: [id])
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([type, status])
+}
+
+model LineItem {
+  id               String      @id @default(cuid())
+  transactionId    String
+  metalType        MetalType
+  purityLabel      String
+  dwt              Float       @default(0)
+  pricePerOz       Float       @default(0)
+  lineTotal        Float       @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  purityPercentage Float?
+  transaction      Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+}
+
+model DailyPrice {
+  id                      String   @id @default(cuid())
+  date                    DateTime @unique @db.Date
+  gold                    Float
+  silver                  Float
+  platinum                Float
+  createdByUserId         String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  scrapGoldPercentage     Float    @default(95)
+  scrapSilverPercentage   Float    @default(95)
+  scrapPlatinumPercentage Float    @default(95)
+  meltGoldPercentage      Float    @default(95)
+  meltSilverPercentage    Float    @default(95)
+  meltPlatinumPercentage  Float    @default(95)
+  createdBy               User     @relation(fields: [createdByUserId], references: [id])
+
+  @@index([date])
+}
+
+enum UserRole {
+  STAFF
+  ADMIN
 }
 
 enum CardStatus {
   ACTIVE
   LOST
   DISABLED
-}
-
-model Transaction {
-  id              String            @id @default(cuid())
-  customerId      String
-  createdByUserId String
-  completedByUserId String? // User who completed/printed the transaction
-  type            TransactionType
-  status          TransactionStatus @default(OPEN)
-  goldSpot        Float
-  silverSpot      Float
-  platinumSpot    Float
-  completedAt     DateTime? // Date and time when transaction was completed/printed
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  createdBy User       @relation("CreatedTransactions", fields: [createdByUserId], references: [id])
-  completedBy User?    @relation("CompletedTransactions", fields: [completedByUserId], references: [id])
-  lineItems LineItem[]
-
-  @@index([customerId])
-  @@index([type, status])
 }
 
 enum TransactionType {
@@ -139,48 +166,8 @@ enum TransactionStatus {
   VOID
 }
 
-model LineItem {
-  id               String    @id @default(cuid())
-  transactionId    String
-  metalType        MetalType
-  purityLabel      String
-  dwt              Float     @default(0)
-  pricePerOz       Float     @default(0)
-  lineTotal        Float     @default(0)
-  purityPercentage Float? // For MELT transactions: user-entered purity percentage
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  @@index([transactionId])
-}
-
 enum MetalType {
   GOLD
   SILVER
   PLATINUM
-}
-
-model DailyPrice {
-  id                      String   @id @default(cuid())
-  date                    DateTime @unique @db.Date
-  gold                    Float
-  silver                  Float
-  platinum                Float
-  // SCRAP percentages
-  scrapGoldPercentage     Float    @default(95)
-  scrapSilverPercentage   Float    @default(95)
-  scrapPlatinumPercentage Float    @default(95)
-  // MELT percentages
-  meltGoldPercentage      Float    @default(95)
-  meltSilverPercentage    Float    @default(95)
-  meltPlatinumPercentage  Float    @default(95)
-  createdByUserId         String
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-
-  createdBy User @relation(fields: [createdByUserId], references: [id])
-
-  @@index([date])
 }

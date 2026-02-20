@@ -99,7 +99,7 @@ export async function verifyCredentials(email: string, password: string): Promis
   return {
     id: user.id,
     email: user.email,
-    role: user.role,
+    role: user.role as 'ADMIN' | 'STAFF',
     firstName: user.firstName,
     lastName: user.lastName,
     address: user.address,

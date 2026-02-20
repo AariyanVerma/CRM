@@ -12,8 +12,11 @@ export function getSocket(): Socket {
     // Determine the server URL based on current location
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'https:'
     const hostname = window.location.hostname
-    const port = window.location.port || '3000'
-    const serverUrl = `${protocol}//${hostname}:${port}`
+    // In production, don't include port (uses default 443 for HTTPS, 80 for HTTP)
+    // Only include port in development (localhost with custom port)
+    const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')
+    const port = isDevelopment ? (window.location.port || '3000') : ''
+    const serverUrl = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`
 
     socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
@@ -46,5 +49,6 @@ export function disconnectSocket() {
     socket = null
   }
 }
+
 
 
