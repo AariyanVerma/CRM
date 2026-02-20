@@ -162,6 +162,8 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
           .print-content {
             page-break-inside: avoid;
             break-inside: avoid;
+            width: 4in !important;
+            max-width: 4in !important;
           }
           table {
             page-break-inside: auto;
