@@ -125,12 +125,12 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
   )
 
   return (
-    <div className="min-h-screen bg-white p-4 print:p-2">
+    <div className="min-h-screen bg-white p-4 print:p-0 print:m-0">
       <style jsx global>{`
         @media print {
           @page {
             size: 4in auto;
-            margin: 0.2in;
+            margin: 0;
           }
           * {
             -webkit-print-color-adjust: exact;
@@ -144,6 +144,14 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
             width: 100%;
             height: auto;
             min-height: 100%;
+            border: none;
+            outline: none;
+          }
+          .print-content {
+            margin: 0;
+            padding: 0.2in;
+            border: none;
+            outline: none;
           }
           body {
             page-break-inside: avoid;
