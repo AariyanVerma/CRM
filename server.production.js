@@ -7,7 +7,8 @@ const next = require('next');
 const { Server: SocketIOServer } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = process.env.HOSTNAME || '0.0.0.0';
+// Always listen on 0.0.0.0 for Railway/cloud platforms (not container hostname)
+const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
 // Handle uncaught errors
