@@ -1,4 +1,4 @@
-# New York Gold Market - Precious Metals Transaction System
+#  Precious Metals Transaction System
 
 A premium web application for New York Gold Market managing scrap precious metals buying operations with NFC-enabled membership cards and real-time transaction management.
 
