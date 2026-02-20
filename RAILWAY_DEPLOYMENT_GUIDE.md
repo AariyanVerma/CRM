@@ -141,6 +141,9 @@ If you want to use `app.newyorkgoldmarket.com`:
 
 ### Build Fails
 
+**Error**: "ERESOLVE could not resolve" or peer dependency conflicts
+- **Solution**: The `.npmrc` file in the repo already has `legacy-peer-deps=true` which fixes this. Make sure it's committed to your GitHub repo.
+
 **Error**: "Out of memory" or build timeout
 - **Solution**: Railway free tier has limits. Consider upgrading or optimize build
 
