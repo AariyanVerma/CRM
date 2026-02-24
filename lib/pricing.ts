@@ -6,11 +6,11 @@
 export type MetalType = 'GOLD' | 'SILVER' | 'PLATINUM'
 export type TransactionType = 'SCRAP' | 'MELT'
 
-export type GoldPurity = '24K' | '22K' | '21K' | '18K' | '16K' | '14K' | '13K' | '12K' | '10K' | '9K'
+export type GoldPurity = '24K' | '22K' | '21K' | '18K' | '16K' | '14K' | '13K' | '12K' | '11K' | '10K' | '9K'
 export type SilverPurity = '925' | '900' | '800'
 export type PlatinumPurity = '950' | '900'
 
-export const GOLD_PURITIES: GoldPurity[] = ['24K', '22K', '21K', '18K', '16K', '14K', '13K', '12K', '10K', '9K']
+export const GOLD_PURITIES: GoldPurity[] = ['24K', '22K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K']
 export const SILVER_PURITIES: SilverPurity[] = ['925', '900', '800']
 export const PLATINUM_PURITIES: PlatinumPurity[] = ['950', '900']
 
