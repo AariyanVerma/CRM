@@ -67,10 +67,30 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "scan-ring": {
+          "0%": { transform: "scale(0.4)", opacity: "0.8" },
+          "100%": { transform: "scale(1.8)", opacity: "0" },
+        },
+        "scan-glow": {
+          "0%, 100%": { opacity: "0.6", filter: "blur(12px)" },
+          "50%": { opacity: "1", filter: "blur(20px)" },
+        },
+        "scan-rotate": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "scan-line": {
+          "0%, 100%": { top: "0%" },
+          "50%": { top: "100%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "scan-ring": "scan-ring 2.5s ease-out infinite",
+        "scan-glow": "scan-glow 2s ease-in-out infinite",
+        "scan-rotate": "scan-rotate 8s linear infinite",
+        "scan-line": "scan-line 3s ease-in-out infinite",
       },
     },
   },

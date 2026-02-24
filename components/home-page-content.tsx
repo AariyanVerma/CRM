@@ -43,11 +43,11 @@ export async function HomePageContent() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-red-600" />
+              <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               <span className="text-lg font-semibold">{currentDate}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-red-600" />
+              <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               <span className="text-lg font-semibold">{currentTime}</span>
             </div>
           </div>
@@ -59,7 +59,7 @@ export async function HomePageContent() {
         <Card className="border-2 overflow-hidden">
           <CardHeader className="px-3 sm:px-6">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0" />
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
               <CardTitle className="text-base sm:text-lg truncate">Today&apos;s Metal Prices (per oz)</CardTitle>
             </div>
           </CardHeader>
@@ -75,7 +75,7 @@ export async function HomePageContent() {
               </div>
               <div className="text-center p-3 sm:p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 min-w-0 overflow-hidden">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Platinum</p>
-                <p className="text-lg sm:text-2xl font-bold text-red-600 break-words overflow-wrap-anywhere">${formatDecimal(todayPrice.platinum)}</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400 break-words overflow-wrap-anywhere">${formatDecimal(todayPrice.platinum)}</p>
               </div>
             </div>
           </CardContent>

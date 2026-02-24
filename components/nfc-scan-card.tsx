@@ -343,11 +343,35 @@ export function NFCScanCard() {
           </>
         ) : scanning ? (
           <>
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="relative mb-6 flex items-center justify-center min-h-[200px] w-full">
+              {/* Expanding radar rings */}
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="absolute left-1/2 top-1/2 w-28 h-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-500/60 dark:border-cyan-400/50"
+                  style={{
+                    animation: "scan-ring 2.5s ease-out infinite",
+                    animationDelay: `${i * 0.6}s`,
+                  }}
+                />
+              ))}
+              {/* Slow rotating gradient ring */}
+              <div
+                className="absolute left-1/2 top-1/2 w-36 h-36 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80"
+                style={{
+                  background: "conic-gradient(from 0deg, transparent 0deg, rgb(59 130 246 / 0.6) 60deg, rgb(34 211 238 / 0.8) 180deg, rgb(59 130 246 / 0.6) 300deg, transparent 360deg)",
+                  animation: "scan-rotate 8s linear infinite",
+                }}
+              />
+              <div className="absolute left-1/2 top-1/2 w-32 h-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" />
+              {/* Inner glow behind icon */}
+              <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/30 dark:bg-cyan-400/20 animate-scan-glow" />
+              {/* Center icon (below scan line so line can sweep over it) */}
+              <CreditCard className="w-14 h-14 text-blue-600 dark:text-cyan-400 relative z-10 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]" />
+              {/* Scanning line sweep - on top so it's visible across full circle */}
+              <div className="absolute left-1/2 top-1/2 z-20 w-32 h-32 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full pointer-events-none">
+                <div className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-scan-line" style={{ top: 0 }} />
               </div>
-              <CreditCard className="w-16 h-16 text-red-600 relative z-10" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Tap Your Membership Card</h2>
             <p className="text-muted-foreground text-center mb-2">

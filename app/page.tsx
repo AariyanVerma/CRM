@@ -30,7 +30,7 @@ export default function HomePage() {
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent">
                 New York Gold Market
               </h1>
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-red-600">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-blue-600 dark:text-blue-400">
                 Precious Metals Transaction System
               </h2>
             </div>

@@ -63,7 +63,7 @@ function ActionCard({ title, description, icon, gradient, actions, delay = 0 }: 
       <CardHeader className="relative z-10">
         <div className="flex items-center gap-4 mb-2">
           <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
-            <div className="text-red-600">
+            <div className="text-blue-600 dark:text-blue-400">
               {icon}
             </div>
           </div>
