@@ -80,7 +80,7 @@ export function UserMenu({
               ) : (
                 <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border flex-shrink-0">
                   {role === "ADMIN" ? (
-                    <Shield className="h-10 w-10 text-primary" />
+                    <Shield className="h-10 w-10 text-red-600" />
                   ) : (
                     <User className="h-10 w-10 text-muted-foreground" />
                   )}

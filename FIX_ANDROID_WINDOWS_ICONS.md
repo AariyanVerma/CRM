@@ -193,3 +193,4 @@ public/
 
 **The configuration is already updated. You just need to create the icon files with proper safe areas for Android and Windows tile sizes!** 🎯
 
+

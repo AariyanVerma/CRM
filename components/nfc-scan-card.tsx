@@ -347,7 +347,7 @@ export function NFCScanCard() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-24 h-24 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               </div>
-              <CreditCard className="w-16 h-16 text-primary relative z-10" />
+              <CreditCard className="w-16 h-16 text-red-600 relative z-10" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Tap Your Membership Card</h2>
             <p className="text-muted-foreground text-center mb-2">
@@ -379,7 +379,7 @@ export function NFCScanCard() {
               Tap your membership card to start
             </p>
             <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded p-2 mb-4">
-              <p className="text-xs text-blue-800 dark:text-blue-200 text-center">
+              <p className="text-xs text-red-600 dark:text-red-400 text-center">
                 ℹ️ <strong>Important:</strong> Only NDEF-formatted membership cards work. Debit/credit cards use a different protocol and won't be detected.
               </p>
             </div>

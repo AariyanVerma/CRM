@@ -221,7 +221,7 @@ export function ScanPageClient({
               <div className="text-center mb-4 touch-none">
                 <div className="inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border-2 border-amber-500/30 shadow-lg backdrop-blur-sm mb-4">
                   <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
-                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent drop-shadow-md">
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-md">
                     SCRAP
                   </h3>
                   <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
@@ -267,11 +267,11 @@ export function ScanPageClient({
             <div className="text-center mb-4 touch-none">
               <div className="text-center mb-4 touch-none">
                 <div className="inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-indigo-500/10 border-2 border-blue-500/30 shadow-lg backdrop-blur-sm mb-4">
-                  <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-blue-500 drop-shadow-md" />
-                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-md">
+                  <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-red-600 drop-shadow-md" />
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-md">
                     MELT
                   </h3>
-                  <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-blue-500 drop-shadow-md" />
+                  <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-red-600 drop-shadow-md" />
                 </div>
               </div>
               {/* Transaction Summary Card */}
@@ -280,20 +280,20 @@ export function ScanPageClient({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-blue-500/20">
-                        <Scale className="h-5 w-5 text-blue-600" />
+                        <Scale className="h-5 w-5 text-red-600" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground font-medium">Total DWT</p>
-                        <p className="text-lg font-bold text-blue-700">{formatDecimal(meltDwt)}</p>
+                        <p className="text-lg font-bold text-red-600">{formatDecimal(meltDwt)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-blue-500/20">
-                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                        <TrendingUp className="h-5 w-5 text-red-600" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground font-medium">Total Value</p>
-                        <p className="text-lg font-bold text-blue-700">${formatDecimal(meltTotal)}</p>
+                        <p className="text-lg font-bold text-red-600">${formatDecimal(meltTotal)}</p>
                       </div>
                     </div>
                   </div>
@@ -318,10 +318,10 @@ export function ScanPageClient({
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <TrendingUp className="h-6 w-6 text-primary" />
+              <TrendingUp className="h-6 w-6 text-red-600" />
               Grand Total
             </h3>
-            <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-sm px-3 py-1">
+            <Badge variant="outline" className="bg-primary/20 text-red-600 border-primary/30 text-sm px-3 py-1">
               Combined
             </Badge>
           </div>
@@ -331,14 +331,14 @@ export function ScanPageClient({
                 <Scale className="h-4 w-4" />
                 Total DWT (SCRAP + MELT)
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary">{formatDecimal(grandTotalDwt)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-red-600">{formatDecimal(grandTotalDwt)}</p>
             </div>
             <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
                 <Coins className="h-4 w-4" />
                 Total Value (SCRAP + MELT)
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary">${formatDecimal(grandTotal)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-red-600">${formatDecimal(grandTotal)}</p>
             </div>
           </div>
         </CardContent>

@@ -32,3 +32,4 @@ console.log('');
 console.log('✅ Icon files are configured correctly in layout.tsx and manifest.json');
 console.log('✅ Once you add favicon.ico to the public folder, it will work automatically');
 
+

@@ -129,3 +129,5 @@ See `HOSTINGER_DEPLOYMENT.md` for detailed troubleshooting steps.
 - `.env.production.example` - Environment variables template
 - `README.md` - General application documentation
 
+
+

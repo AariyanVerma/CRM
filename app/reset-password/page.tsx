@@ -133,7 +133,7 @@ function ResetPasswordForm() {
               {loading ? "Resetting..." : "Reset Password"}
             </Button>
             <div className="text-center">
-              <Link href="/login" className="text-sm text-primary hover:underline">
+              <Link href="/login" className="text-sm text-red-600 hover:underline">
                 Back to Login
               </Link>
             </div>

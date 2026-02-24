@@ -230,7 +230,7 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-lg font-bold text-black">
-                  Type: {transaction.type}
+                  Type: <span className="text-red-600 font-bold">{transaction.type}</span>
                 </p>
                 <p className="text-xs text-gray-900">
                   Created: {new Date(transaction.createdAt).toLocaleString()}
@@ -274,11 +274,11 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
           <table className="w-full text-sm border-collapse text-black">
             <thead>
               <tr className="border-b-2 border-black">
-                <th className="text-left py-1 text-black">Metal</th>
-                <th className="text-left py-1 text-black">Purity</th>
-                <th className="text-right py-1 text-black">DWT</th>
-                <th className="text-right py-1 text-black">Price/DWT</th>
-                <th className="text-right py-1 text-black">Total</th>
+                <th className="text-left py-1 font-extrabold text-red-600">Metal</th>
+                <th className="text-left py-1 font-extrabold text-red-600">Purity</th>
+                <th className="text-right py-1 font-extrabold text-red-600">DWT</th>
+                <th className="text-right py-1 font-extrabold text-red-600">Price/DWT</th>
+                <th className="text-right py-1 font-extrabold text-red-600">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -293,7 +293,7 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
                     {items.map((item) => (
                       <tr key={item.id} className="border-b border-gray-700">
                         <td className="py-1 text-black">{metalType}</td>
-                        <td className="py-1 text-black">{item.purityLabel}</td>
+                        <td className="py-1 font-black text-red-600">{item.purityLabel}</td>
                         <td className="text-right py-1 text-black">{formatDecimal(item.dwt)}</td>
                         <td className="text-right py-1 text-black">${formatDecimal(item.pricePerOz)}</td>
                         <td className="text-right py-1 font-semibold text-black">
@@ -301,13 +301,13 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
                         </td>
                       </tr>
                     ))}
-                    <tr className="border-b-2 border-black font-semibold">
-                      <td colSpan={2} className="py-1 text-black">
+                    <tr className="border-b-2 border-black font-black text-red-600">
+                      <td colSpan={2} className="py-1">
                         {metalType} Subtotal
                       </td>
-                      <td className="text-right py-1 text-black">{formatDecimal(metalDwt)}</td>
-                      <td className="text-right py-1 text-black">—</td>
-                      <td className="text-right py-1 text-black">${formatDecimal(metalTotal)}</td>
+                      <td className="text-right py-1">{formatDecimal(metalDwt)}</td>
+                      <td className="text-right py-1">—</td>
+                      <td className="text-right py-1">${formatDecimal(metalTotal)}</td>
                     </tr>
                   </React.Fragment>
                 )
@@ -317,14 +317,14 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         </div>
 
         {/* Grand Total */}
-        <div className="mt-4 pt-3 border-t-2 border-black">
+        <div className="mt-4 pt-3 border-t-2 border-black font-black text-red-600">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm font-semibold text-black">Total DWT: {formatDecimal(totalDwt)}</p>
+              <p className="text-sm">Total DWT: {formatDecimal(totalDwt)}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-black">Grand Total</p>
-              <p className="text-2xl font-bold text-black">${formatDecimal(grandTotal)}</p>
+              <p className="text-xs">Grand Total</p>
+              <p className="text-2xl">${formatDecimal(grandTotal)}</p>
             </div>
           </div>
         </div>

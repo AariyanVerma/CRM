@@ -851,37 +851,37 @@ export function PricingTable({
           <thead>
             <tr className="border-b-2 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 shadow-xl">
               {transaction.type !== "MELT" && (
-                <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
+                <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
                   <div className="flex items-center justify-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary drop-shadow-lg" />
+                    <Sparkles className="h-4 w-4 text-red-600 drop-shadow-lg" />
                     <span className="drop-shadow-md">Purity</span>
                   </div>
                 </th>
               )}
-              <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
+              <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
                 <div className="flex items-center justify-center gap-2">
                   {transaction.type === "MELT" ? (
                     <>
-                      <Sparkles className="h-4 w-4 text-primary drop-shadow-lg" />
+                      <Sparkles className="h-4 w-4 text-red-600 drop-shadow-lg" />
                       <span className="drop-shadow-md">Purity %</span>
                     </>
                   ) : (
                     <>
-                      <DollarSign className="h-4 w-4 text-primary drop-shadow-lg" />
+                      <DollarSign className="h-4 w-4 text-red-600 drop-shadow-lg" />
                       <span className="drop-shadow-md">Price/DWT</span>
                     </>
                   )}
                 </div>
               </th>
-              <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
+              <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
                 <div className="flex items-center justify-center gap-2">
-                  <Scale className="h-4 w-4 text-primary drop-shadow-lg" />
+                  <Scale className="h-4 w-4 text-red-600 drop-shadow-lg" />
                   <span className="drop-shadow-md">DWT</span>
                 </div>
               </th>
-              <th className="text-center p-2 sm:p-3 md:p-4 font-bold text-base sm:text-lg">
+              <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
                 <div className="flex items-center justify-center gap-2">
-                  <Calculator className="h-4 w-4 text-primary drop-shadow-lg" />
+                  <Calculator className="h-4 w-4 text-red-600 drop-shadow-lg" />
                   <span className="drop-shadow-md">Price</span>
                 </div>
               </th>
@@ -899,7 +899,7 @@ export function PricingTable({
                 }`}
               >
                 {transaction.type !== "MELT" && (
-                  <td className="p-2 sm:p-3 md:p-4 font-bold text-center overflow-hidden text-ellipsis text-base sm:text-lg">
+                  <td className="p-2 sm:p-3 md:p-4 font-black text-center overflow-hidden text-ellipsis text-base sm:text-lg text-red-600">
                     {row.purity}
                   </td>
                 )}
@@ -915,7 +915,7 @@ export function PricingTable({
                         onChange={(e) => handlePurityPercentageChange(metalType, row.purity, e.target.value)}
                         onFocus={(e) => handlePurityPercentageFocus(metalType, row.purity, e)}
                         onBlur={(e) => handlePurityPercentageBlur(metalType, row.purity, e)}
-                        className="w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 mx-auto"
+                        className="w-full max-w-24 sm:max-w-28 text-center font-black text-base sm:text-lg text-red-600 transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 mx-auto"
                         placeholder="0.00"
                       />
                     </div>
@@ -943,7 +943,7 @@ export function PricingTable({
                   </div>
                 </td>
                 <td className={`p-2 sm:p-3 md:p-4 text-center font-bold overflow-hidden text-ellipsis text-base sm:text-lg ${
-                  row.lineTotal > 0 ? 'text-primary' : ''
+                  row.lineTotal > 0 ? 'text-red-600' : ''
                 }`}>
                   ${formatDecimal(row.lineTotal)}
                 </td>
@@ -964,7 +964,7 @@ export function PricingTable({
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t-4 border-primary/30 bg-primary/5 font-bold">
+            <tr className="border-t-4 border-primary/30 bg-primary/5 font-black text-red-600">
               <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">
                 <div className="flex items-center justify-center gap-2">
                   <Calculator className="h-4 w-4" />
@@ -974,10 +974,10 @@ export function PricingTable({
               {transaction.type !== "MELT" && (
                 <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">—</td>
               )}
-              <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg text-primary">
+              <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">
                 {formatDecimal(totals.totalDwt)}
               </td>
-              <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-lg sm:text-xl text-primary">
+              <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-lg sm:text-xl">
                 ${formatDecimal(totals.totalPrice)}
               </td>
               <td className="p-1 sm:p-2">
@@ -1033,13 +1033,13 @@ export function PricingTable({
                 />
               ) : (
                 <div className="h-full w-full bg-primary/20 border-2 border-primary/30 rounded-full flex items-center justify-center">
-                  <span className="text-primary font-bold text-lg sm:text-xl">{metalName.charAt(0)}</span>
+                  <span className="text-red-600 font-bold text-lg sm:text-xl">{metalName.charAt(0)}</span>
                 </div>
               )}
             </div>
-            <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-lg">
-              {metalName}
-            </span>
+<span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-lg">
+                  {metalName}
+                </span>
           </CardTitle>
           {userRole === "ADMIN" && (
             <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 bg-primary/5 rounded-lg p-4 sm:p-5 border border-primary/20 shadow-md">
@@ -1206,7 +1206,7 @@ export function PricingTable({
                   </div>
                 )}
               </div>
-              <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-lg">
+              <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-lg">
                 Gold
               </span>
             </CardTitle>
@@ -1273,7 +1273,7 @@ export function PricingTable({
                   </div>
                 )}
               </div>
-              <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-lg">
+              <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-lg">
                 Silver
               </span>
             </CardTitle>
@@ -1340,7 +1340,7 @@ export function PricingTable({
                   </div>
                 )}
               </div>
-              <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-lg">
+              <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-lg">
                 Platinum
               </span>
             </CardTitle>
@@ -1390,7 +1390,7 @@ export function PricingTable({
           <span className="whitespace-nowrap">Print</span>
         </Button>
         <Button onClick={onNewTransaction} variant="outline" size="lg" className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
-          <span className="text-center">Start New {transaction.type} Transaction</span>
+          <span className="text-center">Start New <span className="text-red-600 font-semibold">{transaction.type}</span> Transaction</span>
         </Button>
       </div>
     </div>

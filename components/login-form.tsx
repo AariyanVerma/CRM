@@ -87,7 +87,7 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
             <button
               type="button"
               onClick={() => setForgotPasswordOpen(true)}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-red-600 hover:underline"
               disabled={loading}
             >
               Forgot Password?

@@ -207,3 +207,5 @@ NODE_ENV=production npm run build
 - **Gmail setup**: See `EMAIL_SETUP.md`
 - **Domain/SSL**: Contact Hostinger support
 
+
+

@@ -28,3 +28,5 @@ If you want to test the PWA immediately, you can:
 - **Background**: Should work on both light and dark backgrounds
 - **Shape**: Square (will be automatically masked on some platforms)
 
+
+

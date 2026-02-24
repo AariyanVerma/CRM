@@ -42,7 +42,7 @@ export function MetalPricesCarousel({ gold, silver, platinum }: MetalPricesCarou
     {
       name: "Platinum",
       price: prices.platinum,
-      color: "text-blue-600 dark:text-blue-400",
+      color: "text-red-600 dark:text-red-400",
       gradient: "from-blue-500/20 to-blue-400/10",
     },
   ]

@@ -58,7 +58,7 @@ export function Logo({ className = "", showText = false, size = "lg", href = "/"
           />
         ) : (
           <div className={`${sizeClasses[size]} bg-primary/20 border-2 border-primary/30 rounded flex items-center justify-center w-full h-full`}>
-            <span className={`text-primary font-bold ${textSizeClasses[size]}`}>NYGM</span>
+            <span className={`text-red-600 font-bold ${textSizeClasses[size]}`}>NYGM</span>
           </div>
         )}
       </div>

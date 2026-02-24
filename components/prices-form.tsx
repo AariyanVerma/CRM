@@ -154,7 +154,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">SCRAP Percentages</h3>
+            <h3 className="font-semibold text-lg text-red-600">SCRAP Percentages</h3>
             <div className="space-y-2">
               <Label htmlFor="scrapGoldPercentage">Scrap Gold Percentage *</Label>
               <Input
@@ -205,7 +205,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">MELT Percentages</h3>
+            <h3 className="font-semibold text-lg text-red-600">MELT Percentages</h3>
             <div className="space-y-2">
               <Label htmlFor="meltGoldPercentage">Melt Gold Percentage *</Label>
               <Input

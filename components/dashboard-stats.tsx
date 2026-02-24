@@ -59,7 +59,7 @@ function StatCard({ title, value, description, icon, gradient, delay = 0 }: Stat
           {title}
         </CardTitle>
         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
-          <div className="text-primary">
+          <div className="text-red-600">
             {icon}
           </div>
         </div>

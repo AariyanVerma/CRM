@@ -81,3 +81,4 @@ If you want to test quickly, you can temporarily use your regular icons:
 
 **The easiest way is to use RealFaviconGenerator - it creates everything you need in one go!** 🎯
 
+

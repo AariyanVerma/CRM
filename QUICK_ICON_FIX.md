@@ -82,3 +82,4 @@ If you want to test Windows support quickly:
 
 **Your app will work now, but for perfect Android icons (no cropping) and Windows support, get the proper icons from RealFaviconGenerator!** 🎯
 
+
