@@ -63,6 +63,16 @@ Make sure your "truthful-light" project has all the correct environment variable
    - `NODE_ENV=production`
    - All SMTP variables
 
+### Start command (fixes build timeout with Neon)
+
+If the build fails with **P1002** (database timeout / advisory lock), migrations are now run at **start** instead of during build. In Railway:
+
+1. Open your **CRM** service → **Settings**
+2. Under **Deploy** or **Build**, set **Start Command** to: `npm run start:deploy`
+3. Redeploy
+
+This runs `prisma migrate deploy` when the container starts (when the DB is reachable) instead of during `npm run build`.
+
 ## 🎯 What You Should Have After Cleanup
 
 ✅ **One Railway Project**: `truthful-light`
