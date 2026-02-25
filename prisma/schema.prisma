@@ -24,6 +24,7 @@ model User {
   passwordResetTokens   PasswordResetToken[]
   completedTransactions Transaction[]        @relation("CompletedTransactions")
   createdTransactions   Transaction[]        @relation("CreatedTransactions")
+  transactionAuditLogs  TransactionAuditLog[]
 }
 
 model PasswordResetToken {
@@ -170,4 +171,19 @@ enum MetalType {
   GOLD
   SILVER
   PLATINUM
+}
+
+model TransactionAuditLog {
+  id             String   @id @default(cuid())
+  transactionId  String
+  userId         String
+  action         String   // STATUS_CHANGE | MOVE | DELETE
+  oldValue       String?  // JSON snapshot of relevant old data
+  newValue       String?  // JSON snapshot of relevant new data
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([userId])
+  @@index([createdAt])
 }

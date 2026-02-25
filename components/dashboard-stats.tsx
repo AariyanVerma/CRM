@@ -84,6 +84,9 @@ interface DashboardStatsProps {
   gold: number | null
   silver: number | null
   platinum: number | null
+  todayTransactionCount?: number
+  todayTotalValue?: number
+  isAdmin?: boolean
 }
 
 export function DashboardStats({
@@ -93,6 +96,9 @@ export function DashboardStats({
   gold,
   silver,
   platinum,
+  todayTransactionCount = 0,
+  todayTotalValue = 0,
+  isAdmin = false,
 }: DashboardStatsProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -122,6 +128,22 @@ export function DashboardStats({
         gradient="from-green-500/20 via-green-400/10 to-transparent"
         delay={200}
       />
+      {isAdmin && (
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 group transform hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-amber-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+            <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+              Today&apos;s summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-2xl font-extrabold mb-1">{todayTransactionCount} transactions</div>
+            <p className="text-sm text-muted-foreground font-medium">
+              Total: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(todayTotalValue)}
+            </p>
+          </CardContent>
+        </Card>
+      )}
       
       <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 group transform hover:-translate-y-1">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

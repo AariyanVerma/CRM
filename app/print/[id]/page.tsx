@@ -5,8 +5,10 @@ import { PrintView } from "@/components/print-view"
 
 export default async function PrintPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ layout?: string }>
 }) {
   const session = await getSession()
   if (!session) {
@@ -14,6 +16,7 @@ export default async function PrintPage({
   }
 
   const { id } = await params
+  const { layout } = await searchParams
   const transaction = await prisma.transaction.findUnique({
     where: { id },
     include: {
@@ -47,6 +50,6 @@ export default async function PrintPage({
     )
   }
 
-  return <PrintView transaction={transaction} />
+  return <PrintView transaction={transaction} layout={layout === "a4" ? "a4" : "label"} />
 }
 

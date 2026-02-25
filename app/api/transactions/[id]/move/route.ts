@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { logTransactionAudit } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
@@ -31,11 +32,21 @@ export async function POST(
       )
     }
 
-    // Update transaction customer
+    const before = await prisma.transaction.findUnique({
+      where: { id },
+      include: { customer: { select: { id: true, fullName: true } } },
+    })
     const transaction = await prisma.transaction.update({
       where: { id },
       data: { customerId },
     })
+    await logTransactionAudit(
+      id,
+      session.id,
+      "MOVE",
+      before?.customer ? { customerId: before.customer.id, customerName: before.customer.fullName } : undefined,
+      { customerId, customerName: customer.fullName }
+    )
 
     return NextResponse.json(transaction)
   } catch (error) {

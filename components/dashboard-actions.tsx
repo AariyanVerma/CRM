@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight } from "lucide-react"
+import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight, BarChart3, Search, LayoutDashboard } from "lucide-react"
 import { useEffect, useRef } from "react"
 
 interface ActionCardProps {
@@ -152,6 +152,22 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
               label: "Daily Prices",
               href: "/admin/prices",
               icon: <DollarSign className="h-4 w-4" />,
+            },
+            {
+              label: "Reports",
+              href: "/admin/reports",
+              icon: <BarChart3 className="h-4 w-4" />,
+            },
+            {
+              label: "Analytics Dashboard",
+              href: "/admin/analytics-dashboard",
+              icon: <LayoutDashboard className="h-4 w-4" />,
+            },
+            {
+              label: "All Transactions",
+              href: "/admin/transactions",
+              variant: "outline",
+              icon: <Search className="h-4 w-4" />,
             },
             {
               label: "Manage Users",

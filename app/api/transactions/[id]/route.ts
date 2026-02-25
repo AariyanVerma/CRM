@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { getIO } from "@/lib/ioServer"
+import { logTransactionAudit } from "@/lib/audit"
 
 export async function GET(
   request: NextRequest,
@@ -70,10 +71,12 @@ export async function PATCH(
       )
     }
 
+    const before = await prisma.transaction.findUnique({ where: { id }, select: { status: true } })
     const transaction = await prisma.transaction.update({
       where: { id },
       data: updateData,
     })
+    await logTransactionAudit(id, session.id, "STATUS_CHANGE", { status: before?.status }, { status: transaction.status })
 
     // Emit socket event after successful status update
     try {
@@ -101,10 +104,20 @@ export async function DELETE(
     const session = await requireAdmin()
     const { id } = await params
 
-    // Delete transaction (line items will be deleted via cascade)
+    const before = await prisma.transaction.findUnique({
+      where: { id },
+      include: { customer: { select: { fullName: true } }, lineItems: { select: { id: true, metalType: true, lineTotal: true } } },
+    })
     await prisma.transaction.delete({
       where: { id },
     })
+    if (before) {
+      await logTransactionAudit(id, session.id, "DELETE", {
+        customerName: before.customer.fullName,
+        lineItemsCount: before.lineItems.length,
+        status: before.status,
+      }, null)
+    }
 
     // Emit socket event after successful deletion
     try {

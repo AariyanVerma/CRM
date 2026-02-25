@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle, Edit } from "lucide-react"
 import { IssueCardDialog } from "@/components/issue-card-dialog"
-import { TransactionActions } from "@/components/transaction-actions"
+import { TransactionsListClient } from "@/components/transactions-list-client"
 import { Badge } from "@/components/ui/badge"
 import { BackButton } from "@/components/back-button"
 import { PageHeader } from "@/components/page-header"
@@ -27,13 +27,6 @@ export default async function CustomerDetailPage({
     include: {
       cards: {
         orderBy: { issuedAt: "desc" },
-      },
-      transactions: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
-          lineItems: true,
-        },
       },
     },
   })
@@ -190,61 +183,7 @@ export default async function CustomerDetailPage({
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
-              <CardDescription>
-                Transaction history for this customer
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {customer.transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No transactions yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {customer.transactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={tx.type === "SCRAP" ? "default" : "secondary"}>
-                            {tx.type}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(tx.createdAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium mt-1">
-                          {tx.lineItems.length} line items
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline"
-                          className={
-                            tx.status === "PRINTED"
-                              ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
-                              : tx.status === "VOID"
-                              ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
-                              : "bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600"
-                          }
-                        >
-                          {tx.status}
-                        </Badge>
-                        <TransactionActions
-                          transaction={tx}
-                          customerId={customer.id}
-                          userRole={session.role}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <TransactionsListClient customerId={customer.id} showCustomerColumn={false} userRole={session.role} />
         </div>
       </main>
     </div>

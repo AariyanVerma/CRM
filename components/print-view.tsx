@@ -44,10 +44,11 @@ interface Transaction {
   lineItems: LineItem[]
 }
 
-export function PrintView({ transaction }: { transaction: Transaction }) {
+export function PrintView({ transaction, layout = "label", hidePrintButton }: { transaction: Transaction; layout?: "label" | "a4"; hidePrintButton?: boolean }) {
   const { toast } = useToast()
   const [printing, setPrinting] = useState(false)
   const hasMarkedAsPrinted = useRef(false)
+  const isA4 = layout === "a4"
 
   // Function to mark transaction as printed (silently, no toast)
   const markAsPrinted = async () => {
@@ -125,12 +126,12 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
   )
 
   return (
-    <div className="min-h-screen bg-white p-4 print:p-0 print:m-0">
+    <div className={`min-h-screen bg-white p-4 print:p-0 print:m-0 ${isA4 ? "print-a4" : ""}`}>
       <style jsx global>{`
         @media print {
           @page {
-            size: 4in auto;
-            margin: 0;
+            size: ${isA4 ? "A4" : "4in auto"};
+            margin: ${isA4 ? "0.5in" : "0"};
           }
           * {
             -webkit-print-color-adjust: exact;
@@ -170,9 +171,10 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
           .print-content {
             page-break-inside: avoid;
             break-inside: avoid;
-            width: 4in !important;
-            max-width: 4in !important;
+            width: ${isA4 ? "100%" : "4in"} !important;
+            max-width: ${isA4 ? "100%" : "4in"} !important;
           }
+          .print-a4 .print-content { font-size: 1rem; }
           table {
             page-break-inside: auto;
           }
@@ -198,7 +200,7 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         }
       `}</style>
 
-      <div className="max-w-4xl mx-auto print:max-w-none print:w-full print-content" style={{ width: 'auto', maxWidth: '100%' }}>
+      <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : ""}`} style={{ width: 'auto', maxWidth: '100%' }}>
         {/* Header */}
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="mb-2 flex justify-center">
@@ -335,16 +337,18 @@ export function PrintView({ transaction }: { transaction: Transaction }) {
         </div>
       </div>
 
-      {/* Print Button (hidden when printing) */}
-      <div className="no-print mt-8 text-center">
-        <button
-          onClick={handlePrint}
-          disabled={printing}
-          className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {printing ? "Updating..." : "Print"}
-        </button>
-      </div>
+      {/* Print Button (hidden when printing or when hidePrintButton) */}
+      {!hidePrintButton && (
+        <div className="no-print mt-8 text-center">
+          <button
+            onClick={handlePrint}
+            disabled={printing}
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {printing ? "Updating..." : "Print"}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

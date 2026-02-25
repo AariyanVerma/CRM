@@ -11,7 +11,12 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
-  const [customerCount, cardCount, openTransactions, todayPrices] = await Promise.all([
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date(todayStart)
+  todayEnd.setDate(todayEnd.getDate() + 1)
+
+  const [customerCount, cardCount, openTransactions, todayPrices, todayStats] = await Promise.all([
     prisma.customer.count(),
     prisma.membershipCard.count({ where: { status: 'ACTIVE' } }),
     prisma.transaction.count({ where: { status: 'OPEN' } }),
@@ -23,7 +28,14 @@ export default async function DashboardPage() {
       },
       orderBy: { date: 'desc' },
     }),
+    prisma.transaction.findMany({
+      where: { createdAt: { gte: todayStart, lt: todayEnd } },
+      include: { lineItems: { select: { lineTotal: true } } },
+    }),
   ])
+
+  const todayTransactionCount = todayStats.length
+  const todayTotalValue = todayStats.reduce((s, t) => s + t.lineItems.reduce((a, i) => a + i.lineTotal, 0), 0)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden">
@@ -56,6 +68,9 @@ export default async function DashboardPage() {
             gold={todayPrices?.gold ?? null}
             silver={todayPrices?.silver ?? null}
             platinum={todayPrices?.platinum ?? null}
+            todayTransactionCount={todayTransactionCount}
+            todayTotalValue={todayTotalValue}
+            isAdmin={session.role === "ADMIN"}
           />
 
           {/* Quick Actions */}

@@ -196,6 +196,48 @@ This is an automated message. Please do not reply to this email.
   }
 }
 
+// Daily summary for admins
+export async function sendDailySummaryEmail(
+  to: string,
+  stats: { date: string; transactionCount: number; totalValue: number }
+) {
+  const { date, transactionCount, totalValue } = stats
+  const formattedTotal = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(totalValue)
+  try {
+    await transporter.sendMail({
+      from: {
+        name: fromEmailParsed.name,
+        address: fromEmailParsed.address,
+      },
+      to,
+      subject: `Daily Summary - ${date} - New York Gold Market`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head><meta charset="utf-8"></head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: #f9f9f9; border-radius: 8px; padding: 24px; border: 1px solid #e0e0e0;">
+              <h1 style="margin-top: 0;">Daily Transaction Summary</h1>
+              <p><strong>Date:</strong> ${date}</p>
+              <p><strong>Transactions today:</strong> ${transactionCount}</p>
+              <p><strong>Total value today:</strong> ${formattedTotal}</p>
+              <p style="margin-bottom: 0; font-size: 12px; color: #666;">New York Gold Market – automated summary</p>
+            </div>
+          </body>
+        </html>
+      `,
+      text: `Daily Summary - ${date}\n\nTransactions today: ${transactionCount}\nTotal value today: ${formattedTotal}\n\nNew York Gold Market – automated summary`,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error("[Email] Daily summary send error:", error)
+    throw new Error(error instanceof Error ? error.message : "Failed to send daily summary")
+  }
+}
+
 // Verify email configuration
 export async function verifyEmailConfig() {
   try {
