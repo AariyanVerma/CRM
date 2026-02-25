@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Prisma, type TransactionStatus, type TransactionType } from "@prisma/client"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
@@ -36,20 +37,13 @@ export async function GET(request: NextRequest) {
     toDate.setHours(23, 59, 59, 999)
 
     const customerIds = customerIdsParam ? customerIdsParam.split(",").filter(Boolean) : []
-    type WhereType = {
-      createdAt: { gte: Date; lte: Date }
-      customerId?: string | { in: string[] }
-      type?: string
-      status?: string
-      lineItems?: { some: { metalType: "GOLD" | "SILVER" | "PLATINUM" } }
-    }
-    const where: WhereType = {
+    const where: Prisma.TransactionWhereInput = {
       createdAt: { gte: fromDate, lte: toDate },
     }
     if (customerIds.length > 0) where.customerId = { in: customerIds }
     else if (customerId) where.customerId = customerId
-    if (typeFilter === "SCRAP" || typeFilter === "MELT") where.type = typeFilter
-    if (statusFilter === "OPEN" || statusFilter === "PRINTED" || statusFilter === "VOID") where.status = statusFilter
+    if (typeFilter === "SCRAP" || typeFilter === "MELT") where.type = typeFilter as TransactionType
+    if (statusFilter === "OPEN" || statusFilter === "PRINTED" || statusFilter === "VOID") where.status = statusFilter as TransactionStatus
     if (metalFilter === "GOLD" || metalFilter === "SILVER" || metalFilter === "PLATINUM") {
       where.lineItems = { some: { metalType: metalFilter } }
     }
