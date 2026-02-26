@@ -116,7 +116,7 @@ export async function DELETE(
         customerName: before.customer.fullName,
         lineItemsCount: before.lineItems.length,
         status: before.status,
-      }, null)
+      }, undefined)
     }
 
     // Emit socket event after successful deletion
