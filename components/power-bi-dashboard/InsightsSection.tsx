@@ -19,12 +19,13 @@ export function InsightsSection({ summary, derived }: { summary: Summary; derive
   const silverPct = summary.grandTotal > 0 ? ((summary.byMetal.SILVER || 0) / summary.grandTotal) * 100 : 0
   const platinumPct = summary.grandTotal > 0 ? ((summary.byMetal.PLATINUM || 0) / summary.grandTotal) * 100 : 0
 
-  const topStatus = (["OPEN", "PRINTED", "VOID"] as const).reduce(
+  type StatusKey = "OPEN" | "PRINTED" | "VOID"
+  const topStatus = (["OPEN", "PRINTED", "VOID"] as const).reduce<{ status: StatusKey; total: number }>(
     (a, s) => {
       const v = derived.byStatus[s]?.total ?? 0
       return v > a.total ? { status: s, total: v } : a
     },
-    { status: "OPEN" as const, total: 0 }
+    { status: "OPEN", total: 0 }
   )
 
   const peakDay = derived.dailySorted.length

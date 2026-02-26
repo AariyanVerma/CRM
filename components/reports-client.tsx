@@ -732,7 +732,7 @@ export function ReportsClient() {
                     <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v >= 1000 ? `${v / 1000}k` : v}`} width={36} />
-                      <Tooltip formatter={(v: number) => [formatCurrency(v), "Total"]} contentStyle={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Total"]} contentStyle={{ fontSize: 12 }} />
                       <Bar dataKey="total" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
