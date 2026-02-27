@@ -14,7 +14,7 @@ function SingleQuoteWidget({
   containerRef,
 }: {
   symbol: string
-  containerRef: React.RefObject<HTMLDivElement | null>
+  containerRef: React.RefObject<HTMLDivElement>
 }) {
   useEffect(() => {
     const container = containerRef.current
