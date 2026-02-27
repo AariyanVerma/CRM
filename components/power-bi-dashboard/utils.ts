@@ -1,4 +1,5 @@
 import type { ReportData, ReportTransaction, FilterState, DerivedData, DayOfWeekKey } from "./types"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 const DAY_NAMES: DayOfWeekKey[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -71,9 +72,10 @@ export function computeDerived(transactions: ReportTransaction[]): DerivedData {
     byStatus[t.status] = byStatus[t.status] || { count: 0, total: 0 }
     byStatus[t.status].count += 1
     byStatus[t.status].total += t.total
-    byCustomer[t.customer.fullName] = byCustomer[t.customer.fullName] || { total: 0, count: 0 }
-    byCustomer[t.customer.fullName].total += t.total
-    byCustomer[t.customer.fullName].count += 1
+    const custName = getCustomerDisplayName(t.customer)
+    byCustomer[custName] = byCustomer[custName] || { total: 0, count: 0 }
+    byCustomer[custName].total += t.total
+    byCustomer[custName].count += 1
     const day = new Date(t.createdAt).toDateString()
     byDate[day] = byDate[day] || { count: 0, total: 0 }
     byDate[day].count += 1

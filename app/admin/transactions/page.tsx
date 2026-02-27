@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { requireAdmin } from "@/lib/auth"
 import { PageHeader } from "@/components/page-header"
 import { BackButton } from "@/components/back-button"
-import { TransactionsListClient } from "@/components/transactions-list-client"
+import { TransactionsListSkeleton } from "@/components/skeletons"
+
+const TransactionsListClient = dynamic(
+  () => import("@/components/transactions-list-client").then((m) => ({ default: m.TransactionsListClient })),
+  { loading: () => <TransactionsListSkeleton /> }
+)
 
 export default async function AdminTransactionsPage() {
   const session = await requireAdmin().catch(() => null)

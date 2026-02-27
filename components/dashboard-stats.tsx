@@ -1,8 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, CreditCard, TrendingUp, DollarSign } from "lucide-react"
-import { MetalPricesCarousel } from "@/components/metal-prices-carousel"
+import { Users, CreditCard, TrendingUp } from "lucide-react"
 import { useEffect, useRef } from "react"
 
 interface StatCardProps {
@@ -81,9 +80,6 @@ interface DashboardStatsProps {
   customerCount: number
   cardCount: number
   openTransactions: number
-  gold: number | null
-  silver: number | null
-  platinum: number | null
   todayTransactionCount?: number
   todayTotalValue?: number
   isAdmin?: boolean
@@ -93,9 +89,6 @@ export function DashboardStats({
   customerCount,
   cardCount,
   openTransactions,
-  gold,
-  silver,
-  platinum,
   todayTransactionCount = 0,
   todayTotalValue = 0,
   isAdmin = false,
@@ -144,28 +137,6 @@ export function DashboardStats({
           </CardContent>
         </Card>
       )}
-      
-      <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 group transform hover:-translate-y-1">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700" />
-        
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-          <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-            Metal Prices
-          </CardTitle>
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-400/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
-            <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          </div>
-        </CardHeader>
-        
-        <CardContent className="pt-2 relative z-10">
-          <MetalPricesCarousel
-            gold={gold}
-            silver={silver}
-            platinum={platinum}
-          />
-        </CardContent>
-      </Card>
     </div>
   )
 }

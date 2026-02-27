@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PricingTable } from "@/components/pricing-table"
-import { Building2, User, Phone, MapPin, Calendar, Clock, Sparkles, Flame, TrendingUp, Coins, Scale } from "lucide-react"
+import { Building2, User, Clock, Sparkles, Flame, TrendingUp, Coins, Scale } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -12,7 +12,7 @@ import { Printer } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { Carousel } from "@/components/carousel"
 import { useSocketTransaction } from "@/hooks/use-socket-transaction"
-import { formatDecimal } from "@/lib/utils"
+import { formatDecimal, getCustomerDisplayName } from "@/lib/utils"
 
 interface Customer {
   id: string
@@ -150,10 +150,10 @@ export function ScanPageClient({
       {/* Back Button */}
       <BackButton href="/customers" />
 
-      {/* Customer Header Card */}
+      {/* Customer Header Card - only display name and current date/time */}
       <Card className="border-2 shadow-lg bg-gradient-to-br from-background via-background to-muted/20">
         <CardContent className="p-4 sm:p-6 md:p-8">
-          <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-primary/20">
+          <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
               {customer.isBusiness ? (
                 <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
@@ -161,48 +161,15 @@ export function ScanPageClient({
                 <User className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                {customer.fullName}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent truncate">
+                {getCustomerDisplayName(customer)}
               </h2>
-              {customer.businessName && (
-                <p className="text-sm sm:text-base text-muted-foreground mt-1">{customer.businessName}</p>
-              )}
-            </div>
-          </div>
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="p-2 rounded-md bg-primary/10">
-                <Phone className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Phone</p>
-                <p className="font-semibold text-sm sm:text-base">{customer.phoneNumber}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="p-2 rounded-md bg-primary/10">
-                <MapPin className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Address</p>
-                <p className="font-semibold text-sm">{customer.address}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="p-2 rounded-md bg-primary/10">
-                <Clock className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Date & Time</p>
-                <p className="font-semibold text-sm" suppressHydrationWarning>
-                  {mounted && currentDate
-                    ? `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`
-                    : 'Loading...'}
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground mt-1" suppressHydrationWarning>
+                {mounted && currentDate
+                  ? `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`
+                  : "Loading…"}
+              </p>
             </div>
           </div>
         </CardContent>

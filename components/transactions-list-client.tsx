@@ -16,15 +16,17 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { Search, Loader2, Printer } from "lucide-react"
+import { TransactionTableSkeleton } from "@/components/skeletons"
 import { TransactionActions } from "@/components/transaction-actions"
 import { useToast } from "@/hooks/use-toast"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 type Tx = {
   id: string
   type: string
   status: string
   createdAt: string
-  customer: { id: string; fullName: string }
+  customer: { id: string; fullName: string; isBusiness?: boolean; businessName?: string | null }
   total: number
   lineItems: Array<{ id: string; lineTotal: number }>
 }
@@ -180,11 +182,7 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
           </Button>
         </div>
 
-        {loading && !data && (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        {loading && !data && <TransactionTableSkeleton />}
 
         {data && (
           <>
@@ -272,9 +270,9 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
                           </Badge>
                         </td>
                         {showCustomerColumn && (
-                          <td className="py-2 px-3 text-center align-middle truncate" title={t.customer.fullName}>
+                          <td className="py-2 px-3 text-center align-middle truncate" title={getCustomerDisplayName(t.customer)}>
                             <Link href={`/customers/${t.customer.id}`} className="text-primary hover:underline inline-block truncate max-w-full">
-                              {t.customer.fullName}
+                              {getCustomerDisplayName(t.customer)}
                             </Link>
                           </td>
                         )}

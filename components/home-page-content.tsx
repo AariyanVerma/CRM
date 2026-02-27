@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db"
-import { MetalPricesCarousel } from "@/components/metal-prices-carousel"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDecimal } from "@/lib/utils"
 import { Calendar, Clock, DollarSign } from "lucide-react"

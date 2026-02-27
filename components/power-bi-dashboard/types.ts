@@ -3,7 +3,7 @@ export type ReportTransaction = {
   type: string
   status: string
   createdAt: string
-  customer: { fullName: string }
+  customer: { fullName: string; isBusiness?: boolean; businessName?: string | null }
   total: number
   lineItems: Array<{ metalType: string; lineTotal: number }>
 }

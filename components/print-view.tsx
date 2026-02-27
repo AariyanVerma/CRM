@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { Logo } from "@/components/logo"
-import { formatDecimal } from "@/lib/utils"
+import { formatDecimal, getDisplayName, getCustomerDisplayName } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
 interface Customer {
@@ -36,10 +36,14 @@ interface Transaction {
   createdBy: {
     id: string
     email: string
+    firstName?: string | null
+    lastName?: string | null
   }
   completedBy: {
     id: string
     email: string
+    firstName?: string | null
+    lastName?: string | null
   } | null
   lineItems: LineItem[]
 }
@@ -210,18 +214,10 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           <p className="text-sm font-semibold mb-2 text-black">Precious Metals Transaction</p>
           <div className="text-sm space-y-1 text-black">
             <p>
-              <strong>Customer:</strong> {transaction.customer.fullName}
-            </p>
-            {transaction.customer.businessName && (
-              <p>
-                <strong>Business:</strong> {transaction.customer.businessName}
-              </p>
-            )}
-            <p>
-              <strong>Phone:</strong> {transaction.customer.phoneNumber}
+              <strong>Customer:</strong> {getCustomerDisplayName(transaction.customer)}
             </p>
             <p>
-              <strong>Address:</strong> {transaction.customer.address}
+              <strong>Date &amp; Time:</strong> {new Date(transaction.createdAt).toLocaleString()}
             </p>
           </div>
         </div>
@@ -250,11 +246,11 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
             </div>
             <div className="text-xs text-gray-900 space-y-1">
               <p>
-                <strong>Created By:</strong> {transaction.createdBy.email}
+                <strong>Created By:</strong> {getDisplayName(transaction.createdBy)}
               </p>
               {transaction.completedBy && (
                 <p>
-                  <strong>Completed By:</strong> {transaction.completedBy.email}
+                  <strong>Completed By:</strong> {getDisplayName(transaction.completedBy)}
                 </p>
               )}
             </div>

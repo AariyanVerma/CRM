@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { formatCurrency, formatDate } from "./utils"
 import type { ReportTransaction } from "./types"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 const PAGE_SIZE = 10
 
@@ -38,7 +39,7 @@ export function DataTable({ transactions, from, to }: DataTableProps) {
       t.id,
       t.type,
       t.status,
-      t.customer.fullName,
+      getCustomerDisplayName(t.customer),
       t.total.toFixed(2),
     ])
     const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n")
@@ -67,37 +68,65 @@ export function DataTable({ transactions, from, to }: DataTableProps) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed text-center">
+            <colgroup>
+              <col className="w-1/5" />
+              <col className="w-1/5" />
+              <col className="w-1/5" />
+              <col className="w-1/5" />
+              <col className="w-1/5" />
+            </colgroup>
             <thead>
               <tr className="border-b bg-muted/20">
-                <th className="text-left font-medium p-3">Date</th>
-                <th className="text-left font-medium p-3">Type</th>
-                <th className="text-left font-medium p-3">Status</th>
-                <th className="text-left font-medium p-3">Customer</th>
-                <th className="text-right font-medium p-3">Total</th>
+                <th className="font-medium p-3 align-middle text-center">Date</th>
+                <th className="font-medium p-3 align-middle text-center">Type</th>
+                <th className="font-medium p-3 align-middle text-center">Status</th>
+                <th className="font-medium p-3 align-middle text-center">Customer</th>
+                <th className="font-medium p-3 align-middle text-center whitespace-nowrap">Total</th>
               </tr>
             </thead>
             <tbody>
               {slice.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground align-middle">
                     No transactions in this range.
                   </td>
                 </tr>
               ) : (
                 slice.map((t) => (
                   <tr key={t.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="p-3 tabular-nums">{formatDate(t.createdAt)}</td>
-                    <td className="p-3">
-                      <Badge variant={t.type === "SCRAP" ? "default" : "destructive"} className="text-xs">
-                        {t.type}
-                      </Badge>
+                    <td className="p-3 tabular-nums align-middle text-center">
+                      {formatDate(t.createdAt)}
                     </td>
-                    <td className="p-3">
-                      <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
+                    <td className="p-3 align-middle">
+                      <div className="flex justify-center">
+                        <Badge
+                          variant={t.type === "SCRAP" ? "default" : "destructive"}
+                          className="text-xs inline-flex"
+                        >
+                          {t.type}
+                        </Badge>
+                      </div>
                     </td>
-                    <td className="p-3">{t.customer.fullName}</td>
-                    <td className="p-3 text-right font-medium tabular-nums">{formatCurrency(t.total)}</td>
+                    <td className="p-3 align-middle">
+                      <div className="flex justify-center">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs inline-flex ${getStatusBadgeClassName(t.status)}`}
+                        >
+                          {t.status}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td
+                      className="p-3 align-middle text-center truncate"
+                      title={getCustomerDisplayName(t.customer)}
+                    >
+                      {getCustomerDisplayName(t.customer)}
+                    </td>
+                    <td className="p-3 font-medium tabular-nums align-middle whitespace-nowrap text-center">
+                      {formatCurrency(t.total)}
+                    </td>
                   </tr>
                 ))
               )}

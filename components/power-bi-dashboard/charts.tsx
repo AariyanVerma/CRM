@@ -83,7 +83,7 @@ function ResponsiveChartContainer({ children, minHeight = 200 }: { children: Rea
     return () => ro.disconnect()
   }, [minHeight])
   return (
-    <div ref={ref} className="flex-1 min-h-0 w-full" style={{ minHeight: `${minHeight}px` }}>
+    <div ref={ref} className="flex-1 min-h-0 w-full chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ minHeight: `${minHeight}px` }}>
       <ResponsiveContainer width="100%" height={height}>
         {children}
       </ResponsiveContainer>
@@ -161,7 +161,7 @@ export function ByTypePieChart({ summary, height, hideTitle, onTitleClick }: { s
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? (
-          <div style={{ height }}>
+          <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}>
             <ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer>
           </div>
         ) : (
@@ -209,7 +209,7 @@ export function ByMetalBarChart({ summary, height, hideTitle, onTitleClick }: { 
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? (
-          <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div>
+          <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div>
         ) : (
           <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>
         )}
@@ -269,7 +269,7 @@ export function ByStatusBarChart({ derived, height, hideTitle, onTitleClick }: {
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? (
-          <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div>
+          <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div>
         ) : (
           <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>
         )}
@@ -329,7 +329,7 @@ export function DailyTrendChart({ derived, height, hideTitle, onTitleClick }: { 
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? (
-          <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div>
+          <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div>
         ) : (
           <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>
         )}
@@ -374,7 +374,7 @@ export function TopCustomersChart({ derived, height, hideTitle, onTitleClick }: 
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? (
-          <div style={{ height }}><ResponsiveContainer width="100%" height={height}>
+          <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>
             <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, bottom: 16, left: 8 }}>
               <XAxis type="number" tickFormatter={(v) => `$${v}`} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
@@ -455,7 +455,7 @@ export function ScrapVsMeltOverTimeChart({ derived, height, hideTitle, onTitleCl
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "SCRAP (blue)" }, { color: "hsl(var(--destructive))", label: "MELT (red)" }]} />
       </CardContent>
     </Card>
@@ -493,7 +493,7 @@ export function MetalMixOverTimeChart({ derived, height, hideTitle, onTitleClick
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "#eab308", label: "Gold (yellow)" }, { color: "#94a3b8", label: "Silver (grey)" }, { color: METAL_COLORS.PLATINUM, label: "Platinum (teal)" }]} />
       </CardContent>
     </Card>
@@ -520,7 +520,7 @@ export function TransactionSizeDistributionChart({ derived, height, hideTitle, o
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "Transactions (count per bucket)" }]} />
       </CardContent>
     </Card>
@@ -548,7 +548,7 @@ export function RevenueByDayOfWeekChart({ derived, height, hideTitle, onTitleCli
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "Revenue ($) by day" }]} />
       </CardContent>
     </Card>
@@ -584,7 +584,7 @@ export function CumulativeRevenueChart({ derived, height, hideTitle, onTitleClic
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "Cumulative revenue ($)" }]} />
       </CardContent>
     </Card>
@@ -620,7 +620,7 @@ export function AvgTransactionByDayChart({ derived, height, hideTitle, onTitleCl
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "Avg transaction value ($)" }]} />
       </CardContent>
     </Card>
@@ -655,7 +655,7 @@ export function TopCustomersByCountChart({ derived, height, hideTitle, onTitleCl
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: "#a855f7", label: "Transaction count" }]} />
       </CardContent>
     </Card>
@@ -693,7 +693,7 @@ export function StatusOverTimeChart({ derived, height, hideTitle, onTitleClick }
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
-        {height != null ? <div style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
+        {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
         <ChartColorKey items={[{ color: STATUS_COLORS.OPEN, label: "OPEN (blue)" }, { color: STATUS_COLORS.PRINTED, label: "PRINTED (green)" }, { color: STATUS_COLORS.VOID, label: "VOID (grey)" }]} />
       </CardContent>
     </Card>

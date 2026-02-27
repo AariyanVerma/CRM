@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,8 +7,13 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle, Edit } from "lucide-react"
 import { IssueCardDialog } from "@/components/issue-card-dialog"
-import { TransactionsListClient } from "@/components/transactions-list-client"
 import { Badge } from "@/components/ui/badge"
+import { TransactionsListSkeleton } from "@/components/skeletons"
+
+const TransactionsListClient = dynamic(
+  () => import("@/components/transactions-list-client").then((m) => ({ default: m.TransactionsListClient })),
+  { loading: () => <TransactionsListSkeleton /> }
+)
 import { BackButton } from "@/components/back-button"
 import { PageHeader } from "@/components/page-header"
 
@@ -105,12 +111,12 @@ export default async function CustomerDetailPage({
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-muted-foreground">Identity Verified:</p>
                   {customer.identityVerified ? (
-                    <Badge variant="default">
+                    <Badge className="bg-green-600 hover:bg-green-600/90 text-white border-0">
                       <CheckCircle2 className="mr-1 h-3 w-3" />
                       Verified
                     </Badge>
                   ) : (
-                    <Badge variant="outline">
+                    <Badge className="bg-red-600 hover:bg-red-600/90 text-white border-0">
                       <XCircle className="mr-1 h-3 w-3" />
                       Not Verified
                     </Badge>
@@ -145,7 +151,7 @@ export default async function CustomerDetailPage({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-5 w-5 text-muted-foreground" />
-                      <Badge variant="default">Active Card</Badge>
+                      <Badge className="bg-blue-600 hover:bg-blue-600/90 text-white border-0">Active Card</Badge>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Token</p>
@@ -173,9 +179,12 @@ export default async function CustomerDetailPage({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No active card issued
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-red-600 hover:bg-red-600/90 text-white border-0">Card Inactive</Badge>
+                    <p className="text-sm text-muted-foreground">
+                      No active card issued
+                    </p>
+                  </div>
                 )}
 
                 <IssueCardDialog customerId={customer.id} />

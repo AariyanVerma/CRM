@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { ScanPageClient } from "@/components/scan-page-client"
 import { PageHeader } from "@/components/page-header"
+import { ScanPageSkeleton } from "@/components/skeletons"
+
+const ScanPageClient = dynamic(
+  () => import("@/components/scan-page-client").then((m) => ({ default: m.ScanPageClient })),
+  { loading: () => <ScanPageSkeleton /> }
+)
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoutButton } from "@/components/logout-button"
 
@@ -36,22 +42,36 @@ export default async function ScanPage({
     )
   }
 
-  // Update last scanned
-  await prisma.membershipCard.update({
-    where: { id: card.id },
-    data: { lastScannedAt: new Date() },
-  })
-
-  // Get or create transactions
+  // Run price lookup and transaction lookups in parallel with card update
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const todayPrice = await prisma.dailyPrice.findFirst({
-    where: {
-      date: { lte: today },
-    },
-    orderBy: { date: "desc" },
-  })
+  const [, todayPrice, scrapTransactionOrNull, meltTransactionOrNull] = await Promise.all([
+    prisma.membershipCard.update({
+      where: { id: card.id },
+      data: { lastScannedAt: new Date() },
+    }),
+    prisma.dailyPrice.findFirst({
+      where: { date: { lte: today } },
+      orderBy: { date: "desc" },
+    }),
+    prisma.transaction.findFirst({
+      where: {
+        customerId: card.customerId,
+        type: "SCRAP",
+        status: "OPEN",
+      },
+      include: { lineItems: true },
+    }),
+    prisma.transaction.findFirst({
+      where: {
+        customerId: card.customerId,
+        type: "MELT",
+        status: "OPEN",
+      },
+      include: { lineItems: true },
+    }),
+  ])
 
   if (!todayPrice) {
     return (
@@ -68,16 +88,8 @@ export default async function ScanPage({
     )
   }
 
-  // Get or create SCRAP transaction
-  let scrapTransaction = await prisma.transaction.findFirst({
-    where: {
-      customerId: card.customerId,
-      type: "SCRAP",
-      status: "OPEN",
-    },
-    include: { lineItems: true },
-  })
-
+  // Create SCRAP or MELT only if missing
+  let scrapTransaction = scrapTransactionOrNull
   if (!scrapTransaction) {
     scrapTransaction = await prisma.transaction.create({
       data: {
@@ -93,16 +105,7 @@ export default async function ScanPage({
     })
   }
 
-  // Get or create MELT transaction
-  let meltTransaction = await prisma.transaction.findFirst({
-    where: {
-      customerId: card.customerId,
-      type: "MELT",
-      status: "OPEN",
-    },
-    include: { lineItems: true },
-  })
-
+  let meltTransaction = meltTransactionOrNull
   if (!meltTransaction) {
     meltTransaction = await prisma.transaction.create({
       data: {

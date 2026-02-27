@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import Image from "next/image"
 import { useSocketPrices } from "@/hooks/use-socket-prices"
 import { useSocketTransaction } from "@/hooks/use-socket-transaction"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +18,7 @@ import {
   PLATINUM_PURITIES,
 } from "@/lib/pricing"
 import { formatDecimal } from "@/lib/utils"
+import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
 
 interface LineItem {
   id: string
@@ -1017,18 +1019,14 @@ export function PricingTable({
           <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
             <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
               {!imageErrors[metalType] ? (
-                <img
+                <Image
                   src={`/metals/${metalType.toLowerCase()}.png`}
                   alt={metalName}
-                  className="object-contain w-full h-full drop-shadow-lg"
+                  fill
+                  sizes="56px"
+                  className="object-contain drop-shadow-lg"
                   onError={() => {
                     setImageErrors((prev) => ({ ...prev, [metalType]: true }))
-                  }}
-                  style={{ 
-                    display: 'block',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain'
                   }}
                 />
               ) : (
@@ -1084,99 +1082,9 @@ export function PricingTable({
   // Show all metal tables stacked vertically (no carousel)
   return (
     <div className="space-y-4">
-      {/* Price Snapshot Marquee */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-2 border-primary/20 rounded-lg shadow-lg py-4">
-        <div className="flex animate-marquee whitespace-nowrap">
-          {/* Duplicate content for seamless loop */}
-          {[...Array(3)].map((_, loopIndex) => (
-            <div key={loopIndex} className="flex items-center gap-8 px-8">
-              <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg border border-primary/30 shadow-md">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
-                  {!imageErrors.GOLD ? (
-                    <img
-                      src="/metals/gold.png"
-                      alt="Gold"
-                      className="object-contain w-full h-full"
-                      onError={() => {
-                        setImageErrors((prev) => ({ ...prev, GOLD: true }))
-                      }}
-                      style={{ 
-                        display: 'block',
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-amber-500/20 border-2 border-amber-500/30 rounded-full flex items-center justify-center">
-                      <span className="text-amber-600 font-bold text-sm">G</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Gold</p>
-                  <p className="text-lg sm:text-xl font-bold text-amber-600">${formatDecimal(spotPrices.gold)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg border border-primary/30 shadow-md">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
-                  {!imageErrors.SILVER ? (
-                    <img
-                      src="/metals/silver.png"
-                      alt="Silver"
-                      className="object-contain w-full h-full"
-                      onError={() => {
-                        setImageErrors((prev) => ({ ...prev, SILVER: true }))
-                      }}
-                      style={{ 
-                        display: 'block',
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-gray-400/20 border-2 border-gray-400/30 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-bold text-sm">S</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Silver</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-600">${formatDecimal(spotPrices.silver)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg border border-primary/30 shadow-md">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
-                  {!imageErrors.PLATINUM ? (
-                    <img
-                      src="/metals/platinum.png"
-                      alt="Platinum"
-                      className="object-contain w-full h-full"
-                      onError={() => {
-                        setImageErrors((prev) => ({ ...prev, PLATINUM: true }))
-                      }}
-                      style={{ 
-                        display: 'block',
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-slate-300/20 border-2 border-slate-300/30 rounded-full flex items-center justify-center">
-                      <span className="text-slate-600 font-bold text-sm">P</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Platinum</p>
-                  <p className="text-lg sm:text-xl font-bold text-slate-600">${formatDecimal(spotPrices.platinum)}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Metal prices ticker (same as dashboard) */}
+      <div className="w-full min-w-0 max-w-full">
+        <TradingViewTickerTape />
       </div>
 
       {/* All Metal Tables Stacked */}
@@ -1186,18 +1094,14 @@ export function PricingTable({
             <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.GOLD ? (
-                  <img
+                  <Image
                     src="/metals/gold.png"
                     alt="Gold"
-                    className="object-contain w-full h-full drop-shadow-lg"
+                    fill
+                    sizes="56px"
+                    className="object-contain drop-shadow-lg"
                     onError={() => {
                       setImageErrors((prev) => ({ ...prev, GOLD: true }))
-                    }}
-                    style={{ 
-                      display: 'block',
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain'
                     }}
                   />
                 ) : (
@@ -1253,18 +1157,14 @@ export function PricingTable({
             <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.SILVER ? (
-                  <img
+                  <Image
                     src="/metals/silver.png"
                     alt="Silver"
-                    className="object-contain w-full h-full drop-shadow-lg"
+                    fill
+                    sizes="56px"
+                    className="object-contain drop-shadow-lg"
                     onError={() => {
                       setImageErrors((prev) => ({ ...prev, SILVER: true }))
-                    }}
-                    style={{ 
-                      display: 'block',
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain'
                     }}
                   />
                 ) : (
@@ -1320,18 +1220,14 @@ export function PricingTable({
             <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.PLATINUM ? (
-                  <img
+                  <Image
                     src="/metals/platinum.png"
                     alt="Platinum"
-                    className="object-contain w-full h-full drop-shadow-lg"
+                    fill
+                    sizes="56px"
+                    className="object-contain drop-shadow-lg"
                     onError={() => {
                       setImageErrors((prev) => ({ ...prev, PLATINUM: true }))
-                    }}
-                    style={{ 
-                      display: 'block',
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain'
                     }}
                   />
                 ) : (

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       prisma.transaction.findMany({
         where,
         include: {
-          customer: { select: { id: true, fullName: true } },
+          customer: { select: { id: true, fullName: true, isBusiness: true, businessName: true } },
           lineItems: { select: { id: true, lineTotal: true } },
         },
         orderBy: { createdAt: "desc" },

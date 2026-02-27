@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
 import { Trash2, Key } from "lucide-react"
 import { PasswordInput } from "@/components/password-input"
+import { getDisplayName } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -181,7 +182,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
   }
 
   async function handleResetPassword() {
-    const newPassword = prompt(`Enter new password for ${user.email} (min 6 characters):`)
+    const newPassword = prompt(`Enter new password for ${getDisplayName(user)} (min 6 characters):`)
     if (!newPassword) return
 
     if (newPassword.length < 6) {
@@ -208,7 +209,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
 
       toast({
         title: "Password Reset",
-        description: `Password has been reset for ${user.email}`,
+        description: `Password has been reset for ${getDisplayName(user)}`,
         variant: "success",
       })
     } catch (error) {

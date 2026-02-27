@@ -39,6 +39,7 @@ import { useToast } from "@/hooks/use-toast"
 import { MoreVertical, Edit, Trash2, Move, Eye } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 interface Transaction {
   id: string
@@ -337,7 +338,7 @@ function CustomerSelect({
   onSearchChange: (value: string) => void
   excludeCustomerId: string
 }) {
-  const [customers, setCustomers] = useState<Array<{ id: string; fullName: string }>>([])
+  const [customers, setCustomers] = useState<Array<{ id: string; fullName: string; isBusiness?: boolean; businessName?: string | null }>>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -387,7 +388,7 @@ function CustomerSelect({
           <SelectContent>
             {customers.map((customer) => (
               <SelectItem key={customer.id} value={customer.id}>
-                {customer.fullName}
+                {getCustomerDisplayName(customer)}
               </SelectItem>
             ))}
           </SelectContent>

@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CreditCard, Building2, User, Edit } from "lucide-react"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 interface Customer {
   id: string
@@ -40,8 +41,10 @@ export function CustomersList({ customers, userRole }: CustomersListProps) {
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">{customer.fullName}</h3>
-                  <p className="text-sm text-muted-foreground">{customer.phoneNumber}</p>
+                  <h3 className="font-semibold text-lg">{getCustomerDisplayName(customer)}</h3>
+                  <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+                    {new Date().toLocaleString()}
+                  </p>
                 </div>
                 {customer.isBusiness ? (
                   <Building2 className="h-5 w-5 text-muted-foreground" />
@@ -50,22 +53,21 @@ export function CustomersList({ customers, userRole }: CustomersListProps) {
                 )}
               </div>
 
-              {customer.businessName && (
-                <p className="text-sm font-medium">{customer.businessName}</p>
-              )}
-
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {customer.address}
-              </p>
-
               <div className="flex items-center gap-2 flex-wrap">
-                {customer.identityVerified && (
-                  <Badge variant="default">Verified</Badge>
+                {customer.identityVerified ? (
+                  <Badge className="bg-green-600 hover:bg-green-600/90 text-white border-0">Verified</Badge>
+                ) : (
+                  <Badge className="bg-red-600 hover:bg-red-600/90 text-white border-0">Not Verified</Badge>
                 )}
-                {customer.cards.length > 0 && (
-                  <Badge variant="secondary">
+                {customer.cards.some((c) => c.status === "ACTIVE") ? (
+                  <Badge className="bg-blue-600 hover:bg-blue-600/90 text-white border-0">
                     <CreditCard className="mr-1 h-3 w-3" />
                     Card Active
+                  </Badge>
+                ) : (
+                  <Badge className="bg-red-600 hover:bg-red-600/90 text-white border-0">
+                    <CreditCard className="mr-1 h-3 w-3" />
+                    Card Inactive
                   </Badge>
                 )}
                 <Badge variant="outline">

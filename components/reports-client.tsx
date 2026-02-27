@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import Link from "next/link"
 import { FileDown, Printer, Loader2, BarChart3, Calendar, Users, Coins, TrendingUp, Search, Layers, Filter, LayoutGrid, List, PieChart, Table, Gem, Save, X, ChevronUp, ChevronDown } from "lucide-react"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 type ReportData = {
   from: string
@@ -42,7 +43,7 @@ type ReportData = {
     type: string
     status: string
     createdAt: string
-    customer: { id?: string; fullName: string }
+    customer: { id?: string; fullName: string; isBusiness?: boolean; businessName?: string | null }
     total: number
     lineItems: Array<{ metalType: string; lineTotal: number; purityLabel?: string; dwt?: number }>
   }>
@@ -253,7 +254,7 @@ export function ReportsClient() {
       t.id,
       t.type,
       t.status,
-      t.customer.fullName,
+      getCustomerDisplayName(t.customer),
       t.total.toFixed(2),
     ])
     const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n")
@@ -274,7 +275,7 @@ export function ReportsClient() {
       t.id,
       t.type,
       t.status,
-      t.customer.fullName,
+      getCustomerDisplayName(t.customer),
       t.total.toFixed(2),
     ])
     const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n")
@@ -728,14 +729,16 @@ export function ReportsClient() {
               return (
                 <div className="rounded-xl border border-border bg-muted/10 p-4 mb-4" style={{ height: 180 }}>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Total by day</p>
-                  <ResponsiveContainer width="100%" height={140}>
-                    <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v >= 1000 ? `${v / 1000}k` : v}`} width={36} />
-                      <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Total"]} contentStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="chart-always-black bg-black rounded-lg overflow-hidden" style={{ height: 140 }}>
+                    <ResponsiveContainer width="100%" height={140}>
+                      <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v >= 1000 ? `${v / 1000}k` : v}`} width={36} />
+                        <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Total"]} contentStyle={{ fontSize: 12 }} />
+                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               )
             })()}
@@ -817,7 +820,7 @@ export function ReportsClient() {
                             <td className="py-2.5 px-4 text-center align-middle">
                               <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
                             </td>
-                            <td className="py-2.5 px-4 text-center align-middle truncate" title={t.customer.fullName}>{t.customer.fullName}</td>
+                            <td className="py-2.5 px-4 text-center align-middle truncate" title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</td>
                             <td className="py-2.5 px-4 text-center align-middle font-medium tabular-nums">{formatCurrency(t.total)}</td>
                             <td className="py-2.5 px-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
                               <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
@@ -871,7 +874,7 @@ export function ReportsClient() {
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusBadgeClassName(t.status)}`}>{t.status}</Badge>
                         </div>
                       </div>
-                      <p className="font-semibold text-foreground truncate" title={t.customer.fullName}>{t.customer.fullName}</p>
+                      <p className="font-semibold text-foreground truncate" title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</p>
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
                         <span className="text-lg font-bold tabular-nums text-primary">{formatCurrency(t.total)}</span>
                         <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
@@ -956,7 +959,7 @@ export function ReportsClient() {
                           <td className={`text-center align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`}>
                             <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
                           </td>
-                          <td className={`text-center align-middle truncate ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`} title={t.customer.fullName}>{t.customer.fullName}</td>
+                          <td className={`text-center align-middle truncate ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`} title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</td>
                           <td className={`text-center font-medium tabular-nums align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`}>{formatCurrency(t.total)}</td>
                           <td className={`text-center align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`} onClick={(e) => e.stopPropagation()}>
                             <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
@@ -981,7 +984,7 @@ export function ReportsClient() {
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">By customer</h2>
             {(() => {
               const byCustomer = sortedTransactions.reduce<Record<string, typeof sortedTransactions>>((acc, t) => {
-                const name = t.customer.fullName || "Unknown"
+                const name = getCustomerDisplayName(t.customer) || "Unknown"
                 if (!acc[name]) acc[name] = []
                 acc[name].push(t)
                 return acc
@@ -1140,7 +1143,7 @@ export function ReportsClient() {
                                   <td className="py-2.5 px-4 text-center align-middle">
                                     <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
                                   </td>
-                                  <td className="py-2.5 px-4 text-center align-middle truncate" title={t.customer.fullName}>{t.customer.fullName}</td>
+                                  <td className="py-2.5 px-4 text-center align-middle truncate" title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</td>
                                   <td className="py-2.5 px-4 text-center align-middle font-medium tabular-nums">{formatCurrency(t.total)}</td>
                                   <td className="py-2.5 px-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
                                     <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
@@ -1173,7 +1176,7 @@ export function ReportsClient() {
                 return (
                   <div className="space-y-3 text-sm">
                     <p><span className="text-muted-foreground">Date:</span> {formatDate(t.createdAt)}</p>
-                    <p><span className="text-muted-foreground">Customer:</span> {t.customer.fullName}</p>
+                    <p><span className="text-muted-foreground">Customer:</span> {getCustomerDisplayName(t.customer)}</p>
                     <p><span className="text-muted-foreground">Type:</span> <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge></p>
                     <p><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge></p>
                     <p><span className="text-muted-foreground">Total:</span> <strong>{formatCurrency(t.total)}</strong></p>
@@ -1241,7 +1244,7 @@ export function ReportsClient() {
                   <td className="py-2 px-4 text-center">
                   <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
                 </td>
-                  <td className="py-2 px-4 text-center truncate">{t.customer.fullName}</td>
+                  <td className="py-2 px-4 text-center truncate">{getCustomerDisplayName(t.customer)}</td>
                   <td className="py-2 px-4 text-center tabular-nums">{formatCurrency(t.total)}</td>
                 </tr>
               ))}

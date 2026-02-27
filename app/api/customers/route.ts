@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         id: true,
         fullName: true,
         phoneNumber: true,
+        isBusiness: true,
         businessName: true,
       },
       take: 20,

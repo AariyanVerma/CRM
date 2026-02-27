@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { PrintView } from "@/components/print-view"
+import { PrintViewSkeleton } from "@/components/skeletons"
+
+const PrintView = dynamic(
+  () => import("@/components/print-view").then((m) => ({ default: m.PrintView })),
+  { loading: () => <PrintViewSkeleton /> }
+)
 
 export default async function PrintPage({
   params,
@@ -25,12 +31,16 @@ export default async function PrintPage({
         select: {
           id: true,
           email: true,
+          firstName: true,
+          lastName: true,
         },
       },
       completedBy: {
         select: {
           id: true,
           email: true,
+          firstName: true,
+          lastName: true,
         },
       },
       lineItems: {

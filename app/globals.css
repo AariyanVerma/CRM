@@ -160,3 +160,25 @@ body::-webkit-scrollbar,
   outline: none;
 }
 
+/* Charts always use black background; axes/labels stay visible in light and dark mode */
+.chart-always-black {
+  background-color: #000 !important;
+}
+.chart-always-black .recharts-wrapper,
+.chart-always-black .recharts-surface,
+.chart-always-black .recharts-responsive-container {
+  background-color: #000 !important;
+}
+.chart-always-black text {
+  fill: #e4e4e7;
+}
+.chart-always-black line {
+  stroke: #71717a;
+}
+.chart-always-black .recharts-legend-item-text {
+  fill: #e4e4e7;
+}
+.chart-always-black .recharts-default-legend .recharts-legend-item-text {
+  fill: #e4e4e7;
+}
+

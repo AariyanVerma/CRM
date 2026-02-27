@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { Carousel } from "@/components/carousel"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, Coins, Layers, BarChart3, PieChart, User, Calendar, Award, Hash } from "lucide-react"
+import { getCustomerDisplayName } from "@/lib/utils"
 
 type ReportData = {
   from: string
@@ -19,7 +20,7 @@ type ReportData = {
     type: string
     status: string
     createdAt: string
-    customer: { fullName: string }
+    customer: { fullName: string; isBusiness?: boolean; businessName?: string | null }
     total: number
   }>
 }
@@ -42,7 +43,8 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
       byStatus[t.status] = byStatus[t.status] || { count: 0, total: 0 }
       byStatus[t.status].count += 1
       byStatus[t.status].total += t.total
-      byCustomer[t.customer.fullName] = (byCustomer[t.customer.fullName] || 0) + t.total
+      const custName = getCustomerDisplayName(t.customer)
+      byCustomer[custName] = (byCustomer[custName] || 0) + t.total
       const day = new Date(t.createdAt).toDateString()
       byDate[day] = byDate[day] || { count: 0, total: 0 }
       byDate[day].count += 1

@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
+import { getDisplayName } from "@/lib/utils"
 import { prisma } from "@/lib/db"
 import { PageHeader } from "@/components/page-header"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { DashboardActions } from "@/components/dashboard-actions"
+import { DashboardTickerLazy } from "@/components/dashboard-ticker-lazy"
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -16,18 +18,10 @@ export default async function DashboardPage() {
   const todayEnd = new Date(todayStart)
   todayEnd.setDate(todayEnd.getDate() + 1)
 
-  const [customerCount, cardCount, openTransactions, todayPrices, todayStats] = await Promise.all([
+  const [customerCount, cardCount, openTransactions, todayStats] = await Promise.all([
     prisma.customer.count(),
     prisma.membershipCard.count({ where: { status: 'ACTIVE' } }),
     prisma.transaction.count({ where: { status: 'OPEN' } }),
-    prisma.dailyPrice.findFirst({
-      where: {
-        date: {
-          lte: new Date(),
-        },
-      },
-      orderBy: { date: 'desc' },
-    }),
     prisma.transaction.findMany({
       where: { createdAt: { gte: todayStart, lt: todayEnd } },
       include: { lineItems: { select: { lineTotal: true } } },
@@ -38,7 +32,7 @@ export default async function DashboardPage() {
   const todayTotalValue = todayStats.reduce((s, t) => s + t.lineItems.reduce((a, i) => a + i.lineTotal, 0), 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-x-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -49,29 +43,33 @@ export default async function DashboardPage() {
       <PageHeader title="Dashboard" />
 
       <main className="container mx-auto px-4 sm:px-6 py-8 relative z-10" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
-        <div className="space-y-10">
+        <div className="flex flex-col">
           {/* Header with animation */}
-          <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-700 mb-10">
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
               Welcome back!
             </h1>
             <p className="text-lg text-muted-foreground font-medium">
-              {session.email}
+              {getDisplayName(session)}
             </p>
           </div>
 
           {/* Stats Grid */}
-          <DashboardStats
-            customerCount={customerCount}
-            cardCount={cardCount}
-            openTransactions={openTransactions}
-            gold={todayPrices?.gold ?? null}
-            silver={todayPrices?.silver ?? null}
-            platinum={todayPrices?.platinum ?? null}
-            todayTransactionCount={todayTransactionCount}
-            todayTotalValue={todayTotalValue}
-            isAdmin={session.role === "ADMIN"}
-          />
+          <div>
+            <DashboardStats
+              customerCount={customerCount}
+              cardCount={cardCount}
+              openTransactions={openTransactions}
+              todayTransactionCount={todayTransactionCount}
+              todayTotalValue={todayTotalValue}
+              isAdmin={session.role === "ADMIN"}
+            />
+          </div>
+
+          {/* Metal prices ticker */}
+          <div className="w-full min-w-0 max-w-full my-3 py-0">
+            <DashboardTickerLazy />
+          </div>
 
           {/* Quick Actions */}
           <div className="space-y-6">

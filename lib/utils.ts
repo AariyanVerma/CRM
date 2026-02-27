@@ -29,3 +29,25 @@ export function formatDecimal(value: number): string {
   return truncated.toFixed(2)
 }
 
+/** Display name for staff/admin: firstName + lastName, or email if no name set */
+export function getDisplayName(user: {
+  firstName?: string | null
+  lastName?: string | null
+  email: string
+}): string {
+  const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
+  return name || user.email
+}
+
+/** Display label for customer outside detail page: company name if business, else customer name */
+export function getCustomerDisplayName(customer: {
+  fullName: string
+  isBusiness?: boolean
+  businessName?: string | null
+}): string {
+  if (customer.isBusiness && customer.businessName?.trim()) {
+    return customer.businessName.trim()
+  }
+  return customer.fullName
+}
+

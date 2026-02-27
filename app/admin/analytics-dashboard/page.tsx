@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { requireAdmin } from "@/lib/auth"
 import { PageHeader } from "@/components/page-header"
 import { BackButton } from "@/components/back-button"
-import { AnalyticsDashboardClient } from "@/components/analytics-dashboard-client"
+import { AnalyticsDashboardLazy } from "@/components/analytics-dashboard-lazy"
 
 export default async function AnalyticsDashboardPage() {
   const session = await requireAdmin().catch(() => null)
@@ -17,7 +17,7 @@ export default async function AnalyticsDashboardPage() {
         <div className="w-full max-w-[1600px] mx-auto px-4 py-6 flex flex-col min-h-full gap-6">
           <BackButton href="/dashboard" className="shrink-0 self-start" />
           <div className="flex-1 min-h-0 flex flex-col">
-            <AnalyticsDashboardClient />
+            <AnalyticsDashboardLazy />
           </div>
         </div>
       </main>

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Loader2, Layers, Coins, BarChart3, Calendar, User, Grid3X3, TrendingUp } from "lucide-react"
+import { Layers, Coins, BarChart3, Calendar, User, TrendingUp } from "lucide-react"
+import { DashboardContentSkeleton } from "@/components/skeletons"
 import type { ReportData, FilterState } from "./types"
 import { FilterBar } from "./FilterBar"
 import { KPITiles } from "./KPITiles"
@@ -121,11 +122,7 @@ export function PowerBIDashboard() {
         loading={loading}
       />
 
-      {loading && !data && (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-        </div>
-      )}
+      {loading && !data && <DashboardContentSkeleton />}
 
       {data && !loading && summary && derived && (
         <>

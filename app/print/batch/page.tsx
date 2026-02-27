@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { BatchPrintClient } from "@/components/batch-print-client"
+import { PrintViewSkeleton } from "@/components/skeletons"
+
+const BatchPrintClient = dynamic(
+  () => import("@/components/batch-print-client").then((m) => ({ default: m.BatchPrintClient })),
+  { loading: () => <PrintViewSkeleton /> }
+)
 
 export default async function BatchPrintPage({
   searchParams,
@@ -28,8 +34,8 @@ export default async function BatchPrintPage({
     where: { id: { in: ids } },
     include: {
       customer: true,
-      createdBy: { select: { id: true, email: true } },
-      completedBy: { select: { id: true, email: true } },
+      createdBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+      completedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
       lineItems: { orderBy: [{ metalType: "asc" }, { purityLabel: "asc" }] },
     },
     orderBy: { createdAt: "asc" },
