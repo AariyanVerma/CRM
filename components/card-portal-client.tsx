@@ -160,11 +160,12 @@ export function CardPortalClient({ isAdmin, initialCustomer }: CardPortalClientP
     try {
       const ndef = new window.NDEFReader()
       const encoder = new TextEncoder()
+      const encoded = encoder.encode(card.scanUrl)
       await ndef.write({
         records: [
           {
             recordType: "url",
-            data: encoder.encode(card.scanUrl),
+            data: encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength),
           },
         ],
       })
