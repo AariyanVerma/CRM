@@ -18,9 +18,7 @@ export async function POST(
         { message: "Customer ID is required" },
         { status: 400 }
       )
-    }
-
-    // Verify customer exists
+    }
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
     })

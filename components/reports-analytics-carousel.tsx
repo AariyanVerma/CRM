@@ -74,7 +74,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
 
   const slides = useMemo(
     () => [
-      // 1. Overview
+
       <div key="overview" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-primary/10">
           <CardHeader className="pb-2">
@@ -95,7 +95,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 2. By Type (SCRAP vs MELT)
+
       <div key="by-type" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-muted/30">
           <CardHeader className="pb-2">
@@ -128,7 +128,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 3. By Metal
+
       <div key="by-metal" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-amber-500/5">
           <CardHeader className="pb-2">
@@ -153,7 +153,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 4. By Status
+
       <div key="by-status" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-muted/30">
           <CardHeader className="pb-2">
@@ -175,7 +175,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 5. SCRAP only
+
       <div key="scrap-only" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5">
           <CardHeader className="pb-2">
@@ -188,7 +188,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 6. MELT only
+
       <div key="melt-only" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-secondary/20 to-secondary/10">
           <CardHeader className="pb-2">
@@ -201,7 +201,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 7. Top customers
+
       <div key="top-customers" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-muted/30">
           <CardHeader className="pb-2">
@@ -224,7 +224,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 8. Daily trend (last 7 days)
+
       <div key="daily" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-muted/30">
           <CardHeader className="pb-2">
@@ -247,7 +247,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 9. Average & max
+
       <div key="avg-max" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-primary/5">
           <CardHeader className="pb-2">
@@ -268,7 +268,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 10. Type + Status matrix (SCRAP OPEN, SCRAP PRINTED, etc.)
+
       <div key="type-status" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-muted/30">
           <CardHeader className="pb-2">
@@ -295,7 +295,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardContent>
         </Card>
       </div>,
-      // 11. Summary numbers (all in one)
+
       <div key="all-summary" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-background to-primary/10">
           <CardHeader className="pb-2">

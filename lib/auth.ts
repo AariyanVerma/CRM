@@ -1,8 +1,9 @@
 import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 import { prisma } from './db'
 import bcrypt from 'bcryptjs'
 
-const SESSION_COOKIE_NAME = 'session'
+export const SESSION_COOKIE_NAME = 'session'
 const SESSION_SECRET = process.env.SESSION_SECRET || 'default-secret-change-in-production'
 
 export interface SessionUser {
@@ -10,6 +11,7 @@ export interface SessionUser {
   email: string
   role: 'ADMIN' | 'STAFF'
   canIssueCard?: boolean
+  canAccessLockedCards?: boolean
   firstName?: string | null
   lastName?: string | null
   address?: string | null
@@ -38,8 +40,9 @@ export async function getSession(): Promise<SessionUser | null> {
       phoneNumber: string | null
       profileImageUrl: string | null
       canIssueCard: boolean | null
+      canAccessLockedCards: boolean | null
     }>>`
-      SELECT id, email, role, "firstName", "lastName", address, "phoneNumber", "profileImageUrl", "canIssueCard"
+      SELECT id, email, role, "firstName", "lastName", address, "phoneNumber", "profileImageUrl", "canIssueCard", "canAccessLockedCards"
       FROM "User"
       WHERE id = ${userId}
       LIMIT 1
@@ -52,6 +55,7 @@ export async function getSession(): Promise<SessionUser | null> {
       email: user.email,
       role: user.role as 'ADMIN' | 'STAFF',
       canIssueCard: user.canIssueCard === true,
+      canAccessLockedCards: user.canAccessLockedCards === true,
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,
@@ -65,20 +69,17 @@ export async function getSession(): Promise<SessionUser | null> {
 
 export async function createSession(userId: string): Promise<void> {
   const cookieStore = await cookies()
-  
-  // Determine if we should use secure cookies
-  // In production, use secure cookies only if we're on HTTPS
-  // This helps with custom domains that might not have SSL fully provisioned yet
+
   const isProduction = process.env.NODE_ENV === 'production'
-  const useSecure = isProduction // Railway always uses HTTPS, so this should be true
+  const useSecure = isProduction
   
   cookieStore.set(SESSION_COOKIE_NAME, userId, {
     httpOnly: true,
     secure: useSecure,
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/', // Ensure cookie is available for all paths
-    // Don't set domain - let browser handle it automatically for custom domains
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+
   })
 }
 
@@ -88,10 +89,9 @@ export async function destroySession(): Promise<void> {
 }
 
 export async function verifyCredentials(email: string, password: string): Promise<SessionUser | null> {
-  // Normalize email and use case-insensitive search
+
   const normalizedEmail = email.toLowerCase().trim()
-  
-  // Use raw SQL for case-insensitive email lookup
+
   const users = await prisma.$queryRaw<Array<{
     id: string
     email: string
@@ -137,6 +137,47 @@ export async function requireAuth(): Promise<SessionUser> {
     throw new Error('Unauthorized')
   }
   return session
+}
+
+export async function getSessionFromRequest(request: NextRequest): Promise<SessionUser | null> {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)
+  if (!sessionCookie?.value) return null
+  try {
+    const userId = sessionCookie.value
+    const users = await prisma.$queryRaw<Array<{
+      id: string
+      email: string
+      role: string
+      firstName: string | null
+      lastName: string | null
+      address: string | null
+      phoneNumber: string | null
+      profileImageUrl: string | null
+      canIssueCard: boolean | null
+      canAccessLockedCards: boolean | null
+    }>>`
+      SELECT id, email, role, "firstName", "lastName", address, "phoneNumber", "profileImageUrl", "canIssueCard", "canAccessLockedCards"
+      FROM "User"
+      WHERE id = ${userId}
+      LIMIT 1
+    `
+    const user = users[0]
+    if (!user) return null
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'ADMIN' | 'STAFF',
+      canIssueCard: user.canIssueCard === true,
+      canAccessLockedCards: user.canAccessLockedCards === true,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      address: user.address,
+      phoneNumber: user.phoneNumber,
+      profileImageUrl: user.profileImageUrl,
+    } as SessionUser
+  } catch {
+    return null
+  }
 }
 
 export async function requireAdmin(): Promise<SessionUser> {

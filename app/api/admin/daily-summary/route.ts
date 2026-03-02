@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { sendDailySummaryEmail } from "@/lib/email"
 
-// Called by cron job with CRON_SECRET. Sends today's transaction summary to all admin users.
 export async function POST(request: NextRequest) {
   try {
     const secret = request.headers.get("x-cron-secret") || request.nextUrl.searchParams.get("secret")

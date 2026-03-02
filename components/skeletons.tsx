@@ -3,7 +3,6 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
-/** Skeleton for dashboard content only (KPI + charts + table), no filter row. Use when FilterBar is already shown. */
 export function DashboardContentSkeleton() {
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-6 pb-8">
@@ -55,7 +54,6 @@ export function DashboardContentSkeleton() {
   )
 }
 
-/** Skeleton for Analytics Dashboard / PowerBI: filter bar + KPI + charts + table */
 export function AnalyticsDashboardSkeleton() {
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-6 pb-8">
@@ -114,7 +112,6 @@ export function AnalyticsDashboardSkeleton() {
   )
 }
 
-/** Skeleton for Reports page */
 export function ReportsPageSkeleton() {
   return (
     <div className="space-y-8">
@@ -142,7 +139,6 @@ export function ReportsPageSkeleton() {
   )
 }
 
-/** Skeleton for dashboard ticker tape */
 export function TickerTapeSkeleton() {
   return (
     <div className="w-full h-[86px] rounded-lg bg-muted/30 flex items-center justify-center overflow-hidden">
@@ -155,7 +151,6 @@ export function TickerTapeSkeleton() {
   )
 }
 
-/** Skeleton for transactions list (filters + table rows) – used as lazy-loading fallback for the whole page */
 export function TransactionsListSkeleton() {
   return (
     <Card>
@@ -176,7 +171,6 @@ export function TransactionsListSkeleton() {
   )
 }
 
-/** Table-only skeleton (header + rows). Use when filters are already visible and data is loading. */
 export function TransactionTableSkeleton() {
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -202,7 +196,6 @@ export function TransactionTableSkeleton() {
   )
 }
 
-/** Skeleton for scan page content */
 export function ScanPageSkeleton() {
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center gap-6 p-6">
@@ -217,7 +210,6 @@ export function ScanPageSkeleton() {
   )
 }
 
-/** Skeleton for print view (full page) */
 export function PrintViewSkeleton() {
   return (
     <div className="min-h-screen bg-background p-8 space-y-6">

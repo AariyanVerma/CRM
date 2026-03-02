@@ -7,9 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['error', 'warn'], // Removed 'query' to reduce log spam
-  })
-
-// Always cache Prisma client on globalThis to prevent multiple instances (works in both dev and production)
+    log: ['error', 'warn'],
+  })
 globalForPrisma.prisma = prisma
 

@@ -1,6 +1,5 @@
 import nodemailer from "nodemailer"
 
-// Parse FROM_EMAIL to extract name and address
 function parseFromEmail(fromEmail: string | undefined) {
   if (!fromEmail) {
     return {
@@ -9,37 +8,33 @@ function parseFromEmail(fromEmail: string | undefined) {
     }
   }
 
-  // Remove surrounding quotes if present
   let cleaned = fromEmail.trim()
   if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
       (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
     cleaned = cleaned.slice(1, -1).trim()
   }
 
-  // Handle format: "Name <email@example.com>" or "Name <email@example.com>"
   const match = cleaned.match(/^([^<]+?)\s*<(.+)>$/i)
   if (match) {
     return {
-      name: match[1].trim().replace(/^["']|["']$/g, ""), // Remove any remaining quotes
+      name: match[1].trim().replace(/^["']|["']$/g, ""),
       address: match[2].trim().replace(/^["']|["']$/g, ""),
     }
   }
 
-  // If no match, assume it's just an email address
   return {
     name: "New York Gold Market",
     address: cleaned.replace(/^["']|["']$/g, "").trim(),
   }
 }
 
-// Gmail SMTP configuration from environment variables
 const smtpConfig: any = {
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: parseInt(process.env.SMTP_PORT || "465", 10),
   secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS?.replace(/\s/g, ""), // Remove spaces from app password
+    pass: process.env.SMTP_PASS?.replace(/\s/g, ""),
   },
 }
 
@@ -49,7 +44,7 @@ const fromEmailParsed = parseFromEmail(process.env.FROM_EMAIL)
 
 export async function sendOTPEmail(to: string, otp: string, userName?: string) {
   try {
-    // Log configuration (without sensitive data)
+
     console.log("[Email] Attempting to send OTP email:")
     console.log("[Email] To:", to)
     console.log("[Email] From:", `${fromEmailParsed.name} <${fromEmailParsed.address}>`)
@@ -196,7 +191,6 @@ This is an automated message. Please do not reply to this email.
   }
 }
 
-// Daily summary for admins
 export async function sendDailySummaryEmail(
   to: string,
   stats: { date: string; transactionCount: number; totalValue: number }
@@ -238,7 +232,6 @@ export async function sendDailySummaryEmail(
   }
 }
 
-// Verify email configuration
 export async function verifyEmailConfig() {
   try {
     await transporter.verify()

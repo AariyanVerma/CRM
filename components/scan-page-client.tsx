@@ -70,14 +70,11 @@ export function ScanPageClient({
     return () => clearInterval(timer)
   }, [])
 
-  // NOTE: Removed duplicate useSocketTransaction hooks - PricingTable components handle socket updates
-  // and notify us via onLineItemsUpdate callback to prevent duplicate subscriptions
-
   async function handlePrint(type: "SCRAP" | "MELT") {
     const transaction = type === "SCRAP" ? scrapTransaction : meltTransaction
     
     try {
-      // Mark transaction as printed before navigating
+
       const res = await fetch(`/api/transactions/${transaction.id}/print`, {
         method: "POST",
         credentials: "include",
@@ -87,7 +84,6 @@ export function ScanPageClient({
         throw new Error("Failed to mark transaction as printed")
       }
 
-      // Navigate to print preview page
       window.location.href = `/print/${transaction.id}`
     } catch (error) {
       toast({
@@ -124,7 +120,6 @@ export function ScanPageClient({
     }
   }
 
-  // Calculate transaction totals from current line items (reactive to polling updates)
   const scrapTotal = useMemo(() => 
     scrapLineItems.reduce((sum, item) => sum + item.lineTotal, 0),
     [scrapLineItems]
@@ -142,16 +137,17 @@ export function ScanPageClient({
     [meltLineItems]
   )
 
-  // Combined totals across both transactions
   const grandTotal = useMemo(() => scrapTotal + meltTotal, [scrapTotal, meltTotal])
   const grandTotalDwt = useMemo(() => scrapDwt + meltDwt, [scrapDwt, meltDwt])
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
+      {
+}
       <BackButton href="/customers" />
 
-      {/* Customer Header Card - only display name and current date/time */}
+      {
+}
       <Card className="border-2 shadow-lg bg-gradient-to-br from-background via-background to-muted/20">
         <CardContent className="p-4 sm:p-6 md:p-8">
           <div className="flex items-center gap-4">
@@ -176,12 +172,14 @@ export function ScanPageClient({
         </CardContent>
       </Card>
 
-      {/* Metal prices ticker (same as dashboard) */}
+      {
+}
       <div className="w-full min-w-0 max-w-full my-3 py-0">
         <TradingViewTickerTape />
       </div>
 
-      {/* Main Transaction Carousel */}
+      {
+}
       <div className="w-full" style={{ touchAction: "pan-y" }}>
         <Carousel
           showIndicators={false}
@@ -200,7 +198,8 @@ export function ScanPageClient({
                   <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
                 </div>
               </div>
-              {/* Transaction Summary Card */}
+              {
+}
               <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-yellow-500/5 shadow-md">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -247,7 +246,8 @@ export function ScanPageClient({
                   <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-red-600 drop-shadow-md" />
                 </div>
               </div>
-              {/* Transaction Summary Card */}
+              {
+}
               <Card className="border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/5 via-cyan-500/5 to-indigo-500/5 shadow-md">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -286,7 +286,8 @@ export function ScanPageClient({
         </Carousel>
       </div>
 
-      {/* Combined Totals Card */}
+      {
+}
       <Card className="border-2 border-primary/30 shadow-xl bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10">
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-center justify-between mb-4">

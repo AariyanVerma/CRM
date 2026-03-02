@@ -7,9 +7,7 @@ export async function PATCH(request: NextRequest) {
     const session = await requireAuth()
 
     const body = await request.json()
-    const { profileImageUrl } = body
-
-    // Staff can only update their own profile picture
+    const { profileImageUrl } = body
     const user = await prisma.user.update({
       where: { id: session.id },
       data: {

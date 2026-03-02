@@ -10,26 +10,21 @@ export function generateToken(): string {
   if (typeof window !== 'undefined') {
     crypto.getRandomValues(array)
   } else {
-    // Node.js environment
+
     const nodeCrypto = require('crypto')
     nodeCrypto.randomFillSync(array)
   }
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-/**
- * Truncate a number to 2 decimal places without rounding
- * Returns the exact value up to 2 decimal places, formatted as a string
- */
 export function formatDecimal(value: number): string {
   if (isNaN(value) || !isFinite(value)) return '0.00'
-  // Truncate to 2 decimal places (no rounding)
+
   const truncated = Math.trunc(value * 100) / 100
-  // Format to always show 2 decimal places
+
   return truncated.toFixed(2)
 }
 
-/** Display name for staff/admin: firstName + lastName, or email if no name set */
 export function getDisplayName(user: {
   firstName?: string | null
   lastName?: string | null
@@ -39,7 +34,6 @@ export function getDisplayName(user: {
   return name || user.email
 }
 
-/** Display label for customer outside detail page: company name if business, else customer name */
 export function getCustomerDisplayName(customer: {
   fullName: string
   isBusiness?: boolean

@@ -35,8 +35,7 @@ export default async function LoginPage({
 
       const redirectUrl = formData.get("redirect") as string | null
       const targetUrl = redirectUrl || "/dashboard"
-      // Return redirect URL for client to navigate - avoids server fetching the URL
-      // (which fails with self-signed cert in dev)
+
       return { redirect: targetUrl }
     } catch (error: unknown) {
       console.error("Login error:", error)

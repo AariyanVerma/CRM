@@ -17,7 +17,7 @@ export function NFCScanCard() {
   const isSecureContext = typeof window !== "undefined" && window.isSecureContext
 
   useEffect(() => {
-    // Check if Web NFC API is supported
+
     const checkNFCSupport = () => {
       const isLocalhost = typeof window !== "undefined" && 
         (window.location.hostname === "localhost" || 
@@ -41,13 +41,12 @@ export function NFCScanCard() {
     }
 
     if (checkNFCSupport()) {
-      // Small delay to ensure component is mounted
+
       setTimeout(() => {
         startScanning()
       }, 100)
     }
 
-    // Cleanup: stop scanning when component unmounts
     return () => {
       if (ndefReaderRef.current) {
         setScanning(false)
@@ -69,8 +68,7 @@ export function NFCScanCard() {
       ndefReaderRef.current = ndef
 
       console.log("Starting NFC scan...")
-      
-      // Start scanning - this will wait for a tag to be tapped
+
       await ndef.scan()
       
       console.log("✓ NFC scan active - ready to read tags")
@@ -109,7 +107,7 @@ export function NFCScanCard() {
               description: "Card detected but contains no readable data. This may not be a membership card.",
               variant: "warning",
             })
-            // Restart scanning
+
             setTimeout(() => {
               if (ndefReaderRef.current) {
                 startScanning()
@@ -127,13 +125,12 @@ export function NFCScanCard() {
             })
           })
 
-        // Try to decode each record
         for (const record of message.records) {
           try {
             let text = ""
 
             if (record.recordType === "url") {
-              // NDEF URL records: first byte is prefix, rest is URL
+
               let dataView: DataView
               if (record.data instanceof DataView) {
                 dataView = record.data
@@ -154,7 +151,6 @@ export function NFCScanCard() {
               )
               const urlString = new TextDecoder().decode(urlBytes)
 
-              // Common URL prefixes
               const prefixes: { [key: number]: string } = {
                 0x01: "http://www.",
                 0x02: "https://www.",
@@ -164,7 +160,7 @@ export function NFCScanCard() {
 
               text = (prefixes[prefixByte] || "https://") + urlString
             } else if (record.recordType === "text") {
-              // NDEF Text records
+
               let dataView: DataView
               if (record.data instanceof DataView) {
                 dataView = record.data
@@ -190,7 +186,7 @@ export function NFCScanCard() {
             } else if (record.recordType === "empty") {
               continue
             } else {
-              // Try to decode as plain text
+
               let dataView: DataView
               if (record.data instanceof DataView) {
                 dataView = record.data
@@ -212,7 +208,6 @@ export function NFCScanCard() {
 
             console.log("Decoded text:", text)
 
-            // Extract token from URL (format: /scan/{token} or full URL)
             const urlMatch = text.match(/\/scan\/([a-f0-9]{64})/i)
             if (urlMatch && urlMatch[1]) {
               const token = urlMatch[1]
@@ -227,7 +222,6 @@ export function NFCScanCard() {
               return
             }
 
-            // Check if the text itself is a token (64 hex characters)
             const trimmedText = text.trim()
             if (/^[a-f0-9]{64}$/i.test(trimmedText)) {
               console.log("Token found in text:", trimmedText)
@@ -255,7 +249,7 @@ export function NFCScanCard() {
             description: "Card detected but doesn't contain a membership token. This may be a different type of card (debit/credit). Please use a membership card or enter token manually.",
             variant: "warning",
           })
-          // Restart scanning after error
+
           setTimeout(() => {
             if (ndefReaderRef.current) {
               startScanning()
@@ -277,21 +271,18 @@ export function NFCScanCard() {
       })
 
       ndef.addEventListener("readingerror", (errorEvent: any) => {
-        // Extract error message from various possible locations
+
         const errorMessage = errorEvent?.message || 
                             errorEvent?.error?.message ||
                             errorEvent?.error?.toString() ||
                             (errorEvent?.error ? String(errorEvent.error) : null)
-        
-        // Check if error object is empty or has no meaningful content
+
         const isEmpty = !errorEvent || 
                        (Object.keys(errorEvent).length === 0) ||
                        (!errorMessage || errorMessage.trim().length === 0)
-        
-        // Empty error objects are normal when card moves away or read is interrupted
-        // Do NOT log empty error objects - this is expected behavior
+
         if (!isEmpty && errorMessage) {
-          // Only log meaningful errors
+
           const isCommonError = errorMessage.includes("timeout") || 
                                errorMessage.includes("abort") ||
                                errorMessage.includes("cancel")
@@ -305,9 +296,7 @@ export function NFCScanCard() {
             })
           }
         }
-        // Empty error = card moved away (normal) - silently restart scanning
-        
-        // Always restart scanning after error
+
         setTimeout(() => {
           if (ndefReaderRef.current && scanning) {
             startScanning()
@@ -344,7 +333,8 @@ export function NFCScanCard() {
         ) : scanning ? (
           <>
             <div className="relative mb-6 flex items-center justify-center min-h-[200px] w-full">
-              {/* Expanding radar rings */}
+              {
+}
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -355,7 +345,8 @@ export function NFCScanCard() {
                   }}
                 />
               ))}
-              {/* Slow rotating gradient ring */}
+              {
+}
               <div
                 className="absolute left-1/2 top-1/2 w-36 h-36 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80"
                 style={{
@@ -364,11 +355,14 @@ export function NFCScanCard() {
                 }}
               />
               <div className="absolute left-1/2 top-1/2 w-32 h-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" />
-              {/* Inner glow behind icon */}
+              {
+}
               <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/30 dark:bg-cyan-400/20 animate-scan-glow" />
-              {/* Center icon (below scan line so line can sweep over it) */}
+              {
+}
               <CreditCard className="w-14 h-14 text-blue-600 dark:text-cyan-400 relative z-10 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]" />
-              {/* Scanning line sweep - on top so it's visible across full circle */}
+              {
+}
               <div className="absolute left-1/2 top-1/2 z-20 w-32 h-32 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full pointer-events-none">
                 <div className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-scan-line" style={{ top: 0 }} />
               </div>

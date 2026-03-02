@@ -27,7 +27,7 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
         setError(result.error)
         setLoading(false)
       } else if (result?.redirect) {
-        // Client-side redirect (avoids server fetch that fails with self-signed cert)
+
         window.location.href = result.redirect
       } else {
         window.location.href = "/dashboard"

@@ -1,6 +1,3 @@
-// Simple HTTPS setup script for Next.js development
-// This creates a self-signed certificate using Node.js (no OpenSSL required)
-
 const selfsigned = require('selfsigned');
 const fs = require('fs');
 const path = require('path');
@@ -13,7 +10,6 @@ async function setupHTTPS() {
   const keyPath = path.join(certDir, 'localhost-key.pem');
   const certPath = path.join(certDir, 'localhost.pem');
 
-  // Get all local IP addresses for network access
   let ipAddresses = ['127.0.0.1'];
   try {
     const interfaces = os.networkInterfaces();
@@ -25,14 +21,11 @@ async function setupHTTPS() {
       }
     }
   } catch (e) {
-    // Use default
   }
   
-  // Remove duplicates
   ipAddresses = [...new Set(ipAddresses)];
   const primaryIP = ipAddresses.find(ip => ip !== '127.0.0.1') || '127.0.0.1';
 
-  // Check if certificates already exist
   if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
     console.log('✓ Certificates already exist');
     console.log(`  Key: ${keyPath}`);
@@ -46,15 +39,12 @@ async function setupHTTPS() {
     console.log('Generating self-signed certificate...');
     
     try {
-      // Generate certificate using selfsigned package (async in v5.0+)
       const attrs = [{ name: 'commonName', value: 'localhost' }];
-      // Build altNames array with all IP addresses
       const altNames = [
         { type: 2, value: 'localhost' },
         { type: 2, value: '*.localhost' },
       ];
       
-      // Add all IP addresses
       for (const ip of ipAddresses) {
         altNames.push({ type: 7, ip });
       }
@@ -70,10 +60,8 @@ async function setupHTTPS() {
         ],
       };
       
-      // Await the promise
       const pems = await selfsigned.generate(attrs, options);
 
-      // Write certificate and key to files
       fs.writeFileSync(certPath, pems.cert);
       fs.writeFileSync(keyPath, pems.private);
 
@@ -106,7 +94,6 @@ async function setupHTTPS() {
   }
 }
 
-// Run the async function
 setupHTTPS().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);

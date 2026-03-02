@@ -25,6 +25,7 @@ export function NewUserForm() {
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState<"ADMIN" | "STAFF">("STAFF")
   const [canIssueCard, setCanIssueCard] = useState(false)
+  const [canAccessLockedCards, setCanAccessLockedCards] = useState(false)
   const [profileImage, setProfileImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
@@ -61,8 +62,7 @@ export function NewUserForm() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    
-    // Upload image first if provided
+
     let profileImageUrl: string | null = null
     if (profileImage) {
       try {
@@ -93,6 +93,7 @@ export function NewUserForm() {
       password: formData.get("password") as string,
       role,
       canIssueCard,
+      canAccessLockedCards,
       firstName: formData.get("firstName") as string || null,
       lastName: formData.get("lastName") as string || null,
       address: formData.get("address") as string || null,
@@ -138,7 +139,6 @@ export function NewUserForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Profile Image */}
           <div className="space-y-2">
             <Label htmlFor="profileImage">Profile Picture</Label>
             <div className="flex items-center gap-4">
@@ -165,10 +165,8 @@ export function NewUserForm() {
                 className="flex-1"
               />
             </div>
-            <p className="text-xs text-muted-foreground">Max size: 5MB</p>
           </div>
 
-          {/* Personal Information */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
@@ -227,6 +225,16 @@ export function NewUserForm() {
             />
             <Label htmlFor="canIssueCard" className="font-normal cursor-pointer">
               Can issue NFC cards (show &quot;Issue New Card&quot; on customer detail)
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="canAccessLockedCards"
+              checked={canAccessLockedCards}
+              onCheckedChange={(checked) => setCanAccessLockedCards(checked === true)}
+            />
+            <Label htmlFor="canAccessLockedCards" className="font-normal cursor-pointer">
+              Can access locked cards (scan and use transactions for locked cards)
             </Label>
           </div>
 

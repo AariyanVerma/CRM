@@ -1,4 +1,3 @@
-// Custom HTTPS server for Next.js development with Socket.IO
 const { createServer } = require('https');
 const { parse } = require('url');
 const next = require('next');
@@ -13,7 +12,6 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// Load SSL certificates
 const keyPath = path.join(__dirname, 'localhost-key.pem');
 const certPath = path.join(__dirname, 'localhost.pem');
 
@@ -29,7 +27,6 @@ const httpsOptions = {
 };
 
 app.prepare().then(() => {
-  // Create HTTPS server
   const httpsServer = createServer(httpsOptions, async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
@@ -41,7 +38,6 @@ app.prepare().then(() => {
     }
   });
 
-  // Initialize Socket.IO server
   const io = new SocketIOServer(httpsServer, {
     cors: {
       origin: dev ? [
@@ -57,15 +53,12 @@ app.prepare().then(() => {
     transports: ['websocket', 'polling'],
   });
 
-  // Make io available to Next.js API routes
   const { setIO } = require('./lib/ioServer.js');
   setIO(io);
 
-  // Socket.IO connection handling
   io.on('connection', (socket) => {
     console.log(`[Socket.IO] Client connected: ${socket.id}`);
 
-    // Handle joining transaction room
     socket.on('join_tx', (data) => {
       if (data && data.transactionId) {
         const room = `tx:${data.transactionId}`;
@@ -74,13 +67,11 @@ app.prepare().then(() => {
       }
     });
 
-    // Handle joining prices room
     socket.on('join_prices', () => {
       socket.join('prices');
       console.log(`[Socket.IO] Client ${socket.id} joined room: prices`);
     });
 
-    // Handle leaving transaction room
     socket.on('leave_tx', (data) => {
       if (data && data.transactionId) {
         const room = `tx:${data.transactionId}`;
@@ -94,7 +85,6 @@ app.prepare().then(() => {
     });
   });
 
-  // Start server
   httpsServer.listen(port, hostname, (err) => {
     if (err) throw err;
     console.log(`✓ HTTPS enabled for development`);

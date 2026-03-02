@@ -21,10 +21,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Normalize email and find user (case-insensitive)
     const normalizedEmail = email.toLowerCase().trim()
-    
-    // Find user using case-insensitive search
+
     const users = await prisma.$queryRaw<Array<{
       id: string
       email: string
@@ -53,12 +51,11 @@ export async function POST(request: NextRequest) {
     
     console.log(`[OTP Verify] User found: ${user.email}, User ID: ${user.id}`)
 
-    // Find valid OTP
     console.log(`[OTP Verify] Looking for OTP: ${otp} for user ID: ${user.id}`)
     const otpRecord = await prisma.passwordResetOTP.findFirst({
       where: {
         userId: user.id,
-        otp: otp.trim(), // Trim OTP in case of whitespace
+        otp: otp.trim(),
         verified: false,
       },
       orderBy: {
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     if (!otpRecord) {
       console.log(`[OTP Verify] OTP record not found for user ${user.id} with OTP: ${otp}`)
-      // Increment attempts for security tracking
+
       await prisma.passwordResetOTP.updateMany({
         where: {
           userId: user.id,
@@ -89,7 +86,6 @@ export async function POST(request: NextRequest) {
     
     console.log(`[OTP Verify] OTP record found: ID=${otpRecord.id}, OTP=${otpRecord.otp}, Expires=${otpRecord.expiresAt}, Attempts=${otpRecord.attempts}`)
 
-    // Check if OTP is expired
     const now = new Date()
     if (now > otpRecord.expiresAt) {
       console.log(`[OTP Verify] OTP expired. Now: ${now.toISOString()}, Expires: ${otpRecord.expiresAt.toISOString()}`)
@@ -99,7 +95,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check attempts (max 5 attempts)
     if (otpRecord.attempts >= 5) {
       console.log(`[OTP Verify] Too many attempts: ${otpRecord.attempts}`)
       return NextResponse.json(
@@ -108,7 +103,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify OTP (trim both to handle whitespace)
     const trimmedOtp = otp.trim()
     const trimmedRecordOtp = otpRecord.otp.trim()
     
@@ -116,7 +110,7 @@ export async function POST(request: NextRequest) {
     
     if (trimmedOtp !== trimmedRecordOtp) {
       console.log(`[OTP Verify] OTP mismatch!`)
-      // Increment attempts
+
       await prisma.passwordResetOTP.update({
         where: { id: otpRecord.id },
         data: {
@@ -134,18 +128,15 @@ export async function POST(request: NextRequest) {
     
     console.log(`[OTP Verify] ✅ OTP verified successfully!`)
 
-    // Mark OTP as verified
     await prisma.passwordResetOTP.update({
       where: { id: otpRecord.id },
       data: { verified: true },
     })
 
-    // Generate a session token for password reset (valid for 15 minutes)
     const resetToken = randomBytes(32).toString("hex")
     const expiresAt = new Date()
     expiresAt.setMinutes(expiresAt.getMinutes() + 15)
 
-    // Create password reset token
     await prisma.passwordResetToken.create({
       data: {
         userId: user.id,

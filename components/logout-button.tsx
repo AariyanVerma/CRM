@@ -7,14 +7,10 @@ import { LogOut } from "lucide-react"
 export function LogoutButton() {
   const router = useRouter()
 
-  async function handleLogout() {
-    // Optimistically navigate first for faster UX
+  async function handleLogout() {
     window.history.replaceState(null, '', '/')
-    router.replace("/")
-    
-    // Then destroy session in background (don't wait for it)
-    fetch("/api/auth/logout", { method: "POST" }).catch(() => {
-      // Silently handle errors - user is already logged out on client side
+    router.replace("/")
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {
     })
   }
 

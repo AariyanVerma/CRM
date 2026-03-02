@@ -18,9 +18,7 @@ export async function POST(
         completedByUserId: session.id,
         completedAt: new Date(),
       },
-    })
-
-    // Emit socket event after successful status update
+    })
     try {
       const io = getIO()
       io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })

@@ -10,22 +10,17 @@ import {
   calculateMeltSilverPricePerDWT,
   calculateMeltPlatinumPricePerDWT,
   calculateLineTotal,
-} from "@/lib/pricing"
-
-// GET endpoint to fetch line items
+} from "@/lib/pricing"
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  // TEMPORARY: Log to identify runaway requests
+) {
   const { id } = await params
   const referer = request.headers.get('referer') || 'unknown'
   console.log(`[API] GET /api/transactions/${id}/line-items - Referer: ${referer.substring(0, 100)}`)
   
   try {
-    const session = await requireAuth()
-
-    // Get transaction with line items
+    const session = await requireAuth()
     const transaction = await prisma.transaction.findUnique({
       where: { id },
       include: {
@@ -62,9 +57,7 @@ export async function GET(
       { status: 500 }
     )
   }
-}
-
-// POST endpoint to create/update line items
+}
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,9 +74,7 @@ export async function POST(
         { message: "Missing required fields" },
         { status: 400 }
       )
-    }
-
-    // Get transaction with price snapshots
+    }
     const transaction = await prisma.transaction.findUnique({
       where: { id },
     })
@@ -93,9 +84,7 @@ export async function POST(
         { message: "Transaction not found" },
         { status: 404 }
       )
-    }
-
-    // Get today's DailyPrice for percentages
+    }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const todayPrice = await prisma.dailyPrice.findFirst({
@@ -105,13 +94,10 @@ export async function POST(
       orderBy: { date: "desc" },
     })
 
-    const parsedDwt = parseFloat(dwt) || 0
-
-    // Calculate price per DWT based on transaction type and metal type
+    const parsedDwt = parseFloat(dwt) || 0
     let pricePerDWT = 0
     
-    if (transaction.type === "SCRAP") {
-      // Use SCRAP formulas - get percentage from DailyPrice
+    if (transaction.type === "SCRAP") {
       const percentageKey = `scrap${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage` as keyof typeof todayPrice
       const percentage = todayPrice ? (todayPrice[percentageKey] as number) ?? 95 : 95
       
@@ -134,8 +120,7 @@ export async function POST(
           percentage
         )
       }
-    } else {
-      // Use MELT formulas - get percentage from DailyPrice
+    } else {
       const purityPct = parseFloat(purityPercentage) || 0
       const percentageKey = `melt${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage` as keyof typeof todayPrice
       const percentage = todayPrice ? (todayPrice[percentageKey] as number) ?? 95 : 95
@@ -162,15 +147,10 @@ export async function POST(
           percentage
         )
       }
-    }
-
-    // For MELT transactions: lineTotal = pricePerDWT (no multiplication by dwt)
-    // For SCRAP transactions: lineTotal = pricePerDWT × dwt
+    }
     const lineTotal = transaction.type === "MELT" 
       ? pricePerDWT 
-      : calculateLineTotal(pricePerDWT, parsedDwt)
-
-    // Upsert line item
+      : calculateLineTotal(pricePerDWT, parsedDwt)
     const existingItem = await prisma.lineItem.findFirst({
       where: {
         transactionId: id,
@@ -179,16 +159,11 @@ export async function POST(
       },
     })
 
-    if (existingItem) {
-      // For MELT transactions, allow saving purity percentage even if DWT is 0
-      // For SCRAP transactions, delete line item if DWT is 0
-      if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
-        // Delete if DWT is 0 for SCRAP transactions
+    if (existingItem) {
+      if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
         await prisma.lineItem.delete({
           where: { id: existingItem.id },
-        })
-        
-        // Emit socket event after successful deletion
+        })
         try {
           const io = getIO()
           io.to(`tx:${id}`).emit("line_items_changed", { transactionId: id })
@@ -197,17 +172,13 @@ export async function POST(
         }
         
         return NextResponse.json({ deleted: true })
-      } else {
-        // Update existing
+      } else {
         const updateData: any = {
           dwt: parsedDwt,
           pricePerOz: pricePerDWT,
           lineTotal,
-        }
-        
-        // Include purity percentage for MELT transactions (always include, even if 0)
-        if (transaction.type === "MELT") {
-          // Always save purityPercentage, defaulting to 0 if not provided
+        }
+        if (transaction.type === "MELT") {
           const purityPct = purityPercentage !== undefined && purityPercentage !== null 
             ? parseFloat(purityPercentage.toString()) 
             : 0
@@ -217,9 +188,7 @@ export async function POST(
         const updated = await prisma.lineItem.update({
           where: { id: existingItem.id },
           data: updateData,
-        })
-        
-        // Emit socket event after successful update
+        })
         try {
           const io = getIO()
           io.to(`tx:${id}`).emit("line_items_changed", { transactionId: id })
@@ -229,13 +198,10 @@ export async function POST(
         
         return NextResponse.json(updated)
       }
-    } else {
-      // For MELT transactions, allow creating line item even if DWT is 0 (to save purity percentage)
-      // For SCRAP transactions, skip if DWT is 0
+    } else {
       if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
         return NextResponse.json({ skipped: true })
-      }
-      // Create new
+      }
       const createData: any = {
         transactionId: id,
         metalType,
@@ -243,11 +209,8 @@ export async function POST(
         dwt: parsedDwt,
         pricePerOz: pricePerDWT,
         lineTotal,
-      }
-      
-      // Include purity percentage for MELT transactions (always include, even if 0)
-      if (transaction.type === "MELT") {
-        // Always save purityPercentage, defaulting to 0 if not provided
+      }
+      if (transaction.type === "MELT") {
         const purityPct = purityPercentage !== undefined && purityPercentage !== null 
           ? parseFloat(purityPercentage.toString()) 
           : 0
@@ -256,9 +219,7 @@ export async function POST(
       
       const created = await prisma.lineItem.create({
         data: createData,
-      })
-      
-      // Emit socket event after successful creation
+      })
       try {
         const io = getIO()
         io.to(`tx:${id}`).emit("line_items_changed", { transactionId: id })

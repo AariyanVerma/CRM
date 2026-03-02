@@ -23,6 +23,7 @@ export default async function EditUserPage({
       email: true,
       role: true,
       canIssueCard: true,
+      canAccessLockedCards: true,
       firstName: true,
       lastName: true,
       address: true,
@@ -48,7 +49,4 @@ export default async function EditUserPage({
     </div>
   )
 }
-
-
-
 

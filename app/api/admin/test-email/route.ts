@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin()
 
-    // Check if environment variables are set
     const smtpHost = process.env.SMTP_HOST
     const smtpPort = process.env.SMTP_PORT
     const smtpUser = process.env.SMTP_USER
@@ -22,7 +21,6 @@ export async function GET(request: NextRequest) {
       FROM_EMAIL: fromEmail || "Using default",
     }
 
-    // Try to verify email connection
     const verification = await verifyEmailConfig()
 
     return NextResponse.json({
@@ -62,7 +60,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Send a test OTP email
     const testOTP = "123456"
     await sendOTPEmail(testEmail, testOTP, "Test User")
 

@@ -75,7 +75,7 @@ export function TransactionActions({
   const isAdmin = userRole === "ADMIN"
 
   if (!isAdmin) {
-    // Staff can only view
+
     return (
       <Link href={`/print/${transaction.id}`}>
         <Button variant="ghost" size="sm">
@@ -228,7 +228,8 @@ export function TransactionActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Edit Dialog */}
+      {
+}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -266,7 +267,8 @@ export function TransactionActions({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
+      {
+}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -289,7 +291,8 @@ export function TransactionActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Move Dialog */}
+      {
+}
       <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
         <DialogContent>
           <DialogHeader>
@@ -324,7 +327,6 @@ export function TransactionActions({
   )
 }
 
-// Customer Select Component
 function CustomerSelect({
   value,
   onValueChange,

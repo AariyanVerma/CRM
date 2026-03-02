@@ -68,7 +68,6 @@ function ChartColorKey({ items }: { items: { color: string; label: string }[] })
   )
 }
 
-/** Fills container and passes measured height to ResponsiveContainer so charts resize with available space. */
 function ResponsiveChartContainer({ children, minHeight = 200 }: { children: React.ReactNode; minHeight?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [height, setHeight] = useState(minHeight)

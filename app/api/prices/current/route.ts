@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db"
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  // TEMPORARY: Log to identify runaway requests
+
   const referer = request.headers.get('referer') || 'unknown'
   const userAgent = request.headers.get('user-agent') || 'unknown'
   console.log(`[API] GET /api/prices/current - Referer: ${referer.substring(0, 100)}`)
@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the latest daily price with updatedAt timestamp
     const latestPrice = await prisma.dailyPrice.findFirst({
       orderBy: { date: 'desc' },
       select: {
@@ -48,7 +47,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Add cache headers to prevent browser caching, but allow very short server-side caching
     return NextResponse.json({
       gold: latestPrice.gold,
       silver: latestPrice.silver,

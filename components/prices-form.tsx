@@ -57,15 +57,13 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-        credentials: 'include', // Ensure cookies are sent
+        credentials: 'include',
       })
 
       if (!res.ok) {
         const error = await res.json()
         throw new Error(error.message || "Failed to save prices")
-      }
-
-      // Update local state from response
+      }
       const result = await res.json()
       if (result.gold && result.silver && result.platinum) {
         setPrices({
@@ -85,8 +83,7 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
         title: "Prices saved",
         description: "Daily prices have been updated successfully.",
         variant: "success",
-      })
-      // Socket.IO will handle real-time updates, no need for router.refresh()
+      })
     } catch (error) {
       toast({
         title: "Error",

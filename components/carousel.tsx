@@ -35,7 +35,7 @@ export function Carousel({
   const autoPlayTimer = useRef<NodeJS.Timeout | null>(null)
 
   const itemCount = children.length
-  // Triple items for infinite loop: scroll continuously in either direction (360° loop)
+
   const items = [...children, ...children, ...children]
   const startIndex = itemCount
   const [realIndex, setRealIndex] = useState(startIndex)
@@ -44,7 +44,7 @@ export function Carousel({
   const slideWidthPercent = 100 / (itemCount * 3)
 
   useEffect(() => {
-    // Initialize to middle set
+
     if (containerRef.current) {
       containerRef.current.style.transition = "none"
       const translatePercent = startIndex * slideWidthPercent
@@ -52,7 +52,7 @@ export function Carousel({
       setRealIndex(startIndex)
       setCurrentIndex(0)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [])
 
   const goToNext = useCallback(() => {
@@ -87,26 +87,24 @@ export function Carousel({
 
   useEffect(() => {
     if (autoPlay) {
-      // Clear any existing timer first
+
       if (autoPlayTimer.current) {
         clearInterval(autoPlayTimer.current)
         autoPlayTimer.current = null
       }
-      
-      // Start auto-play after a delay to ensure initial render is complete
+
       const startAutoPlay = () => {
         if (autoPlayTimer.current) {
           clearInterval(autoPlayTimer.current)
         }
         autoPlayTimer.current = setInterval(() => {
-          // Only advance if not currently transitioning
+
           if (!isTransitioningRef.current) {
             goToNext()
           }
         }, autoPlayInterval)
       }
-      
-      // Small delay to ensure carousel is initialized
+
       const timeout = setTimeout(startAutoPlay, 100)
       
       return () => {
@@ -178,16 +176,15 @@ export function Carousel({
     }, 500)
   }
 
-  // Touch handlers for swipe
   const touchStartY = useRef<number>(0)
   const isHorizontalSwipe = useRef<boolean>(false)
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (disableTouch) return
     if (nested) {
-      e.stopPropagation() // Prevent event from bubbling to parent carousel
+      e.stopPropagation()
     }
-    // Don't prevent default here - allow page to scroll if it's a vertical gesture
+
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
     isHorizontalSwipe.current = false
@@ -195,7 +192,7 @@ export function Carousel({
       clearInterval(autoPlayTimer.current)
       autoPlayTimer.current = null
     }
-    // Allow the event to bubble up for vertical scrolling
+
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -205,22 +202,18 @@ export function Carousel({
     const currentY = e.touches[0].clientY
     const deltaX = Math.abs(currentX - touchStartX.current)
     const deltaY = Math.abs(currentY - touchStartY.current)
-    
-    // Determine if this is a horizontal swipe (only after some movement)
+
     if (!isHorizontalSwipe.current && (deltaX > 10 || deltaY > 10)) {
       isHorizontalSwipe.current = deltaX > deltaY && deltaX > 15
     }
-    
-    // Only prevent default and move carousel if it's clearly a horizontal swipe
-    // Allow vertical scrolling if it's a vertical gesture
+
     if (isHorizontalSwipe.current && deltaX > 15) {
       e.preventDefault()
       if (nested) {
-        e.stopPropagation() // Prevent event from bubbling to parent carousel
+        e.stopPropagation()
       }
       touchEndX.current = currentX
-      
-      // Continuous scroll: content follows finger in swipe direction
+
       if (containerRef.current) {
         const swipeDistance = touchStartX.current - currentX
         const baseTranslatePercent = realIndex * slideWidthPercent
@@ -230,18 +223,18 @@ export function Carousel({
         containerRef.current.style.transform = `translateX(calc(-${baseTranslatePercent}% + ${offsetPx}px))`
       }
     } else if (deltaY > deltaX && deltaY > 15) {
-      // This is a vertical scroll - don't interfere, let it bubble up to page
+
       isHorizontalSwipe.current = false
-      // Don't prevent default or stop propagation - allow page scrolling
+
       return
     }
-    // If neither condition is met, don't interfere with default behavior
+
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (disableTouch) return
     if (nested) {
-      e.stopPropagation() // Prevent event from bubbling to parent carousel
+      e.stopPropagation()
     }
     
     const swipeDistance = touchStartX.current - touchEndX.current
@@ -249,14 +242,14 @@ export function Carousel({
 
     if (isHorizontalSwipe.current && Math.abs(swipeDistance) > minSwipeDistance) {
       if (swipeDistance > 0) {
-        // Swipe left - next
+
         goToNext()
       } else {
-        // Swipe right - previous
+
         goToPrev()
       }
     } else if (isHorizontalSwipe.current) {
-      // Snap back
+
       if (containerRef.current) {
         containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
         const translatePercent = realIndex * slideWidthPercent
@@ -266,7 +259,6 @@ export function Carousel({
 
     isHorizontalSwipe.current = false
 
-    // Restart auto-play if it was stopped
     if (autoPlay && !autoPlayTimer.current) {
       autoPlayTimer.current = setInterval(() => {
         if (!isTransitioningRef.current) {
@@ -276,7 +268,6 @@ export function Carousel({
     }
   }
 
-  // Mouse drag handlers
   const isDragging = useRef(false)
   const dragStartX = useRef(0)
   const dragOffset = useRef(0)
@@ -307,7 +298,7 @@ export function Carousel({
     if (!isDragging.current) return
     
     isDragging.current = false
-    const threshold = 0.3 // 30% of width
+    const threshold = 0.3
     
     if (Math.abs(dragOffset.current) > (containerRef.current?.offsetWidth || 0) * threshold) {
       if (dragOffset.current > 0) {
@@ -316,7 +307,7 @@ export function Carousel({
         goToNext()
       }
     } else {
-      // Snap back
+
       if (containerRef.current) {
         containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
         const translatePercent = realIndex * slideWidthPercent
@@ -325,8 +316,7 @@ export function Carousel({
     }
 
     dragOffset.current = 0
-    
-    // Restart auto-play if it was stopped
+
     if (autoPlay && !autoPlayTimer.current) {
       autoPlayTimer.current = setInterval(() => {
         if (!isTransitioningRef.current) {
@@ -346,7 +336,7 @@ export function Carousel({
     <div 
       className={cn("relative w-full overflow-hidden", className)} 
       style={{ 
-        touchAction: "pan-y pinch-zoom", // Always allow vertical scrolling
+        touchAction: "pan-y pinch-zoom",
         position: "relative",
         zIndex: nested ? 10 : 0,
       }}
@@ -357,7 +347,7 @@ export function Carousel({
         style={{
           width: `${containerWidthPercent}%`,
           willChange: "transform",
-          touchAction: "pan-y pan-x", // Allow both vertical and horizontal
+          touchAction: "pan-y pan-x",
         }}
         onTouchStart={disableTouch ? undefined : handleTouchStart}
         onTouchMove={disableTouch ? undefined : handleTouchMove}
@@ -383,7 +373,8 @@ export function Carousel({
         ))}
       </div>
 
-      {/* Navigation Arrows */}
+      {
+}
       {showArrows && itemCount > 1 && (
         <>
           <Button
@@ -407,7 +398,8 @@ export function Carousel({
         </>
       )}
 
-      {/* Indicators */}
+      {
+}
       {showIndicators && itemCount > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
           {children.map((_, index) => {
@@ -423,17 +415,17 @@ export function Carousel({
                 )}
                 onClick={() => {
                   if (index !== currentIndex) {
-                    // Calculate how many steps to move
+
                     const diff = (index - currentIndex + itemCount) % itemCount
                     const forward = diff <= itemCount / 2
                     
                     if (forward) {
-                      // Move forward
+
                       for (let i = 0; i < diff; i++) {
                         setTimeout(() => goToNext(), i * 100)
                       }
                     } else {
-                      // Move backward
+
                       const backwardSteps = itemCount - diff
                       for (let i = 0; i < backwardSteps; i++) {
                         setTimeout(() => goToPrev(), i * 100)

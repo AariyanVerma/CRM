@@ -57,9 +57,7 @@ export async function POST(request: NextRequest) {
         meltPlatinumPercentage: meltPlatinumPercentage !== undefined ? parseFloat(meltPlatinumPercentage) : 95,
         createdByUserId: session.id,
       },
-    })
-
-    // Update all OPEN transactions to use the new spot prices
+    })
     const updatedTransactions = await prisma.transaction.updateMany({
       where: {
         status: "OPEN",
@@ -69,9 +67,7 @@ export async function POST(request: NextRequest) {
         silverSpot: parseFloat(silver),
         platinumSpot: parseFloat(platinum),
       },
-    })
-
-    // Emit socket event after successful price update
+    })
     try {
       const io = getIO()
       io.to("prices").emit("prices_changed", { 
@@ -125,9 +121,7 @@ export async function PATCH(request: NextRequest) {
         { message: "Missing required fields: metalType" },
         { status: 400 }
       )
-    }
-    
-    // Check if we're updating a percentage (price can be optional in this case)
+    }
     const isUpdatingPercentage = transactionType && metalType && (
       body[`${transactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`] !== undefined ||
       scrapGoldPercentage !== undefined ||
@@ -136,9 +130,7 @@ export async function PATCH(request: NextRequest) {
       meltGoldPercentage !== undefined ||
       meltSilverPercentage !== undefined ||
       meltPlatinumPercentage !== undefined
-    )
-    
-    // Price is required only if we're not updating a percentage
+    )
     if (!isUpdatingPercentage && (price === undefined || price === null)) {
       return NextResponse.json(
         { message: "Missing required fields: price" },
@@ -154,23 +146,17 @@ export async function PATCH(request: NextRequest) {
     }
 
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    // Get existing price or use defaults
+    today.setHours(0, 0, 0, 0)
     const existing = await prisma.dailyPrice.findUnique({
       where: { date: today },
     })
 
     const updateData: any = {
       createdByUserId: session.id,
-    }
-
-    // Only update spot price if it's provided and different from existing
+    }
     if (price !== undefined && price !== null) {
       const priceValue = parseFloat(price)
-      const metalKey = metalType.toLowerCase()
-      
-      // Only update if the price is actually different from existing
+      const metalKey = metalType.toLowerCase()
       if (metalKey === "gold" && (!existing || existing.gold !== priceValue)) {
         updateData.gold = priceValue
       } else if (metalKey === "silver" && (!existing || existing.silver !== priceValue)) {
@@ -178,12 +164,9 @@ export async function PATCH(request: NextRequest) {
       } else if (metalKey === "platinum" && (!existing || existing.platinum !== priceValue)) {
         updateData.platinum = priceValue
       }
-    }
-
-    // Handle percentage updates based on transaction type and metal type
+    }
     if (transactionType && metalType) {
-      const percentageKey = `${transactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
-      // Check for percentage in body with the dynamic key first, then fallback to explicit fields
+      const percentageKey = `${transactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
       const percentageValue = body[percentageKey] !== undefined && body[percentageKey] !== null ? body[percentageKey] : 
         (scrapGoldPercentage !== undefined && scrapGoldPercentage !== null ? scrapGoldPercentage :
         scrapSilverPercentage !== undefined && scrapSilverPercentage !== null ? scrapSilverPercentage :
@@ -192,8 +175,7 @@ export async function PATCH(request: NextRequest) {
         meltSilverPercentage !== undefined && meltSilverPercentage !== null ? meltSilverPercentage :
         meltPlatinumPercentage !== undefined && meltPlatinumPercentage !== null ? meltPlatinumPercentage : undefined)
       
-      if (percentageValue !== undefined && percentageValue !== null) {
-        // Use explicit field names for Prisma (can't use dynamic keys)
+      if (percentageValue !== undefined && percentageValue !== null) {
         if (percentageKey === "scrapGoldPercentage") {
           updateData.scrapGoldPercentage = parseFloat(percentageValue)
         } else if (percentageKey === "scrapSilverPercentage") {
@@ -208,9 +190,7 @@ export async function PATCH(request: NextRequest) {
           updateData.meltPlatinumPercentage = parseFloat(percentageValue)
         }
       }
-    }
-
-    // Ensure we have all required fields for create
+    }
     const createData: any = {
       date: today,
       gold: metalType.toLowerCase() === "gold" ? parseFloat(price) : existing?.gold || 2000,
@@ -223,9 +203,7 @@ export async function PATCH(request: NextRequest) {
       meltSilverPercentage: existing?.meltSilverPercentage || 95,
       meltPlatinumPercentage: existing?.meltPlatinumPercentage || 95,
       createdByUserId: session.id,
-    }
-    
-    // If we're updating a percentage, include it in create data too
+    }
     if (transactionType && metalType) {
       const percentageKey = `${transactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
       const percentageValue = body[percentageKey] !== undefined && body[percentageKey] !== null ? body[percentageKey] : 
@@ -257,10 +235,7 @@ export async function PATCH(request: NextRequest) {
       where: { date: today },
       update: updateData,
       create: createData,
-    })
-    
-
-    // Update all OPEN transactions to use the new spot prices
+    })
     const updateTransactionData: { goldSpot?: number; silverSpot?: number; platinumSpot?: number } = {}
     if (metalType.toLowerCase() === "gold") {
       updateTransactionData.goldSpot = parseFloat(price)
@@ -275,9 +250,7 @@ export async function PATCH(request: NextRequest) {
         status: "OPEN",
       },
       data: updateTransactionData,
-    })
-
-    // Emit socket event after successful price update
+    })
     try {
       const io = getIO()
       io.to("prices").emit("prices_changed", { 

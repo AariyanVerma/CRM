@@ -38,6 +38,7 @@ interface EditUserFormProps {
     email: string
     role: "ADMIN" | "STAFF"
     canIssueCard?: boolean
+    canAccessLockedCards?: boolean
     firstName?: string | null
     lastName?: string | null
     address?: string | null
@@ -54,6 +55,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false)
   const [role, setRole] = useState<"ADMIN" | "STAFF">(user.role)
   const [canIssueCard, setCanIssueCard] = useState<boolean>(user.canIssueCard ?? false)
+  const [canAccessLockedCards, setCanAccessLockedCards] = useState<boolean>(user.canAccessLockedCards ?? false)
   const [profileImage, setProfileImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(user.profileImageUrl || null)
 
@@ -90,8 +92,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    
-    // Upload image first if provided
+
     let profileImageUrl: string | null = user.profileImageUrl || null
     if (profileImage) {
       try {
@@ -122,6 +123,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
       password: formData.get("password") as string || undefined,
       role,
       canIssueCard,
+      canAccessLockedCards,
       firstName: formData.get("firstName") as string || null,
       lastName: formData.get("lastName") as string || null,
       address: formData.get("address") as string || null,
@@ -275,7 +277,6 @@ export function EditUserForm({ user }: EditUserFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Profile Image */}
           <div className="space-y-2">
             <Label htmlFor="profileImage">Profile Picture</Label>
             <div className="flex items-center gap-4">
@@ -305,7 +306,6 @@ export function EditUserForm({ user }: EditUserFormProps) {
             <p className="text-xs text-muted-foreground">Max size: 5MB</p>
           </div>
 
-          {/* Personal Information */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
@@ -395,6 +395,16 @@ export function EditUserForm({ user }: EditUserFormProps) {
             />
             <Label htmlFor="canIssueCard" className="font-normal cursor-pointer">
               Can issue NFC cards (show &quot;Issue New Card&quot; on customer detail)
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="canAccessLockedCards"
+              checked={canAccessLockedCards}
+              onCheckedChange={(checked) => setCanAccessLockedCards(checked === true)}
+            />
+            <Label htmlFor="canAccessLockedCards" className="font-normal cursor-pointer">
+              Can access locked cards (scan and use transactions for locked cards)
             </Label>
           </div>
 

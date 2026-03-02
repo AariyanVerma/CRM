@@ -4,8 +4,7 @@ import bcrypt from "bcryptjs"
 const prisma = new PrismaClient()
 
 async function resetAdminPassword() {
-  try {
-    // Find admin user (you can specify email if you know it)
+  try {
     const admin = await prisma.user.findFirst({
       where: {
         role: "ADMIN",
@@ -15,13 +14,9 @@ async function resetAdminPassword() {
     if (!admin) {
       console.error("No admin user found!")
       process.exit(1)
-    }
-
-    // New password - CHANGE THIS to your desired password
-    const newPassword = "admin123" // Change this!
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-
-    // Update password
+    }
+    const newPassword = "admin123"
+    const passwordHash = await bcrypt.hash(newPassword, 10)
     await prisma.user.update({
       where: { id: admin.id },
       data: { passwordHash },

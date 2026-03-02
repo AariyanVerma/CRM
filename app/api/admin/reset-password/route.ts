@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
-import bcrypt from "bcryptjs"
-
-// TEMPORARY PASSWORD RESET ENDPOINT
-// DELETE THIS FILE AFTER RESETTING YOUR PASSWORD!
+import bcrypt from "bcryptjs"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, newPassword, secretKey } = body
-
-    // Simple security check - change this secret key
+    const { email, newPassword, secretKey } = body
     if (secretKey !== "RESET_ADMIN_2024") {
       return NextResponse.json(
         { message: "Unauthorized" },
@@ -30,9 +25,7 @@ export async function POST(request: NextRequest) {
         { message: "Password must be at least 6 characters" },
         { status: 400 }
       )
-    }
-
-    // Find user by email
+    }
     const user = await prisma.user.findUnique({
       where: { email },
     })
@@ -42,12 +35,8 @@ export async function POST(request: NextRequest) {
         { message: "User not found" },
         { status: 404 }
       )
-    }
-
-    // Hash new password
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-
-    // Update password
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10)
     await prisma.user.update({
       where: { id: user.id },
       data: { passwordHash },

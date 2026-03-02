@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify customer exists
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
     })
@@ -35,7 +34,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Disable existing active cards
     await prisma.membershipCard.updateMany({
       where: {
         customerId,
@@ -46,11 +44,13 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Generate new token and create card
     const token = generateToken()
+    const scanSlug = generateToken()
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const card = await prisma.membershipCard.create({
       data: {
         token,
+        scanSlug,
         customerId,
         status: "ACTIVE",
       },
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...card,
-      scanUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/scan/${token}`,
+      scanUrl: `${baseUrl}/scan/${scanSlug}`,
     })
   } catch (error) {
     console.error("Error issuing card:", error)

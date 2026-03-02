@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest) {
       try {
         await logTransactionAudit(id, session.id, "STATUS_CHANGE", undefined, { status })
       } catch {
-        // best effort audit
+
       }
     }
 

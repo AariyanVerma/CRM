@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     await requireAdmin()
 
     const body = await request.json()
-    const { email, password, role, canIssueCard, firstName, lastName, address, phoneNumber, profileImageUrl } = body
+    const { email, password, role, canIssueCard, canAccessLockedCards, firstName, lastName, address, phoneNumber, profileImageUrl } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -47,7 +47,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already exists (case-insensitive)
     const normalizedEmail = email.toLowerCase().trim()
     const existingUsers = await prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM "User" WHERE LOWER(email) = LOWER(${normalizedEmail}) LIMIT 1
@@ -62,13 +61,13 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Store email in lowercase for consistency
     const user = await prisma.user.create({
       data: {
-        email: normalizedEmail, // Store normalized email
+        email: normalizedEmail,
         passwordHash,
         role: role || "STAFF",
         canIssueCard: canIssueCard === true,
+        canAccessLockedCards: canAccessLockedCards === true,
         firstName: firstName || null,
         lastName: lastName || null,
         address: address || null,

@@ -33,7 +33,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-x-hidden">
-      {/* Animated background elements */}
+      {
+}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
@@ -44,7 +45,8 @@ export default async function DashboardPage() {
 
       <main className="container mx-auto px-4 sm:px-6 py-8 relative z-10" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <div className="flex flex-col">
-          {/* Header with animation */}
+          {
+}
           <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-700 mb-10">
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
               Welcome back!
@@ -54,7 +56,8 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          {/* Stats Grid */}
+          {
+}
           <div>
             <DashboardStats
               customerCount={customerCount}
@@ -66,12 +69,14 @@ export default async function DashboardPage() {
             />
           </div>
 
-          {/* Metal prices ticker - eager load so it starts immediately */}
+          {
+}
           <div className="w-full min-w-0 max-w-full my-3 py-0">
             <TradingViewTickerTape />
           </div>
 
-          {/* Quick Actions */}
+          {
+}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold tracking-tight animate-in fade-in slide-in-from-left-4 duration-700" style={{ animationDelay: '300ms' }}>
               Quick Actions

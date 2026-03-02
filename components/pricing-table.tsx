@@ -26,7 +26,7 @@ interface LineItem {
   dwt: number
   pricePerOz: number
   lineTotal: number
-  purityPercentage?: number | null // For MELT transactions
+  purityPercentage?: number | null
 }
 
 interface Transaction {
@@ -61,8 +61,7 @@ export function PricingTable({
     silver: transaction.silverSpot,
     platinum: transaction.platinumSpot,
   })
-  // Percentages per metal type and transaction type (allow string for empty state)
-  // Initialize with defaults, will be updated from DailyPrice via socket
+
   const [percentages, setPercentages] = useState<Record<string, number | string>>({
     scrapGold: 95,
     scrapSilver: 95,
@@ -71,23 +70,20 @@ export function PricingTable({
     meltSilver: 95,
     meltPlatinum: 95,
   })
-  
-  // Percentages are now fetched via useSocketPrices hook - no need for duplicate fetch
-  // Purity percentages for MELT (stored per line item)
+
   const [purityPercentages, setPurityPercentages] = useState<Record<string, number | string>>({})
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
-  const lastEditTimeRef = useRef<Record<string, number>>({}) // Track when each field was last edited
-  const isTypingRef = useRef<Record<string, boolean>>({}) // Track if user is actively typing
-  const pendingPriceRef = useRef<Record<string, number>>({}) // Track pending price values
+  const lastEditTimeRef = useRef<Record<string, number>>({})
+  const isTypingRef = useRef<Record<string, boolean>>({})
+  const pendingPriceRef = useRef<Record<string, number>>({})
 
-  // Initialize DWT values and purity percentages from line items
   useEffect(() => {
     const values: Record<string, number> = {}
     const purityValues: Record<string, number> = {}
     transaction.lineItems.forEach((item) => {
       const key = `${item.metalType}-${item.purityLabel}`
       values[key] = item.dwt
-      // For MELT transactions, include purity percentage (including 0)
+
       if (transaction.type === "MELT" && item.purityPercentage !== undefined && item.purityPercentage !== null) {
         purityValues[key] = item.purityPercentage
       }
@@ -96,7 +92,6 @@ export function PricingTable({
     setPurityPercentages(purityValues)
   }, [transaction.lineItems, transaction.type])
 
-  // Socket-based price updates (real-time push updates including percentages)
   useSocketPrices(
     useCallback((prices) => {
       setSpotPrices({
@@ -104,15 +99,14 @@ export function PricingTable({
         silver: prices.silver,
         platinum: prices.platinum,
       })
-      
-      // Update percentages from DailyPrice (only if user is not typing)
+
       const isTypingAnyPercentage = Object.keys(isTypingRef.current).some(key => 
         key.startsWith('percentage-') && isTypingRef.current[key]
       )
       
       if (!isTypingAnyPercentage) {
         setPercentages(prev => {
-          // Only update if values actually changed to prevent unnecessary re-renders
+
           const newPercentages = {
             scrapGold: prices.scrapGoldPercentage,
             scrapSilver: prices.scrapSilverPercentage,
@@ -121,8 +115,7 @@ export function PricingTable({
             meltSilver: prices.meltSilverPercentage,
             meltPlatinum: prices.meltPlatinumPercentage,
           }
-          
-          // Check if any value actually changed
+
           const hasChanges = 
             prev.scrapGold !== newPercentages.scrapGold ||
             prev.scrapSilver !== newPercentages.scrapSilver ||
@@ -138,27 +131,24 @@ export function PricingTable({
     { enabled: true }
   )
 
-  // Socket-based transaction line items updates (real-time DWT and purity percentage sync)
   useSocketTransaction(
     transaction.id,
     useCallback((lineItems) => {
-      // Notify parent component if callback provided
+
       if (onLineItemsUpdate) {
         onLineItemsUpdate(lineItems)
       }
-      
-      // Update DWT values and purity percentages from fetched line items
+
       const values: Record<string, number> = {}
       const purityValues: Record<string, number> = {}
       
       lineItems.forEach((item) => {
-        // For MELT, use metal type as key; for SCRAP, use metalType-purityLabel
+
         const key = transaction.type === "MELT" ? item.metalType : `${item.metalType}-${item.purityLabel}`
         values[key] = item.dwt
-        // For MELT transactions, include purity percentage (including 0)
+
         if (transaction.type === "MELT") {
-          // Include purityPercentage if it's a number (including 0), but exclude null/undefined
-          // Also handle the case where purityPercentage might be 0 (which is valid)
+
           if (item.purityPercentage !== undefined && item.purityPercentage !== null) {
             const purityNum = typeof item.purityPercentage === 'number' ? item.purityPercentage : parseFloat(String(item.purityPercentage))
             if (!isNaN(purityNum)) {
@@ -167,37 +157,31 @@ export function PricingTable({
           }
         }
       })
-      
-      // Update lastSavedValuesRef from socket updates to prevent unnecessary POSTs
+
       lineItems.forEach((item: any) => {
-        // For MELT, use metal type as key; for SCRAP, use metalType-purityLabel
+
         const key = transaction.type === "MELT" ? item.metalType : `${item.metalType}-${item.purityLabel}`
         lastSavedValuesRef.current[key] = {
           dwt: item.dwt,
           purityPercentage: transaction.type === "MELT" ? (item.purityPercentage ?? undefined) : undefined
         }
       })
-      
-      // Only update if values actually changed and field wasn't recently edited
+
       setDwtValues((prev) => {
         const now = Date.now()
         const updated = { ...prev }
         let hasChanges = false
-        
-        // Update existing or add new values
+
         Object.keys(values).forEach((key) => {
           const lastEditTime = lastEditTimeRef.current[key] || 0
           const timeSinceEdit = now - lastEditTime
-          
-          // Only update if value changed and field wasn't edited in last 3 seconds
-          // Increased from 2s to 3s to prevent socket updates from overwriting values while user is typing
+
           if (prev[key] !== values[key] && timeSinceEdit > 3000) {
             updated[key] = values[key]
             hasChanges = true
           }
         })
-        
-        // Remove deleted items (only if not recently edited)
+
         Object.keys(prev).forEach((key) => {
           if (!(key in values) && prev[key] !== 0) {
             const lastEditTime = lastEditTimeRef.current[key] || 0
@@ -206,7 +190,7 @@ export function PricingTable({
             if (timeSinceEdit > 2000) {
               delete updated[key]
               hasChanges = true
-              // Remove from lastSavedValuesRef when item is deleted
+
               delete lastSavedValuesRef.current[key]
             }
           }
@@ -214,25 +198,20 @@ export function PricingTable({
         
         return hasChanges ? updated : prev
       })
-      
-      // Update purity percentages for MELT transactions
+
       if (transaction.type === "MELT") {
         setPurityPercentages((prev) => {
           const now = Date.now()
           const updated = { ...prev }
           let hasChanges = false
-          
-          // Update existing or add new purity percentages
+
           Object.keys(purityValues).forEach((key) => {
             const lastEditTime = lastEditTimeRef.current[`purity-${key}`] || 0
             const timeSinceEdit = now - lastEditTime
-            
-            // Only update if value changed and field wasn't edited in last 2 seconds
-            // Use explicit comparison to handle undefined/0 correctly
+
             const currentValue = prev[key]
             const newValue = purityValues[key]
-            
-            // Check if value actually changed (handles undefined, null, 0 correctly)
+
             const valueChanged = currentValue !== newValue
             
             if (valueChanged && timeSinceEdit > 2000) {
@@ -240,8 +219,7 @@ export function PricingTable({
               hasChanges = true
             }
           })
-          
-          // Remove deleted purity percentages (only if not recently edited)
+
           Object.keys(prev).forEach((key) => {
             if (!(key in purityValues)) {
               const lastEditTime = lastEditTimeRef.current[`purity-${key}`] || 0
@@ -261,25 +239,21 @@ export function PricingTable({
     { enabled: true }
   )
 
-  // Track in-flight requests to prevent duplicate POSTs
   const inFlightRequestsRef = useRef<Set<string>>(new Set())
-  // Track last saved values to prevent unnecessary POSTs
+
   const lastSavedValuesRef = useRef<Record<string, { dwt: number; purityPercentage?: number }>>({})
 
-  // Debounced save function - ONLY called from user input handlers
   const debouncedSave = useCallback(
     (() => {
       const timeouts: Record<string, NodeJS.Timeout | null> = {}
       return (metalType: MetalType, purity: string, dwt: number, purityPercentage?: number) => {
         const key = `${metalType}-${purity}`
-        
-        // CRITICAL: Prevent POST if there's already a request in flight for this field
+
         if (inFlightRequestsRef.current.has(key)) {
           console.log(`[debouncedSave] Skipping POST for ${key} - request already in flight`)
           return
         }
 
-        // CRITICAL: Prevent POST if value hasn't actually changed from last saved value
         const lastSaved = lastSavedValuesRef.current[key]
         const currentDwt = parseFloat(dwt.toString()) || 0
         const currentPurityPct = purityPercentage !== undefined ? purityPercentage : (typeof purityPercentages[key] === 'number' ? purityPercentages[key] : parseFloat(String(purityPercentages[key] || 0)))
@@ -290,20 +264,18 @@ export function PricingTable({
           console.log(`[debouncedSave] Skipping POST for ${key} - value unchanged (dwt: ${currentDwt}, purity: ${currentPurityPct})`)
           return
         }
-        
-        // Clear existing timeout for this specific field
+
         if (timeouts[key]) {
           clearTimeout(timeouts[key])
         }
         
         timeouts[key] = setTimeout(async () => {
-          // Double-check: still no request in flight
+
           if (inFlightRequestsRef.current.has(key)) {
             console.log(`[debouncedSave] Skipping POST for ${key} - request started during debounce`)
             return
           }
 
-          // Mark as in-flight
           inFlightRequestsRef.current.add(key)
           setSaving((prev) => ({ ...prev, [key]: true }))
 
@@ -313,8 +285,7 @@ export function PricingTable({
               purityLabel: purity,
               dwt: currentDwt,
             }
-            
-            // Include purity percentage for MELT transactions (always include, even if 0)
+
             if (transaction.type === "MELT") {
               body.purityPercentage = currentPurityPct
             }
@@ -335,8 +306,6 @@ export function PricingTable({
 
             await res.json().catch(() => ({}))
 
-            // Proactively refresh line items for parent combined totals,
-            // instead of waiting only on the socket event.
             if (onLineItemsUpdate) {
               try {
                 const latest = await fetch(`/api/transactions/${transaction.id}/line-items`, {
@@ -354,13 +323,11 @@ export function PricingTable({
               }
             }
 
-            // Update last saved values
             lastSavedValuesRef.current[key] = {
               dwt: currentDwt,
               purityPercentage: transaction.type === "MELT" ? currentPurityPct : undefined
             }
 
-            // Clear in-flight flag and saving state
             inFlightRequestsRef.current.delete(key)
             setSaving((prev) => {
               const updated = { ...prev }
@@ -375,7 +342,7 @@ export function PricingTable({
             })
           } catch (error) {
             console.error("Error saving line item:", error)
-            // Clear in-flight flag and saving state on error
+
             inFlightRequestsRef.current.delete(key)
             setSaving((prev) => {
               const updated = { ...prev }
@@ -389,7 +356,7 @@ export function PricingTable({
               variant: "destructive",
             })
           }
-        }, 800) // Increased from 400ms to 800ms to wait longer for user to finish typing
+        }, 800)
       }
     })()
   , [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate])
@@ -398,44 +365,38 @@ export function PricingTable({
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
 
-    // For MELT, use metal type as key; for SCRAP, use metalType-purity
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
-    
-    // CRITICAL: Only proceed if this is a real user change (not a programmatic update)
-    // Check if value actually changed from current state
+
     const currentValue = dwtValues[key] ?? 0
     if (currentValue === numValue) {
-      // Value hasn't changed, this might be a programmatic update - don't save
+
       return
     }
     
-    lastEditTimeRef.current[key] = Date.now() // Mark as recently edited
+    lastEditTimeRef.current[key] = Date.now()
     setDwtValues((prev) => ({ ...prev, [key]: numValue }))
-    
-    // Use current purity percentage if not provided
+
     const purityPctValue = purityPercentage ?? purityPercentages[key] ?? 0
     const currentPurityPercentage = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
-    // For MELT, use metalType as purity parameter; for SCRAP, use actual purity
+
     const purityParam = transaction.type === "MELT" ? metalType : purity
     debouncedSave(metalType, purityParam, numValue, currentPurityPercentage)
   }
 
-  // Debounced price update function with longer delay
   const debouncedPriceUpdate = useCallback(
     (() => {
       let timeout: NodeJS.Timeout | null = null
       return (metalType: string, price: number) => {
-        // Store pending price
+
         pendingPriceRef.current[metalType] = price
-        // Mark as typing
+
         isTypingRef.current[metalType] = true
         
         if (timeout) clearTimeout(timeout)
         timeout = setTimeout(async () => {
-          // Check if user is still typing (if they typed again, this will be cancelled)
+
           if (!isTypingRef.current[metalType]) return
-          
-          // Get the latest pending price
+
           const priceToSave = pendingPriceRef.current[metalType]
           isTypingRef.current[metalType] = false
           
@@ -469,39 +430,35 @@ export function PricingTable({
               variant: "destructive",
             })
           }
-        }, 2500) // Increased to 2.5 seconds to give admin more time
+        }, 2500)
       }
     })()
   , [toast])
 
-  // Debounced percentage update function for transaction percentages
   const debouncedTransactionPercentageUpdate = useCallback(
     (() => {
       const timeouts: Record<string, NodeJS.Timeout | null> = {}
       return (metalType: MetalType, percentageValue: number) => {
-        // Convert transaction type to lowercase and metal type to camelCase
+
         const transactionTypeLower = transaction.type.toLowerCase()
         const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
         const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
         const typingKey = `percentage-${key}`
-        
-        // Mark as typing
+
         isTypingRef.current[typingKey] = true
-        
-        // Clear existing timeout for this specific field
+
         if (timeouts[typingKey]) {
           clearTimeout(timeouts[typingKey])
         }
         
         timeouts[typingKey] = setTimeout(async () => {
-          // Check if user is still typing
+
           if (!isTypingRef.current[typingKey]) return
           
           try {
-            // Use current spot price from state (no need to fetch - we already have it)
+
             const currentSpotPrice = spotPrices[metalType.toLowerCase() as keyof typeof spotPrices]
-            
-            // Update percentage in DailyPrice via prices API
+
             const percentageKey = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
             const requestBody: any = {
               metalType: metalType.toLowerCase(),
@@ -524,8 +481,7 @@ export function PricingTable({
             }
 
             const updated = await res.json()
-            
-            // Clear typing flag after successful save so real-time updates can come through
+
             isTypingRef.current[typingKey] = false
 
             toast({
@@ -534,7 +490,7 @@ export function PricingTable({
               variant: "success",
             })
           } catch (error) {
-            // Clear typing flag even on error so user can try again
+
             isTypingRef.current[typingKey] = false
             
             toast({
@@ -554,34 +510,30 @@ export function PricingTable({
     if (numValue < 0) return
 
     const metalKey = metalType.toLowerCase()
-    
-    // Update local state immediately for responsive UI
+
     setSpotPrices((prev) => ({
       ...prev,
       [metalKey]: numValue,
     }))
-    
-    // Debounce the save
+
     debouncedPriceUpdate(metalKey, numValue)
   }
 
   function handlePercentageChange(metalType: MetalType, value: string) {
-    // Convert transaction type to lowercase and metal type to camelCase
+
     const transactionTypeLower = transaction.type.toLowerCase()
     const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
     const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
     const typingKey = `percentage-${key}`
-    
-    // Mark as typing immediately
+
     isTypingRef.current[typingKey] = true
-    
-    // Allow empty string for clearing the field
+
     if (value === "" || value === null || value === undefined) {
       setPercentages(prev => ({
         ...prev,
-        [key]: "" // Allow empty temporarily
+        [key]: ""
       }))
-      // Clear typing flag after a delay to allow clearing
+
       setTimeout(() => {
         if (value === "") {
           isTypingRef.current[typingKey] = false
@@ -589,42 +541,36 @@ export function PricingTable({
       }, 100)
       return
     }
-    
-    // Parse the value
+
     const numValue = parseFloat(value)
-    
-    // If it's a valid number, update state and trigger save
+
     if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
       setPercentages(prev => ({
         ...prev,
         [key]: numValue
       }))
-      
-      // Always trigger debounced save for valid numbers
+
       debouncedTransactionPercentageUpdate(metalType, numValue)
     } else if (value.match(/^[0-9]*\.?[0-9]*$/)) {
-      // Allow partial input like "9" or "9." - store as string temporarily
+
       setPercentages(prev => ({
         ...prev,
         [key]: value
       }))
-      // Don't save partial numbers yet
+
     }
   }
 
   function handlePurityPercentageChange(metalType: MetalType, purity: string, value: string) {
-    // For MELT, use metal type as key; for SCRAP, use metalType-purity
+
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
-    
-    // CRITICAL: Only proceed if this is a real user change (not a programmatic update)
-    // Check if value actually changed from current state
+
     const currentValue = purityPercentages[key]
     const numValue = parseFloat(value)
     const currentNumValue = typeof currentValue === 'number' ? currentValue : (currentValue ? parseFloat(String(currentValue)) : NaN)
-    
-    // Handle empty string - clear the field
+
     if (value === "" || value === null || value === undefined) {
-      // Only clear if it's actually different from current state
+
       if (currentValue !== undefined && currentValue !== null && currentValue !== "") {
         setPurityPercentages(prev => {
           const updated = { ...prev }
@@ -632,24 +578,22 @@ export function PricingTable({
           return updated
         })
       }
-      // Don't save immediately when field is cleared, wait for user to enter a value
+
       return
     }
-    
-    // If value hasn't changed, this might be a programmatic update - don't proceed
+
     if (!isNaN(numValue) && !isNaN(currentNumValue) && numValue === currentNumValue) {
       return
     }
-    
-    // Mark as recently edited to prevent socket updates from overwriting
+
     lastEditTimeRef.current[`purity-${key}`] = Date.now()
     
     if (isNaN(numValue) || numValue < 0 || numValue > 100) {
-      // Allow partial input (like "9." or "9.5")
+
       if (value.match(/^[0-9]*\.?[0-9]*$/)) {
         setPurityPercentages(prev => ({
           ...prev,
-          [key]: value as any // Store as string temporarily for partial input
+          [key]: value as any
         }))
       }
       return
@@ -659,38 +603,34 @@ export function PricingTable({
       ...prev,
       [key]: numValue
     }))
-    
-    // Always save purity percentage, even if DWT is 0
+
     const currentDwt = dwtValues[key] || 0
-    // Use debouncedSave which will save the purity percentage
-    // For MELT, use metalType as purity parameter; for SCRAP, use actual purity
+
     const purityParam = transaction.type === "MELT" ? metalType : purity
     debouncedSave(metalType, purityParam, currentDwt, numValue)
   }
   
   function handlePurityPercentageFocus(metalType: MetalType, purity: string, e: React.FocusEvent<HTMLInputElement>) {
-    // For MELT, use metal type as key; for SCRAP, use metalType-purity
+
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     const currentValue = purityPercentages[key] ?? 0
-    
-    // If the field has value 0, clear it when focused
+
     if (currentValue === 0) {
       setPurityPercentages(prev => {
         const updated = { ...prev }
         delete updated[key]
         return updated
       })
-      // Clear the input field
+
       e.target.value = ""
     }
   }
   
   function handlePurityPercentageBlur(metalType: MetalType, purity: string, e: React.FocusEvent<HTMLInputElement>) {
-    // For MELT, use metal type as key instead of purity
+
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     const value = e.target.value
-    
-    // If field is empty on blur, set it back to 0
+
     if (value === "" || value === null || value === undefined) {
       setPurityPercentages(prev => ({
         ...prev,
@@ -698,7 +638,7 @@ export function PricingTable({
       }))
       const currentDwt = dwtValues[key] || 0
       if (transaction.type === "MELT") {
-        debouncedSave(metalType, metalType, currentDwt, 0) // Use metalType as purity for MELT
+        debouncedSave(metalType, metalType, currentDwt, 0)
       } else {
         debouncedSave(metalType, purity, currentDwt, 0)
       }
@@ -706,7 +646,7 @@ export function PricingTable({
   }
 
   function handleClear(metalType: MetalType, purity: string) {
-    // For MELT, use metal type as key instead of purity
+
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
     setDwtValues((prev) => ({ ...prev, [key]: 0 }))
     if (transaction.type === "MELT") {
@@ -715,7 +655,7 @@ export function PricingTable({
         delete updated[key]
         return updated
       })
-      debouncedSave(metalType, metalType, 0) // Use metalType as purity for MELT
+      debouncedSave(metalType, metalType, 0)
     } else {
       debouncedSave(metalType, purity, 0)
     }
@@ -730,13 +670,12 @@ export function PricingTable({
         : spotPrices.platinum
 
     if (transaction.type === "MELT") {
-      // For MELT: single row, use metal type as key
+
       const key = metalType
       const dwt = dwtValues[key] || 0
       const purityPctValue = purityPercentages[key] ?? 0
       const purityPercentage = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
-      
-      // Find existing line item (for MELT, we look for any line item with this metal type)
+
       const existingItem = transaction.lineItems.find(
         (item) => item.metalType === metalType
       )
@@ -747,10 +686,10 @@ export function PricingTable({
       const percentage = typeof percentageValue === 'number' ? percentageValue : (typeof percentageValue === 'string' && percentageValue !== '' ? parseFloat(percentageValue) || 95 : 95)
       
       const rows = getMeltPricingRows(metalType, spotPrice, { [key]: dwt }, { [key]: purityPercentage }, percentage)
-      const row = rows[0] // Single row for MELT
+      const row = rows[0]
       
       return [{
-        purity: metalType, // Use metal type as purity identifier
+        purity: metalType,
         dwt: row.dwt,
         pricePerDWT: row.pricePerDWT,
         lineTotal: row.lineTotal,
@@ -760,7 +699,6 @@ export function PricingTable({
       }]
     }
 
-    // For SCRAP: multiple rows based on purity
     const purities =
       metalType === "GOLD"
         ? GOLD_PURITIES
@@ -768,15 +706,14 @@ export function PricingTable({
         ? SILVER_PURITIES
         : PLATINUM_PURITIES
 
-    // Sort purities in ascending order
     const sortedPurities = [...purities].sort((a, b) => {
-      // Convert to numeric values for comparison
+
       const getNumericValue = (purity: string): number => {
         if (purity.endsWith('K')) {
-          // For gold: 24K = 24, 18K = 18, etc.
+
           return parseInt(purity.replace('K', ''))
         } else {
-          // For silver/platinum: 925 = 925, 900 = 900, etc.
+
           return parseInt(purity)
         }
       }
@@ -793,7 +730,6 @@ export function PricingTable({
       let pricePerDWT = 0
       let lineTotal = 0
 
-      // Use SCRAP formulas
       const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
       const percentageKey = `scrap${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
       const percentageValue = percentages[percentageKey]
@@ -808,7 +744,7 @@ export function PricingTable({
         dwt,
         pricePerDWT,
         lineTotal,
-        purityPercentage: undefined, // SCRAP doesn't use purity percentage
+        purityPercentage: undefined,
         saving: saving[key] || false,
         existingItem,
       }
@@ -825,10 +761,10 @@ export function PricingTable({
 
   function handleClearAll(metalType: MetalType) {
     if (transaction.type === "MELT") {
-      // For MELT, just clear the single row
+
       handleClear(metalType, metalType)
     } else {
-      // For SCRAP, clear all purity rows
+
       const purities =
         metalType === "GOLD"
           ? GOLD_PURITIES
@@ -1021,7 +957,6 @@ export function PricingTable({
     )
   }
 
-  // If metalType is specified, render only that metal type
   if (metalType) {
     const metalName = metalType.charAt(0) + metalType.slice(1).toLowerCase()
     const spotPrice =
@@ -1097,10 +1032,10 @@ export function PricingTable({
     )
   }
 
-  // Show all metal tables stacked vertically (no carousel)
   return (
     <div className="space-y-4">
-      {/* All Metal Tables Stacked */}
+      {
+}
       <div className="space-y-4">
         <Card>
           <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
@@ -1292,7 +1227,8 @@ export function PricingTable({
         </Card>
       </div>
 
-      {/* Action Bar */}
+      {
+}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sticky bottom-2 sm:bottom-4 bg-background p-2 sm:p-3 md:p-4 border rounded-lg shadow-lg z-50 mx-2 sm:mx-0">
         <Button onClick={onPrint} className="flex-1 w-full sm:w-auto text-sm sm:text-base" size="lg">
           <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />

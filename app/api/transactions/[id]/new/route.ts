@@ -9,8 +9,7 @@ export async function POST(
   try {
     const session = await requireAuth()
 
-    const { id } = await params
-    // Get existing transaction
+    const { id } = await params
     const existing = await prisma.transaction.findUnique({
       where: { id },
     })
@@ -20,9 +19,7 @@ export async function POST(
         { message: "Transaction not found" },
         { status: 404 }
       )
-    }
-
-    // Get today's prices
+    }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -38,9 +35,7 @@ export async function POST(
         { message: "No prices set for today" },
         { status: 400 }
       )
-    }
-
-    // Close existing transaction
+    }
     await prisma.transaction.update({
       where: { id },
       data: { 
@@ -48,9 +43,7 @@ export async function POST(
         completedByUserId: session.id,
         completedAt: new Date(),
       },
-    })
-
-    // Create new transaction
+    })
     const newTransaction = await prisma.transaction.create({
       data: {
         customerId: existing.customerId,

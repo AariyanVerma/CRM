@@ -26,9 +26,7 @@ export async function POST(
         { message: "Password must be at least 6 characters" },
         { status: 400 }
       )
-    }
-
-    // Check if user exists
+    }
     const user = await prisma.user.findUnique({
       where: { id },
     })
@@ -38,18 +36,12 @@ export async function POST(
         { message: "User not found" },
         { status: 404 }
       )
-    }
-
-    // Hash new password
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-
-    // Update password
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10)
     await prisma.user.update({
       where: { id },
       data: { passwordHash },
-    })
-
-    // Invalidate all existing reset tokens for this user
+    })
     await prisma.passwordResetToken.updateMany({
       where: {
         userId: id,

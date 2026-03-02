@@ -1,15 +1,12 @@
-/**
- * Subtle clarity enhancement for scans: light unsharp mask only.
- * Improves perceived sharpness without changing any detail or color of the content.
- */
 
-/** Strength of sharpening (0 = none, ~0.4 = subtle, 1+ = strong). We use subtle. */
+
+
+
+
 const SHARPEN_AMOUNT = 0.35
 
-/**
- * Apply a very light unsharp mask to the canvas in place.
- * Preserves all colors and details; only reduces softness from camera blur.
- */
+
+
 export function enhanceClarity(canvas: HTMLCanvasElement): void {
   const ctx = canvas.getContext("2d")
   if (!ctx) return

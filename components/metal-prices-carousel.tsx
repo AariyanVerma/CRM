@@ -14,7 +14,6 @@ interface MetalPricesCarouselProps {
 export function MetalPricesCarousel({ gold, silver, platinum }: MetalPricesCarouselProps) {
   const [prices, setPrices] = useState({ gold, silver, platinum })
 
-  // Socket-based price updates (real-time push updates)
   useSocketPrices(
     useCallback((newPrices) => {
       setPrices({

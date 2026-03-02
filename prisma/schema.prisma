@@ -13,6 +13,7 @@ model User {
   passwordHash          String
   role                  UserRole             @default(STAFF)
   canIssueCard          Boolean              @default(false)
+  canAccessLockedCards  Boolean              @default(false)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   address               String?
@@ -94,8 +95,11 @@ model CustomerDocument {
 model MembershipCard {
   id            String     @id @default(cuid())
   token         String     @unique
+  scanSlug      String?    @unique
   customerId    String
   status        CardStatus @default(ACTIVE)
+  locked        Boolean    @default(false)
+  lockedAt      DateTime?
   issuedAt      DateTime   @default(now())
   lastScannedAt DateTime?
   createdAt     DateTime   @default(now())
@@ -103,6 +107,7 @@ model MembershipCard {
   customer      Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([token])
+  @@index([scanSlug])
   @@index([customerId])
 }
 

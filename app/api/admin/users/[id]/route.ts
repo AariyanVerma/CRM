@@ -17,6 +17,7 @@ export async function PATCH(
       password,
       role,
       canIssueCard,
+      canAccessLockedCards,
       firstName,
       lastName,
       address,
@@ -24,7 +25,6 @@ export async function PATCH(
       profileImageUrl,
     } = body
 
-    // Check if user exists
     const existing = await prisma.user.findUnique({
       where: { id },
     })
@@ -36,23 +36,21 @@ export async function PATCH(
       )
     }
 
-    // Prepare update data
     const updateData: any = {}
     if (email !== undefined) updateData.email = email
     if (role !== undefined) updateData.role = role
     if (canIssueCard !== undefined) updateData.canIssueCard = canIssueCard === true
+    if (canAccessLockedCards !== undefined) updateData.canAccessLockedCards = canAccessLockedCards === true
     if (firstName !== undefined) updateData.firstName = firstName || null
     if (lastName !== undefined) updateData.lastName = lastName || null
     if (address !== undefined) updateData.address = address || null
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber || null
     if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl || null
 
-    // Update password if provided
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10)
     }
 
-    // Check email uniqueness if email is being changed (case-insensitive)
     if (email && email.toLowerCase().trim() !== existing.email.toLowerCase().trim()) {
       const normalizedEmail = email.toLowerCase().trim()
       const emailExists = await prisma.$queryRaw<Array<{ id: string }>>`
@@ -64,7 +62,7 @@ export async function PATCH(
           { status: 400 }
         )
       }
-      // Normalize email before storing
+
       updateData.email = normalizedEmail
     }
 
@@ -78,6 +76,7 @@ export async function PATCH(
       email: user.email,
       role: user.role,
       canIssueCard: user.canIssueCard,
+      canAccessLockedCards: user.canAccessLockedCards,
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,
@@ -103,7 +102,6 @@ export async function DELETE(
     const { id } = await params
     const session = await requireAdmin()
 
-    // Prevent admin from deleting themselves
     if (id === session.id) {
       return NextResponse.json(
         { message: "You cannot delete your own account" },
@@ -111,7 +109,6 @@ export async function DELETE(
       )
     }
 
-    // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id },
     })
@@ -123,7 +120,6 @@ export async function DELETE(
       )
     }
 
-    // Delete user
     await prisma.user.delete({
       where: { id },
     })

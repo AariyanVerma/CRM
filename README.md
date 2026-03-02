@@ -1,226 +1,97 @@
-#  Precious Metals Transaction System
+# NFC Membership CRM & Precious Metals Transaction System
 
-A premium web application for New York Gold Market managing scrap precious metals buying operations with NFC-enabled membership cards and real-time transaction management.
+A full-stack web app for managing members, issuing NFC membership cards, and running precious-metals transactions (scrap and melt) with live metal prices and real-time updates. Built for staff and admins who need a single place to handle customers, cards, pricing, and transactions from any device.
 
-## Features
+---
 
-- **NFC Card System**: Token-based membership cards (no PII on cards)
-- **Dual Transaction Types**: Separate SCRAP and MELT transactions per customer
-- **Three Metal Types**: Gold, Silver, and Platinum with purity-based pricing
-- **Real-time Pricing**: Daily spot price management with transaction snapshots
-- **4x6 Label Printing**: Professional print-ready transaction receipts
-- **Premium UI**: Modern, responsive design with flawless light/dark mode support
-- **Customer Management**: Full CRUD operations with business verification
-- **Admin Panel**: Daily price management and user administration
+## What it does
 
-## Tech Stack
+**Members & cards**  
+You register customers (individuals or businesses), then issue them NFC membership cards. Each card is linked to that customer. Staff can look up a member by scanning their card or by entering a card ID manually, then start a transaction for them right away.
 
-- **Framework**: Next.js 14 (App Router) + TypeScript
-- **Styling**: TailwindCSS + shadcn/ui (Radix UI)
-- **Theme**: next-themes for light/dark/system toggle
-- **Database**: PostgreSQL + Prisma ORM
-- **Authentication**: Cookie-based session management
-- **Icons**: lucide-react
+**Card portal (issue, write, lock)**  
+From a customer’s page, **Issue New Card** opens the Card Portal. You select the customer (or they’re pre-selected), issue a new card, then **write the scan URL to the physical NFC card** (tap card on device when prompted; Web NFC on Android Chrome over HTTPS). Optionally **lock** the card so only this app and authorized users (admin or users with “Can access locked cards”) can scan it to see or edit data—no one else can use it. Save and the card is ready. The URL written to the tag uses a **scan slug** (not the internal token), so the token never appears in the URL or on the card.
 
-## Prerequisites
+**Locked cards & security**  
+When a card is locked, only administrators or users with **Can access locked cards** can scan it and see customer/transaction data. Everyone else sees a “Card locked” screen with no data. Only this app and authorized users can scan, view, or edit data; the card cannot be used elsewhere to view or change data. Card **edit** (status, lock) is admin-only via the customer’s membership cards section.
 
-- Node.js 18+ and npm/yarn
-- Docker and Docker Compose (for local PostgreSQL)
-- NFC card writer (for encoding cards)
+**Transactions**  
+Every transaction is either **scrap** or **melt**. Each has its own flow: you add line items (gold, silver, platinum with purity and weight in DWT), and the app applies the day’s metal prices and your configured percentages to compute totals. You can switch between scrap and melt in one continuous scroll. When you’re done, you print a receipt (or batch-print several). Transactions stay in an “open” state until printed or voided, and admins can view and manage them in one list.
 
-## Setup Instructions
+**Pricing**  
+Admins set **daily prices** (gold, silver, platinum per ounce) and scrap/melt percentage multipliers. The dashboard and transaction screens show a live metal ticker (e.g. TradingView) so staff always see current market context. Prices and transaction totals can also be pushed in real time over the app using WebSockets, so multiple devices stay in sync.
 
-### 1. Clone and Install
+**Roles & permissions**  
+- **Staff** – Dashboard, customers, issue cards (if **Can issue NFC cards**), scan cards, run transactions, print.  
+- **Admin** – Everything staff can do, plus: manage users, set daily prices, view all transactions, reports, analytics, edit/lock cards, and grant **Can issue NFC cards** and **Can access locked cards** to users.
 
-```bash
-# Install dependencies
-npm install
-```
+**Auth & security**  
+Login is email + password. Optional OTP and password reset (forgot password, reset via link or OTP). Session-based auth protects all staff/admin routes. Profile page lets users update their info and profile picture.
 
-### 2. Database Setup
+**Reports & analytics**  
+Admins get reports and an analytics dashboard (e.g. charts and summaries) to see activity and trends over time.
 
-Start PostgreSQL using Docker Compose:
+**PWA & mobile**  
+The app can be installed as a PWA and used on phones/tablets. NFC scanning works in supported mobile browsers (e.g. Android Chrome) via the Web NFC API where available; otherwise staff use manual card ID entry. For local HTTPS development (e.g. NFC or network access), run `npm run setup:https` then `npm run dev:https`.
 
-```bash
-docker-compose up -d
-```
+---
 
-This will start a PostgreSQL container on port 5432.
+## Tech stack
 
-### 3. Environment Variables
+- **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS, Radix UI, Recharts, jsPDF (for printing).
+- **Backend:** Next.js API routes, Prisma, PostgreSQL.
+- **Real time:** Socket.io (server + client) for live prices and transaction updates.
+- **Auth:** Custom session-based auth (cookies), bcrypt for passwords, optional OTP and reset flows.
+- **Deployment:** Standard Node/Next.js build; Prisma for DB; env-based config (e.g. `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`).
 
-Create a `.env` file in the root directory:
+---
 
-```env
-# Database
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/nfc_crm?schema=public"
+## Getting started
 
-# Auth
-SESSION_SECRET="change-this-to-a-random-secret-in-production"
+1. **Clone and install**
+   - Clone the repo and run `npm install`.
+   - Copy `.env.example` to `.env` (or create `.env`) and set at least `DATABASE_URL` (PostgreSQL) and any auth/email/OTP variables your setup uses. Set `NEXT_PUBLIC_APP_URL` to your app’s public URL (e.g. `https://yourdomain.com`) so scan links and PWA work correctly.
 
-# App
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
+2. **Database**
+   - Run `npx prisma generate` and `npx prisma db push` (or `prisma migrate deploy` in production).
+   - Optionally run `npm run db:seed` if you have a seed script for initial data.
 
-**Important**: Change `SESSION_SECRET` to a random string in production!
+3. **Run the app**
+   - Development: `npm run dev`.
+   - Local HTTPS (e.g. for Web NFC or network access): `npm run setup:https` once, then `npm run dev:https`.
+   - Production build: `npm run build` then `npm start` (or your host’s equivalent). Use `npm run start:deploy` if you need to run migrations before start.
 
-### 4. Database Migration
+4. **First login**  
+   Use the credentials from your seed or the first user you create. Staff and admin roles and permissions (e.g. Can issue NFC cards, Can access locked cards) are stored in the database and control access to dashboard, admin panel, reports, and card actions.
 
-Generate Prisma client and run migrations:
+---
 
-```bash
-# Generate Prisma client
-npm run db:generate
+## Project structure (high level)
 
-# Push schema to database
-npm run db:push
-```
+- `app/` – Next.js App Router: pages (dashboard, login, customers, scan, cards/portal, admin, reports, print, etc.) and API routes (auth, customers, cards, transactions, prices, admin, etc.).
+- `components/` – React components: dashboard, customer forms, customer cards (issue, edit, lock), card portal, scan/NFC UI, transaction/pricing tables, print views, admin forms, reports, analytics.
+- `lib/` – Shared logic: DB client (Prisma), auth helpers, pricing, email, Socket server/client setup, utilities.
+- `hooks/` – React hooks (e.g. socket subscriptions for prices and transactions).
+- `prisma/` – Schema and migrations for users, customers, membership cards (token, scanSlug, locked), transactions, line items, daily prices, documents, audit logs.
 
-### 5. Seed Database
+---
 
-Create default admin user and sample data:
+## Features in short
 
-```bash
-npm run db:seed
-```
+- Customer management (create, edit, list; business vs individual).
+- NFC membership cards: issue per customer; **Card Portal** to issue, write URL to NFC (Web NFC), and lock; scan or manual ID to start a transaction.
+- **Scan slug in URLs** – card URLs use a public slug, not the internal token; token stays server-side.
+- **Locked cards** – only this app and authorized users can scan/see/edit; admin can edit card status and lock from customer page.
+- Scrap and melt transactions with line items (metal type, purity, DWT, computed totals).
+- Daily metal prices and scrap/melt percentages (admin); live ticker on dashboard and transaction screen.
+- Real-time updates via Socket.io for prices and transaction state.
+- Print single or batch transaction receipts (PDF).
+- User management and role-based access (staff vs admin; Can issue cards, Can access locked cards).
+- Reports and analytics dashboard for admins.
+- Optional PWA and Web NFC support for mobile use; HTTPS dev via `dev:https`.
 
-This creates:
-- Admin user: `admin@example.com` / `admin123`
-- Staff user: `staff@example.com` / `staff123`
-- Sample daily prices for today
-
-### 6. Run Development Server
-
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:3000`
-
-## NFC Card Encoding
-
-### Card Requirements
-
-- **Type**: NTAG216 PVC cards (or compatible)
-- **Format**: NDEF URL record
-
-### Encoding Steps
-
-1. Issue a card through the admin panel (`/customers/[id]`)
-2. Copy the NDEF URL shown (e.g., `https://your-domain.com/scan/<token>`)
-3. Use an NFC writer app (e.g., NFC Tools on Android/iOS) to write the URL to the card
-4. Test by tapping the card on a device that opens URLs automatically
-
-### Manual Token Entry
-
-If NFC scanning is not available, staff can manually enter the token at `/scan`
-
-## Application Structure
-
-### Pages
-
-- `/` - Public landing page
-- `/login` - Staff login
-- `/dashboard` - Staff dashboard with overview
-- `/customers` - Customer list with search
-- `/customers/new` - New customer registration
-- `/customers/[id]` - Customer details and card issuance
-- `/scan/[token]` - Main transaction page (accessed via NFC card)
-- `/scan` - Manual token entry
-- `/admin/prices` - Daily price management (admin only)
-- `/admin/users` - User management (admin only)
-- `/print/[id]` - 4x6 label print view
-
-### Key Components
-
-- **Scan Page**: Two-level navigation (SCRAP/MELT → GOLD/SILVER/PLATINUM)
-- **Pricing Tables**: Real-time DWT input with autosave (400ms debounce)
-- **Print Views**: Optimized 4x6 inch label layout
-
-## Pricing Formulas
-
-All formulas are centralized in `/lib/pricing.ts`:
-
-### Gold
-- Formula: `(purityValue - 0.50) * (goldPriceToday / 24) * 99.9 / 20 / 100`
-- Purities: 24K, 22K, 21K, 18K, 16K, 14K, 13K, 12K, 10K, 9K
-
-### Silver
-- 925: `823.5 * silverPriceToday / 1000`
-- 900: `821.25 * silverPriceToday / 1000`
-- 800: `730 * silverPriceToday / 1000`
-
-### Platinum
-- Formula: `(platinumPriceToday * (purity/1000)) * ((85 / DWT) / 100)`
-- Purities: 950, 900
-- Handles DWT=0 safely
-
-## Development
-
-### Database Commands
-
-```bash
-# Generate Prisma client
-npm run db:generate
-
-# Push schema changes
-npm run db:push
-
-# Run migrations (for production)
-npm run db:migrate
-
-# Seed database
-npm run db:seed
-```
-
-### Build for Production
-
-```bash
-npm run build
-npm start
-```
-
-## Security Notes
-
-- **Session Management**: Uses HTTP-only cookies (simple implementation for MVP)
-- **Token Generation**: 64-character hex tokens using crypto random
-- **Password Hashing**: bcrypt with 10 rounds
-- **Data Privacy**: No PII stored on NFC cards (tokens only)
-
-## Production Deployment
-
-1. Set up PostgreSQL database (managed service recommended)
-2. Update `DATABASE_URL` in environment variables
-3. Set strong `SESSION_SECRET`
-4. Update `NEXT_PUBLIC_APP_URL` to your domain
-5. Build and deploy using your hosting platform (Vercel, Railway, etc.)
-
-## Troubleshooting
-
-### Database Connection Issues
-
-- Ensure Docker container is running: `docker-compose ps`
-- Check DATABASE_URL format matches your setup
-- Verify PostgreSQL is accessible on port 5432
-
-### NFC Card Not Working
-
-- Verify URL format: `https://your-domain.com/scan/<token>`
-- Test manual token entry at `/scan`
-- Check card is NTAG216 compatible
-- Ensure device supports automatic URL opening
-
-### Pricing Calculations
-
-- Verify daily prices are set in `/admin/prices`
-- Check formulas in `/lib/pricing.ts`
-- Ensure transaction has price snapshots
+---
 
 ## License
 
-Proprietary - All rights reserved
-
-## Support
-
-For issues or questions, contact the development team.
-
+Private / unlicensed unless otherwise specified in the repo. Use and reuse according to your own terms.

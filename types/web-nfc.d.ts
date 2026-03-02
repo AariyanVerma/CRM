@@ -1,4 +1,4 @@
-// Web NFC API type definitions
+
 interface NDEFMessage {
   records: NDEFRecord[];
 }

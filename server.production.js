@@ -1,17 +1,12 @@
-// Production server with Socket.IO support
-// This integrates Socket.IO with Next.js production server
-// Works on any platform (Railway, Render, Hostinger, etc.)
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const { Server: SocketIOServer } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-// Always listen on 0.0.0.0 for Railway/cloud platforms (not container hostname)
 const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-// Handle uncaught errors
 process.on('uncaughtException', (err) => {
   console.error('✗ Uncaught Exception:', err);
   process.exit(1);
@@ -34,12 +29,10 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   console.log('✓ Next.js app prepared successfully');
-  // Create HTTP server (HTTPS handled by reverse proxy/load balancer)
   const httpServer = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
       
-      // Health check endpoint for Railway
       if (parsedUrl.pathname === '/health' || parsedUrl.pathname === '/api/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -54,30 +47,24 @@ app.prepare().then(() => {
     }
   });
 
-  // Initialize Socket.IO server
   const io = new SocketIOServer(httpServer, {
     cors: {
-      // In production, allow requests from your domain
       origin: process.env.NEXT_PUBLIC_APP_URL 
         ? [process.env.NEXT_PUBLIC_APP_URL]
-        : true, // Allow all origins if not set (less secure, but works)
+        : true,
       methods: ['GET', 'POST'],
       credentials: true,
     },
     transports: ['websocket', 'polling'],
-    // Trust proxy for production (if behind reverse proxy)
     allowEIO3: true,
   });
 
-  // Make io available to Next.js API routes
   const { setIO } = require('./lib/ioServer.js');
   setIO(io);
 
-  // Socket.IO connection handling
   io.on('connection', (socket) => {
     console.log(`[Socket.IO] Client connected: ${socket.id}`);
 
-    // Handle joining transaction room
     socket.on('join_tx', (data) => {
       if (data && data.transactionId) {
         const room = `tx:${data.transactionId}`;
@@ -86,13 +73,11 @@ app.prepare().then(() => {
       }
     });
 
-    // Handle joining prices room
     socket.on('join_prices', () => {
       socket.join('prices');
       console.log(`[Socket.IO] Client ${socket.id} joined room: prices`);
     });
 
-    // Handle leaving transaction room
     socket.on('leave_tx', (data) => {
       if (data && data.transactionId) {
         const room = `tx:${data.transactionId}`;
@@ -106,7 +91,6 @@ app.prepare().then(() => {
     });
   });
 
-  // Start server
   httpServer.listen(port, hostname, () => {
     console.log(`✓ Production server ready on http://${hostname}:${port}`);
     console.log(`✓ Socket.IO server initialized`);
@@ -115,7 +99,6 @@ app.prepare().then(() => {
     console.log(`✓ HOSTNAME: ${hostname}`);
     console.log(`✓ Server is listening and ready to accept connections`);
     
-    // Keep process alive
     process.on('SIGTERM', () => {
       console.log('SIGTERM received, shutting down gracefully...');
       httpServer.close(() => {
@@ -125,7 +108,6 @@ app.prepare().then(() => {
     });
   });
   
-  // Handle server errors
   httpServer.on('error', (err) => {
     console.error('✗ HTTP Server error:', err);
     if (err.code === 'EADDRINUSE') {

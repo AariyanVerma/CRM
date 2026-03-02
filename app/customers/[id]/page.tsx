@@ -5,8 +5,8 @@ import { prisma } from "@/lib/db"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle, Edit } from "lucide-react"
-import { IssueCardDialog } from "@/components/issue-card-dialog"
+import { Building2, User, CheckCircle2, XCircle, Edit } from "lucide-react"
+import { CustomerCardsCard } from "@/components/customer-cards-card"
 import { Badge } from "@/components/ui/badge"
 import { TransactionsListSkeleton } from "@/components/skeletons"
 import { CustomerDocumentsPortal } from "@/components/customer-documents-portal"
@@ -56,8 +56,6 @@ export default async function CustomerDetailPage({
       </div>
     )
   }
-
-  const activeCard = customer.cards.find((c) => c.status === "ACTIVE")
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,57 +138,12 @@ export default async function CustomerDetailPage({
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>NFC Card</CardTitle>
-                <CardDescription>
-                  Manage membership cards for this customer
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {activeCard ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5 text-muted-foreground" />
-                      <Badge className="bg-blue-600 hover:bg-blue-600/90 text-white border-0">Active Card</Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Token</p>
-                      <p className="font-mono text-xs break-all">{activeCard.token}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Issued</p>
-                      <p className="text-sm">
-                        {new Date(activeCard.issuedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {activeCard.lastScannedAt && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Last Scanned</p>
-                        <p className="text-sm">
-                          {new Date(activeCard.lastScannedAt).toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-muted-foreground">NDEF URL</p>
-                      <p className="font-mono text-xs break-all bg-muted p-2 rounded">
-                        {process.env.NEXT_PUBLIC_APP_URL || "https://your-domain.com"}/scan/{activeCard.token}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-red-600 hover:bg-red-600/90 text-white border-0">Card Inactive</Badge>
-                    <p className="text-sm text-muted-foreground">
-                      No active card issued
-                    </p>
-                  </div>
-                )}
-
-                {(session.role === "ADMIN" || session.canIssueCard === true) && <IssueCardDialog customerId={customer.id} />}
-              </CardContent>
-            </Card>
+            <CustomerCardsCard
+              customerId={customer.id}
+              cards={customer.cards}
+              canIssueCard={session.canIssueCard === true}
+              isAdmin={session.role === "ADMIN"}
+            />
           </div>
 
           <CustomerDocumentsPortal customerId={customer.id} canManage={session.role === "ADMIN"} />

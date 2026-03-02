@@ -59,9 +59,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setLoading(true)
-
-    // Upload image first if provided
+    setLoading(true)
     let profileImageUrl: string | null = user.profileImageUrl || null
     if (profileImage) {
       try {
@@ -85,9 +83,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         setLoading(false)
         return
       }
-    }
-
-    // Update profile picture
+    }
     try {
       const res = await fetch("/api/profile", {
         method: "PATCH",
@@ -128,7 +124,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Current Profile Info */}
+          {
+}
           <div className="flex items-center gap-4 pb-4 border-b">
             {imagePreview ? (
               <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
@@ -157,7 +154,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
             </div>
           </div>
 
-          {/* Profile Picture Upload */}
+          {
+}
           <div className="space-y-2">
             <label htmlFor="profileImage" className="text-sm font-medium">
               Profile Picture

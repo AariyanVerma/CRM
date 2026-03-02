@@ -4,9 +4,7 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Seeding database...')
-
-  // Create default admin user
+  console.log('Seeding database...')
   const adminEmail = 'admin@example.com'
   const adminPassword = 'admin123'
 
@@ -27,9 +25,7 @@ async function main() {
     console.log('Password:', adminPassword)
   } else {
     console.log('Admin user already exists')
-  }
-
-  // Create default staff user
+  }
   const staffEmail = 'staff@example.com'
   const staffPassword = 'staff123'
 
@@ -50,9 +46,7 @@ async function main() {
     console.log('Password:', staffPassword)
   } else {
     console.log('Staff user already exists')
-  }
-
-  // Create sample daily prices for today
+  }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 

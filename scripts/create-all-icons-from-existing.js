@@ -1,15 +1,11 @@
-/**
- * Create all required icon files from existing icon-192.png and icon-512.png
- * This script uses sharp to resize existing icons to all required sizes
- */
+
+
 
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const publicDir = path.join(__dirname, '..', 'public');
-
-// Check if sharp is available
+const publicDir = path.join(__dirname, '..', 'public');
 let sharpAvailable = false;
 try {
   require.resolve('sharp');
@@ -20,9 +16,7 @@ try {
 
 async function createIcons() {
   const icon192Path = path.join(publicDir, 'icon-192.png');
-  const icon512Path = path.join(publicDir, 'icon-512.png');
-
-  // Check if source icons exist
+  const icon512Path = path.join(publicDir, 'icon-512.png');
   if (!fs.existsSync(icon192Path)) {
     console.error('❌ icon-192.png not found in public folder');
     return;
@@ -51,22 +45,15 @@ async function createIcons() {
 
   console.log('🔄 Creating all icon files from existing icons...\n');
 
-  try {
-    // Create maskable icons (just copy existing ones)
+  try {
     console.log('✓ Creating maskable icons...');
     await sharp(icon192Path).toFile(path.join(publicDir, 'icon-maskable-192.png'));
-    await sharp(icon512Path).toFile(path.join(publicDir, 'icon-maskable-512.png'));
-
-    // Create Windows tiles from icon-192.png
+    await sharp(icon512Path).toFile(path.join(publicDir, 'icon-maskable-512.png'));
     console.log('✓ Creating Windows tiles...');
     await sharp(icon192Path).resize(70, 70).toFile(path.join(publicDir, 'mstile-70x70.png'));
     await sharp(icon192Path).resize(144, 144).toFile(path.join(publicDir, 'mstile-144x144.png'));
-    await sharp(icon192Path).resize(150, 150).toFile(path.join(publicDir, 'mstile-150x150.png'));
-
-    // Create larger Windows tiles from icon-512.png
-    await sharp(icon512Path).resize(310, 310).toFile(path.join(publicDir, 'mstile-310x310.png'));
-    
-    // Create wide tile (310x150) - crop from center
+    await sharp(icon192Path).resize(150, 150).toFile(path.join(publicDir, 'mstile-150x150.png'));
+    await sharp(icon512Path).resize(310, 310).toFile(path.join(publicDir, 'mstile-310x310.png'));
     await sharp(icon512Path)
       .resize(310, 310, { fit: 'cover', position: 'center' })
       .extract({ left: 0, top: 80, width: 310, height: 150 })

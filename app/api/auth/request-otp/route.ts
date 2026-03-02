@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { sendOTPEmail } from "@/lib/email"
 
-// Generate 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
@@ -21,14 +20,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Normalize email (lowercase, trim)
     const normalizedEmail = email.toLowerCase().trim()
     console.log(`[OTP Request] Normalized email: ${normalizedEmail}`)
 
-    // Find user by email (case-insensitive search)
-    // Since Prisma's findUnique doesn't support case-insensitive search,
-    // we use findMany and filter in JavaScript, or use raw SQL
-    // For better performance, we'll use raw SQL with proper typing
     const users = await prisma.$queryRaw<Array<{
       id: string
       email: string
@@ -51,7 +45,6 @@ export async function POST(request: NextRequest) {
       console.log(`[OTP Request] User ID: ${user.id}, Role: ${user.role}`)
     }
 
-    // Don't reveal if user exists (security best practice)
     if (!user) {
       console.log(`[OTP Request] User not found, returning generic success message`)
       return NextResponse.json({
@@ -59,23 +52,20 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Invalidate any existing unverified OTPs for this user
     await prisma.passwordResetOTP.updateMany({
       where: {
         userId: user.id,
         verified: false,
       },
       data: {
-        verified: true, // Mark as used/invalid
+        verified: true,
       },
     })
 
-    // Generate OTP
     const otp = generateOTP()
     const expiresAt = new Date()
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10) // OTP valid for 10 minutes
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10)
 
-    // Create OTP record
     await prisma.passwordResetOTP.create({
       data: {
         userId: user.id,
@@ -84,7 +74,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Send OTP via email
     try {
       const userName = user.firstName && user.lastName 
         ? `${user.firstName} ${user.lastName}` 
@@ -126,8 +115,7 @@ export async function POST(request: NextRequest) {
       }
       console.error(`[OTP] Full error stack:`, emailError)
       console.error(`[OTP] ========================================`)
-      
-      // Return error to help with debugging (in production, you might want to hide this)
+
       return NextResponse.json({
         message: "Failed to send OTP email. Please check server logs for details.",
         error: emailError instanceof Error ? emailError.message : "Unknown error",

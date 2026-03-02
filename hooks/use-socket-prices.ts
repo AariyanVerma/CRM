@@ -14,41 +14,28 @@ interface DailyPrice {
   meltSilverPercentage: number
   meltPlatinumPercentage: number
   timestamp?: number
-}
-
-// Global state to prevent multiple initial fetches across components
+}
 let initialPricesFetched = false
 let initialPricesPromise: Promise<DailyPrice | null> | null = null
 let globalLastPrices: DailyPrice | null = null
 let globalRefetchTimeout: NodeJS.Timeout | null = null
-const activeCallbacks = new Set<(prices: DailyPrice) => void>()
-// Track if we've already joined the prices room (prevent duplicate joins)
-let pricesRoomJoined = false
-// Track if socket listeners are already attached (prevent duplicate listeners)
+const activeCallbacks = new Set<(prices: DailyPrice) => void>()
+let pricesRoomJoined = false
 let socketListenersAttached = false
 let globalSocket: ReturnType<typeof getSocket> | null = null
 let globalOnConnect: (() => void) | null = null
 let globalOnDisconnect: (() => void) | null = null
-let globalOnPricesChanged: (() => void) | null = null
-
-// Track in-flight refetch to prevent duplicates
-let inFlightPricesRefetch = false
-
-// Shared refetch function that notifies all subscribers
-async function refetchPrices() {
-  // CRITICAL: Prevent duplicate refetches if one is already in flight
+let globalOnPricesChanged: (() => void) | null = null
+let inFlightPricesRefetch = false
+async function refetchPrices() {
   if (inFlightPricesRefetch) {
     console.log('[useSocketPrices] Skipping refetch - already in flight')
     return
-  }
-
-  // Clear any pending refetch
+  }
   if (globalRefetchTimeout) {
     clearTimeout(globalRefetchTimeout)
     globalRefetchTimeout = null
-  }
-
-  // Mark as in-flight
+  }
   inFlightPricesRefetch = true
 
   try {
@@ -70,9 +57,7 @@ async function refetchPrices() {
         meltSilverPercentage: data.meltSilverPercentage || 95,
         meltPlatinumPercentage: data.meltPlatinumPercentage || 95,
         timestamp: data.timestamp,
-      }
-
-      // Only update if prices actually changed
+      }
       const pricesChanged = 
         !globalLastPrices ||
         globalLastPrices.gold !== prices.gold ||
@@ -86,15 +71,13 @@ async function refetchPrices() {
         globalLastPrices.meltPlatinumPercentage !== prices.meltPlatinumPercentage
 
       if (pricesChanged) {
-        globalLastPrices = prices
-        // Notify all active subscribers
+        globalLastPrices = prices
         activeCallbacks.forEach(callback => callback(prices))
       }
     }
   } catch (error) {
     console.error("Error fetching prices:", error)
-  } finally {
-    // Clear in-flight flag
+  } finally {
     inFlightPricesRefetch = false
   }
 }
@@ -106,9 +89,7 @@ export function useSocketPrices(
   const { enabled = true } = options
   const [isConnected, setIsConnected] = useState(false)
   const callbackRef = useRef(onPriceUpdate)
-  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null)
-
-  // Keep callback ref updated
+  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null)
   useEffect(() => {
     callbackRef.current = onPriceUpdate
   }, [onPriceUpdate])
@@ -117,32 +98,23 @@ export function useSocketPrices(
     if (!enabled) return
 
     const socket = getSocket()
-    socketRef.current = socket
-
-    // Register this callback
+    socketRef.current = socket
     const wrappedCallback = (prices: DailyPrice) => {
       callbackRef.current(prices)
     }
-    activeCallbacks.add(wrappedCallback)
-
-    // Shared initial fetch - only fetch once globally
-    const fetchInitialPrices = async () => {
-      // If already fetching, wait for that promise
+    activeCallbacks.add(wrappedCallback)
+    const fetchInitialPrices = async () => {
       if (initialPricesPromise) {
         const prices = await initialPricesPromise
         if (prices) {
           wrappedCallback(prices)
         }
         return
-      }
-
-      // If already fetched, use cached value immediately
+      }
       if (initialPricesFetched && globalLastPrices) {
         wrappedCallback(globalLastPrices)
         return
-      }
-
-      // Start new fetch only if not already fetched
+      }
       console.log('[useSocketPrices] Fetching initial prices (first time)')
       initialPricesPromise = (async () => {
         try {
@@ -165,8 +137,7 @@ export function useSocketPrices(
               timestamp: data.timestamp,
             }
             initialPricesFetched = true
-            globalLastPrices = prices
-            // Notify all active subscribers
+            globalLastPrices = prices
             activeCallbacks.forEach(cb => cb(prices))
             return prices
           }
@@ -179,57 +150,40 @@ export function useSocketPrices(
       const prices = await initialPricesPromise
       initialPricesPromise = null
       return prices
-    }
-
-    // Only fetch if this is the first subscriber or prices haven't been fetched yet
+    }
     if (!initialPricesFetched || activeCallbacks.size === 1) {
       fetchInitialPrices()
-    } else if (globalLastPrices) {
-      // Already fetched, just call callback with cached value
+    } else if (globalLastPrices) {
       wrappedCallback(globalLastPrices)
-    }
-
-    // Join prices room only once globally (prevent duplicate joins)
+    }
     if (!pricesRoomJoined) {
       socket.emit("join_prices")
       pricesRoomJoined = true
       console.log('[useSocketPrices] Joined prices room (first time)')
-    }
-
-    // Listen for connection status
+    }
     const onConnect = () => {
-      setIsConnected(true)
-      // Re-join on reconnect (socket.io will handle deduplication, but we track it)
+      setIsConnected(true)
       if (pricesRoomJoined) {
         socket.emit("join_prices")
       }
     }
-    const onDisconnect = () => setIsConnected(false)
-
-    // Attach socket listeners only once globally
+    const onDisconnect = () => setIsConnected(false)
     if (!socketListenersAttached) {
       globalSocket = socket
       socketListenersAttached = true
       
-      globalOnConnect = () => {
-        // Re-join on reconnect
+      globalOnConnect = () => {
         if (pricesRoomJoined) {
           socket.emit("join_prices")
         }
       }
-      globalOnDisconnect = () => {
-        // Connection lost - will reconnect automatically
-      }
-
-      // Global price change handler with debouncing
-      globalOnPricesChanged = () => {
-        // Skip if already refetching
+      globalOnDisconnect = () => {
+      }
+      globalOnPricesChanged = () => {
         if (inFlightPricesRefetch) {
           console.log('[useSocketPrices] Socket event received but refetch already in flight - skipping')
           return
-        }
-        
-        // Debounce: wait 100ms before refetching (in case multiple events fire rapidly)
+        }
         if (globalRefetchTimeout) {
           clearTimeout(globalRefetchTimeout)
         }
@@ -243,9 +197,7 @@ export function useSocketPrices(
       socket.on("prices_changed", globalOnPricesChanged)
       
       console.log('[useSocketPrices] Socket listeners attached (global)')
-    }
-
-    // Also attach per-instance connection status handler for isConnected state
+    }
     const onInstanceConnect = () => {
       setIsConnected(true)
     }
@@ -255,15 +207,10 @@ export function useSocketPrices(
     socket.on("connect", onInstanceConnect)
     socket.on("disconnect", onInstanceDisconnect)
 
-    return () => {
-      // Remove this callback
-      activeCallbacks.delete(wrappedCallback)
-      
-      // Remove per-instance handlers
+    return () => {
+      activeCallbacks.delete(wrappedCallback)
       socket.off("connect", onInstanceConnect)
-      socket.off("disconnect", onInstanceDisconnect)
-      
-      // Remove global listeners only when last subscriber unsubscribes
+      socket.off("disconnect", onInstanceDisconnect)
       if (activeCallbacks.size === 0 && socketListenersAttached && globalSocket) {
         if (globalOnConnect) globalSocket.off("connect", globalOnConnect)
         if (globalOnDisconnect) globalSocket.off("disconnect", globalOnDisconnect)

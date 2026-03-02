@@ -3,7 +3,7 @@ import { Calendar, Clock, DollarSign } from "lucide-react"
 import { HomeMetalTickers } from "@/components/home-metal-tickers"
 
 export async function HomePageContent() {
-  // Get current date and time
+
   const now = new Date()
   const currentDate = now.toLocaleDateString("en-US", {
     weekday: "long",
@@ -18,7 +18,8 @@ export async function HomePageContent() {
 
   return (
     <div className="space-y-6">
-      {/* Current Date & Time */}
+      {
+}
       <Card className="border-2">
         <CardContent className="pt-6">
           <div className="flex items-center justify-center gap-6 flex-wrap">
@@ -34,7 +35,8 @@ export async function HomePageContent() {
         </CardContent>
       </Card>
 
-      {/* Metal Prices - TradingView tickers (always black background) */}
+      {
+}
       <Card className="border-2 overflow-hidden">
         <CardHeader className="px-3 sm:px-6">
           <div className="flex items-center gap-2">

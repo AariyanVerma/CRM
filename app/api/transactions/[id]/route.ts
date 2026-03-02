@@ -55,9 +55,7 @@ export async function PATCH(
     const session = await requireAdmin()
     const { id } = await params
     const body = await request.json()
-    const { status } = body
-
-    // Build update data object
+    const { status } = body
     const updateData: any = {}
     
     if (status && ["OPEN", "PRINTED", "VOID"].includes(status)) {
@@ -76,9 +74,7 @@ export async function PATCH(
       where: { id },
       data: updateData,
     })
-    await logTransactionAudit(id, session.id, "STATUS_CHANGE", { status: before?.status }, { status: transaction.status })
-
-    // Emit socket event after successful status update
+    await logTransactionAudit(id, session.id, "STATUS_CHANGE", { status: before?.status }, { status: transaction.status })
     try {
       const io = getIO()
       io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })
@@ -117,9 +113,7 @@ export async function DELETE(
         lineItemsCount: before.lineItems.length,
         status: before.status,
       }, undefined)
-    }
-
-    // Emit socket event after successful deletion
+    }
     try {
       const io = getIO()
       io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })

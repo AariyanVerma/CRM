@@ -7,14 +7,14 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin()
     const { searchParams } = new URL(request.url)
-    const period = searchParams.get("period") || "day" // day | week | month | quarter | ytd
-    const from = searchParams.get("from") // YYYY-MM-DD
+    const period = searchParams.get("period") || "day"
+    const from = searchParams.get("from")
     const to = searchParams.get("to")
     const customerId = searchParams.get("customerId") || undefined
-    const customerIdsParam = searchParams.get("customerIds") || undefined // comma-separated
-    const typeFilter = searchParams.get("type") || undefined // SCRAP | MELT
-    const statusFilter = searchParams.get("status") || undefined // OPEN | PRINTED | VOID
-    const metalFilter = searchParams.get("metal") || undefined // GOLD | SILVER | PLATINUM
+    const customerIdsParam = searchParams.get("customerIds") || undefined
+    const typeFilter = searchParams.get("type") || undefined
+    const statusFilter = searchParams.get("status") || undefined
+    const metalFilter = searchParams.get("metal") || undefined
     const minTotal = searchParams.get("minTotal") ? Number(searchParams.get("minTotal")) : undefined
     const maxTotal = searchParams.get("maxTotal") ? Number(searchParams.get("maxTotal")) : undefined
 

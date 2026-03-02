@@ -19,9 +19,7 @@ export async function POST(request: NextRequest) {
         { message: "Password must be at least 6 characters" },
         { status: 400 }
       )
-    }
-
-    // Find valid reset token
+    }
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
       include: { user: true },
@@ -32,34 +30,24 @@ export async function POST(request: NextRequest) {
         { message: "Invalid or expired reset token" },
         { status: 400 }
       )
-    }
-
-    // Check if token is used
+    }
     if (resetToken.used) {
       return NextResponse.json(
         { message: "This reset token has already been used" },
         { status: 400 }
       )
-    }
-
-    // Check if token is expired
+    }
     if (new Date() > resetToken.expiresAt) {
       return NextResponse.json(
         { message: "This reset token has expired" },
         { status: 400 }
       )
-    }
-
-    // Hash new password
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-
-    // Update user password
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10)
     await prisma.user.update({
       where: { id: resetToken.userId },
       data: { passwordHash },
-    })
-
-    // Mark token as used
+    })
     await prisma.passwordResetToken.update({
       where: { id: resetToken.id },
       data: { used: true },

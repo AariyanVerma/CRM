@@ -54,9 +54,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
   const hasMarkedAsPrinted = useRef(false)
   const isA4 = layout === "a4"
 
-  // Function to mark transaction as printed (silently, no toast)
   const markAsPrinted = async () => {
-    // Only mark once and if status is still OPEN
+
     if (hasMarkedAsPrinted.current || transaction.status !== "OPEN") {
       return
     }
@@ -72,22 +71,20 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
         throw new Error("Failed to mark transaction as printed")
       }
 
-      // Silently update status - no toast notification
     } catch (error) {
-      // Only show error toast, not success
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to mark transaction as printed",
         variant: "destructive",
       })
-      hasMarkedAsPrinted.current = false // Reset on error so user can try again
+      hasMarkedAsPrinted.current = false
     }
   }
 
-  // Listen for browser print events (Ctrl+P, Cmd+P, or browser print menu)
   useEffect(() => {
     const handleBeforePrint = async () => {
-      // Silently mark as printed when print dialog opens
+
       await markAsPrinted()
     }
 
@@ -97,17 +94,15 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
     }
   }, [transaction.id, transaction.status])
 
-  // Handle print button click - mark as printed first, then print
   const handlePrint = async () => {
-    // Mark as printed silently (no toast)
+
     await markAsPrinted()
-    // Small delay to ensure API call completes
+
     await new Promise(resolve => setTimeout(resolve, 100))
-    // Open browser print dialog
+
     window.print()
   }
 
-  // Group line items by metal type
   const groupedItems: Record<string, LineItem[]> = {
     GOLD: [],
     SILVER: [],
@@ -118,7 +113,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
     groupedItems[item.metalType].push(item)
   })
 
-  // Calculate totals
   const grandTotal = transaction.lineItems.reduce(
     (sum, item) => sum + item.lineTotal,
     0
@@ -171,7 +165,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           .no-print {
             display: none !important;
           }
-          /* Prevent page breaks within transaction content */
+          
+
           .print-content {
             page-break-inside: avoid;
             break-inside: avoid;
@@ -205,7 +200,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
       `}</style>
 
       <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : ""}`} style={{ width: 'auto', maxWidth: '100%' }}>
-        {/* Header */}
+        {
+}
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="mb-2 flex justify-center">
             <Logo size="lg" showText={false} className="print:max-h-16" />
@@ -222,7 +218,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {/* Transaction Info */}
+        {
+}
         <div className="mb-4 pb-3 border-b border-gray-700">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -257,7 +254,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {/* Price Snapshot */}
+        {
+}
         <div className="mb-4 pb-2 border-b border-gray-700 text-xs text-black">
           <p className="font-semibold mb-1">Price Snapshot:</p>
           <div className="flex gap-4">
@@ -267,7 +265,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {/* Line Items */}
+        {
+}
         <div className="mb-4">
           <table className="w-full text-sm border-collapse text-black">
             <thead>
@@ -314,7 +313,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </table>
         </div>
 
-        {/* Grand Total */}
+        {
+}
         <div className="mt-4 pt-3 border-t-2 border-black font-black text-red-600">
           <div className="flex justify-between items-center">
             <div>
@@ -327,13 +327,15 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {/* Footer */}
+        {
+}
         <div className="mt-4 pt-2 border-t border-gray-700 text-xs text-center text-black">
           <p>Thank you for your business</p>
         </div>
       </div>
 
-      {/* Print Button (hidden when printing or when hidePrintButton) */}
+      {
+}
       {!hidePrintButton && (
         <div className="no-print mt-8 text-center">
           <button

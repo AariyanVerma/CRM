@@ -296,7 +296,8 @@ export function ReportsClient() {
   return (
     <div className="reports-page min-h-full">
       <div className="space-y-10 print:hidden pb-12">
-      {/* Section: Filters */}
+      {
+}
       <section className="dashboard-section">
       <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-background via-background to-primary/5 dark:to-primary/10 shadow-xl shadow-primary/5">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.15),transparent)] pointer-events-none" />
@@ -610,7 +611,8 @@ export function ReportsClient() {
 
       {data && !loading && (
         <>
-          {/* Section: KPI cards (hidden in Table-only view) */}
+          {
+}
           {(viewMode === "full" || viewMode === "simplified" || viewMode === "summary" || viewMode === "byCustomer" || viewMode === "byDay" || viewMode === "timeline") && (
           <section className="dashboard-section" aria-label="Key metrics">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Key metrics</h2>
@@ -716,7 +718,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* Full view: chart snapshot + summary strip + full table */}
+          {
+}
           {viewMode === "full" && (
           <section className="dashboard-section" aria-label="Report at a glance and transaction list">
             {data.transactions.length > 0 && (() => {
@@ -840,7 +843,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* Simplified view: card grid – each transaction is a visual card */}
+          {
+}
           {viewMode === "simplified" && (
           <section className="dashboard-section" aria-label="Transactions (card view)">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -892,7 +896,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* Table view: data-only, dense spreadsheet-style */}
+          {
+}
           {viewMode === "table" && (
           <section className="dashboard-section" aria-label="Transaction data">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -978,7 +983,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* By customer view: grouped with subtotals */}
+          {
+}
           {viewMode === "byCustomer" && data && (
           <section className="dashboard-section" aria-label="By customer">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">By customer</h2>
@@ -1052,7 +1058,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* By day view: one row per day */}
+          {
+}
           {viewMode === "byDay" && data && (
           <section className="dashboard-section" aria-label="By day">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">By day</h2>
@@ -1092,7 +1099,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* Timeline view: list by day with daily blocks */}
+          {
+}
           {viewMode === "timeline" && data && (
           <section className="dashboard-section" aria-label="Timeline">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Timeline</h2>
@@ -1164,7 +1172,8 @@ export function ReportsClient() {
           </section>
           )}
 
-          {/* Drill-down modal */}
+          {
+}
           <Dialog open={!!selectedTransactionId} onOpenChange={(open) => !open && setSelectedTransactionId(null)}>
             <DialogContent className="max-w-lg">
               <DialogHeader>

@@ -7,9 +7,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuth()
-    
-    // Only admins can edit customers
+    const session = await requireAuth()
     if (session.role !== "ADMIN") {
       return NextResponse.json(
         { message: "Unauthorized - Admin access required" },

@@ -6,7 +6,6 @@ const WIDGET_SCRIPT = "https://s3.tradingview.com/external-embedding/embed-widge
 
 const SYMBOLS = ["TVC:GOLD", "TVC:SILVER", "TVC:PLATINUM"] as const
 
-// Two sets for a short marquee loop; only 6 widgets instead of 12 for faster load
 const MARQUEE_SYMBOLS = [...SYMBOLS, ...SYMBOLS]
 
 function SingleQuoteWidget({
@@ -52,7 +51,6 @@ const MemoizedWidget = memo(SingleQuoteWidget)
 function TradingViewTickerTape() {
   const refs = MARQUEE_SYMBOLS.map(() => useRef<HTMLDivElement>(null))
 
-  // Preload the widget script so first cards can use cached script immediately
   useEffect(() => {
     const link = document.createElement("link")
     link.rel = "preload"
