@@ -34,15 +34,12 @@ export function Carousel({
   const touchEndX = useRef<number>(0)
   const autoPlayTimer = useRef<NodeJS.Timeout | null>(null)
 
-  // Create infinite loop by duplicating items
-  const items = [...children, ...children, ...children]
   const itemCount = children.length
-  const startIndex = itemCount // Start in the middle set
+  // Triple items for infinite loop: scroll continuously in either direction (360° loop)
+  const items = [...children, ...children, ...children]
+  const startIndex = itemCount
   const [realIndex, setRealIndex] = useState(startIndex)
-  
-  // Calculate proper widths for infinite carousel
-  // Each slide should take full viewport width
-  // Container is 3x the number of items wide
+
   const containerWidthPercent = itemCount * 3 * 100
   const slideWidthPercent = 100 / (itemCount * 3)
 
@@ -59,44 +56,31 @@ export function Carousel({
   }, [])
 
   const goToNext = useCallback(() => {
-    // Move to next slide by incrementing real index
-    if (isTransitioningRef.current) {
-      // If already transitioning, skip this call to prevent queueing
-      return
-    }
-    
+    if (isTransitioningRef.current) return
     setIsTransitioning(true)
     isTransitioningRef.current = true
-    
+
     setRealIndex((prevRealIndex) => {
       const newRealIndex = prevRealIndex + 1
       const normalizedIndex = ((newRealIndex - startIndex) % itemCount + itemCount) % itemCount
-      
       setCurrentIndex(normalizedIndex)
-      
+
       if (containerRef.current) {
         containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
         const translatePercent = newRealIndex * slideWidthPercent
         containerRef.current.style.transform = `translateX(-${translatePercent}%)`
       }
-      
-      // Reset position seamlessly after transition
+
       setTimeout(() => {
-        if (containerRef.current) {
-          // Check if we've reached the end of the duplicated set
-          if (newRealIndex >= itemCount * 2) {
-            // Instantly jump to equivalent position in middle set (no transition = invisible)
-            containerRef.current.style.transition = "none"
-            const resetIndex = startIndex + normalizedIndex
-            setRealIndex(resetIndex)
-            const translatePercent = resetIndex * slideWidthPercent
-            containerRef.current.style.transform = `translateX(-${translatePercent}%)`
-          }
+        if (containerRef.current && newRealIndex >= itemCount * 2) {
+          containerRef.current.style.transition = "none"
+          const resetIndex = startIndex + normalizedIndex
+          setRealIndex(resetIndex)
+          containerRef.current.style.transform = `translateX(-${resetIndex * slideWidthPercent}%)`
         }
         setIsTransitioning(false)
         isTransitioningRef.current = false
       }, 500)
-      
       return newRealIndex
     })
   }, [itemCount, startIndex, slideWidthPercent])
@@ -142,92 +126,52 @@ export function Carousel({
 
   const goToSlide = (index: number, smooth = true) => {
     if (isTransitioning) return
-    
     setIsTransitioning(true)
-    
-    // Normalize index for display
     const normalizedIndex = ((index % itemCount) + itemCount) % itemCount
     setCurrentIndex(normalizedIndex)
-    
-    // Calculate target real index
-    let newRealIndex = realIndex
-    
-    // Determine direction and calculate new position
     const currentNormalized = ((realIndex - startIndex) % itemCount + itemCount) % itemCount
-    let direction = 0
-    
-    if (normalizedIndex !== currentNormalized) {
-      // Calculate shortest path
-      const forward = (normalizedIndex - currentNormalized + itemCount) % itemCount
-      const backward = (currentNormalized - normalizedIndex + itemCount) % itemCount
-      direction = forward <= backward ? 1 : -1
-    }
-    
-    if (direction > 0) {
-      // Moving forward
-      newRealIndex = realIndex + 1
-    } else if (direction < 0) {
-      // Moving backward
-      newRealIndex = realIndex - 1
-    }
-    
+    const forward = (normalizedIndex - currentNormalized + itemCount) % itemCount
+    const backward = (currentNormalized - normalizedIndex + itemCount) % itemCount
+    const newRealIndex = realIndex + (forward <= backward ? 1 : -1)
     setRealIndex(newRealIndex)
-    
     if (containerRef.current) {
       containerRef.current.style.transition = smooth ? "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)" : "none"
-      const translatePercent = newRealIndex * slideWidthPercent
-      containerRef.current.style.transform = `translateX(-${translatePercent}%)`
+      containerRef.current.style.transform = `translateX(-${newRealIndex * slideWidthPercent}%)`
     }
-
-    // Reset position after transition for seamless infinite loop
-    if (smooth) {
+    if (!smooth) {
+      setIsTransitioning(false)
+      isTransitioningRef.current = false
+    } else {
       setTimeout(() => {
-        if (containerRef.current) {
-          // Check if we need to reset for infinite loop
-          const needsReset = newRealIndex >= itemCount * 2 || newRealIndex < itemCount
-          
-          if (needsReset) {
-            // Instantly jump to equivalent position in middle set (no transition = invisible)
-            containerRef.current.style.transition = "none"
-            const resetIndex = startIndex + normalizedIndex
-            setRealIndex(resetIndex)
-            const translatePercent = resetIndex * slideWidthPercent
-            containerRef.current.style.transform = `translateX(-${translatePercent}%)`
-          }
+        if (containerRef.current && (newRealIndex >= itemCount * 2 || newRealIndex < itemCount)) {
+          containerRef.current.style.transition = "none"
+          const resetIndex = startIndex + normalizedIndex
+          setRealIndex(resetIndex)
+          containerRef.current.style.transform = `translateX(-${resetIndex * slideWidthPercent}%)`
         }
         setIsTransitioning(false)
         isTransitioningRef.current = false
       }, 500)
-    } else {
-      setIsTransitioning(false)
-      isTransitioningRef.current = false
     }
   }
 
   const goToPrev = () => {
-    // Move to previous slide by decrementing real index
     if (isTransitioning) return
     setIsTransitioning(true)
     const newRealIndex = realIndex - 1
     const normalizedIndex = ((newRealIndex - startIndex) % itemCount + itemCount) % itemCount
-    
     setCurrentIndex(normalizedIndex)
     setRealIndex(newRealIndex)
-    
     if (containerRef.current) {
       containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
-      const translatePercent = newRealIndex * slideWidthPercent
-      containerRef.current.style.transform = `translateX(-${translatePercent}%)`
+      containerRef.current.style.transform = `translateX(-${newRealIndex * slideWidthPercent}%)`
     }
-    
-    // Reset position seamlessly after transition
     setTimeout(() => {
       if (containerRef.current && newRealIndex < itemCount) {
         containerRef.current.style.transition = "none"
         const resetIndex = startIndex + normalizedIndex
         setRealIndex(resetIndex)
-        const translatePercent = resetIndex * slideWidthPercent
-        containerRef.current.style.transform = `translateX(-${translatePercent}%)`
+        containerRef.current.style.transform = `translateX(-${resetIndex * slideWidthPercent}%)`
       }
       setIsTransitioning(false)
       isTransitioningRef.current = false
@@ -276,14 +220,14 @@ export function Carousel({
       }
       touchEndX.current = currentX
       
-      // Show visual feedback during swipe
+      // Continuous scroll: content follows finger in swipe direction
       if (containerRef.current) {
         const swipeDistance = touchStartX.current - currentX
         const baseTranslatePercent = realIndex * slideWidthPercent
         const containerWidth = containerRef.current.offsetWidth
-        const offsetPercent = (swipeDistance / containerWidth) * containerWidthPercent
+        const offsetPx = (swipeDistance / containerWidth) * containerWidthPercent
         containerRef.current.style.transition = "none"
-        containerRef.current.style.transform = `translateX(calc(-${baseTranslatePercent}% + ${offsetPercent}px))`
+        containerRef.current.style.transform = `translateX(calc(-${baseTranslatePercent}% + ${offsetPx}px))`
       }
     } else if (deltaY > deltaX && deltaY > 15) {
       // This is a vertical scroll - don't interfere, let it bubble up to page
@@ -314,7 +258,7 @@ export function Carousel({
     } else if (isHorizontalSwipe.current) {
       // Snap back
       if (containerRef.current) {
-        containerRef.current.style.transition = "transform 0.3s ease-out"
+        containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
         const translatePercent = realIndex * slideWidthPercent
         containerRef.current.style.transform = `translateX(-${translatePercent}%)`
       }
@@ -353,9 +297,9 @@ export function Carousel({
     if (containerRef.current) {
       const baseTranslatePercent = realIndex * slideWidthPercent
       const containerWidth = containerRef.current.offsetWidth
-      const offsetPercent = (dragOffset.current / containerWidth) * containerWidthPercent
+      const offsetPx = (dragOffset.current / containerWidth) * containerWidthPercent
       containerRef.current.style.transition = "none"
-      containerRef.current.style.transform = `translateX(calc(-${baseTranslatePercent}% + ${offsetPercent}px))`
+      containerRef.current.style.transform = `translateX(calc(-${baseTranslatePercent}% + ${offsetPx}px))`
     }
   }
 
@@ -374,7 +318,7 @@ export function Carousel({
     } else {
       // Snap back
       if (containerRef.current) {
-        containerRef.current.style.transition = "transform 0.3s ease-out"
+        containerRef.current.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
         const translatePercent = realIndex * slideWidthPercent
         containerRef.current.style.transform = `translateX(-${translatePercent}%)`
       }

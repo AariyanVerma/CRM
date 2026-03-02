@@ -18,7 +18,6 @@ import {
   PLATINUM_PURITIES,
 } from "@/lib/pricing"
 import { formatDecimal } from "@/lib/utils"
-import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
 
 interface LineItem {
   id: string
@@ -1101,11 +1100,6 @@ export function PricingTable({
   // Show all metal tables stacked vertically (no carousel)
   return (
     <div className="space-y-4">
-      {/* Metal prices ticker (same as dashboard) */}
-      <div className="w-full min-w-0 max-w-full">
-        <TradingViewTickerTape />
-      </div>
-
       {/* All Metal Tables Stacked */}
       <div className="space-y-4">
         <Card>

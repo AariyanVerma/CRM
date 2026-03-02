@@ -6,8 +6,8 @@ const WIDGET_SCRIPT = "https://s3.tradingview.com/external-embedding/embed-widge
 
 const SYMBOLS = ["TVC:GOLD", "TVC:SILVER", "TVC:PLATINUM"] as const
 
-// Four copies for seamless marquee loop (-25% animation)
-const MARQUEE_SYMBOLS = [...SYMBOLS, ...SYMBOLS, ...SYMBOLS, ...SYMBOLS]
+// Two sets for a short marquee loop; only 6 widgets instead of 12 for faster load
+const MARQUEE_SYMBOLS = [...SYMBOLS, ...SYMBOLS]
 
 function SingleQuoteWidget({
   symbol,
@@ -50,20 +50,7 @@ function SingleQuoteWidget({
 const MemoizedWidget = memo(SingleQuoteWidget)
 
 function TradingViewTickerTape() {
-  const refs = [
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-  ]
+  const refs = MARQUEE_SYMBOLS.map(() => useRef<HTMLDivElement>(null))
 
   // Preload the widget script so first cards can use cached script immediately
   useEffect(() => {
@@ -95,7 +82,7 @@ function TradingViewTickerTape() {
           __html: `
             @keyframes tv-ticker-marquee-scroll {
               0% { transform: translate3d(0, 0, 0); }
-              100% { transform: translate3d(-25%, 0, 0); }
+              100% { transform: translate3d(-50%, 0, 0); }
             }
             #tv-ticker-tape-root .tv-ticker-marquee-track {
               animation: tv-ticker-marquee-scroll 25s linear infinite !important;

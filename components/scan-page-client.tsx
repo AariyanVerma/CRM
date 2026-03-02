@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Printer } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { Carousel } from "@/components/carousel"
+import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
 import { useSocketTransaction } from "@/hooks/use-socket-transaction"
 import { formatDecimal, getCustomerDisplayName } from "@/lib/utils"
 
@@ -174,6 +175,11 @@ export function ScanPageClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* Metal prices ticker (same as dashboard) */}
+      <div className="w-full min-w-0 max-w-full my-3 py-0">
+        <TradingViewTickerTape />
+      </div>
 
       {/* Main Transaction Carousel */}
       <div className="w-full" style={{ touchAction: "pan-y" }}>

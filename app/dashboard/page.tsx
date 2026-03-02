@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db"
 import { PageHeader } from "@/components/page-header"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { DashboardActions } from "@/components/dashboard-actions"
-import { DashboardTickerLazy } from "@/components/dashboard-ticker-lazy"
+import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -66,9 +66,9 @@ export default async function DashboardPage() {
             />
           </div>
 
-          {/* Metal prices ticker */}
+          {/* Metal prices ticker - eager load so it starts immediately */}
           <div className="w-full min-w-0 max-w-full my-3 py-0">
-            <DashboardTickerLazy />
+            <TradingViewTickerTape />
           </div>
 
           {/* Quick Actions */}
