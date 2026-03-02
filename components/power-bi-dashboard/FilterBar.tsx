@@ -59,20 +59,50 @@ export function FilterBar(p: FilterBarProps) {
             <Input type="date" value={p.to} onChange={(e) => p.setTo(e.target.value)} className="w-[140px] h-9" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Customer</Label>
+            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" /> Customer
+            </Label>
             <Select value={p.customerId || "all"} onValueChange={(v) => p.setCustomerId(v === "all" ? "" : v)}>
-              <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="All customers" /></SelectTrigger>
-              <SelectContent className="min-w-[200px]">
-                <div className="p-1.5 border-b border-border sticky top-0 bg-popover z-10" onClick={(e) => e.stopPropagation()}>
+              <SelectTrigger className="w-[220px] h-11 rounded-xl border-primary/20 bg-background/80 shadow-sm">
+                <SelectValue placeholder="All customers" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl min-w-[220px]">
+                <div
+                  className="p-1.5 pb-2 border-b border-border sticky top-0 bg-popover z-10"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
                   <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input ref={ref} placeholder="Search customer..." value={p.customerSearch} onChange={(e) => p.setCustomerSearch(e.target.value)} className="h-8 pl-7 text-sm" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      ref={ref}
+                      placeholder="Search by name or phone..."
+                      value={p.customerSearch}
+                      onChange={(e) => p.setCustomerSearch(e.target.value)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className="h-9 pl-8 pr-3 text-sm rounded-lg border-input bg-background"
+                    />
                   </div>
                 </div>
                 <SelectItem value="all">All customers</SelectItem>
-                {p.customersLoading && <SelectItem value="_loading" disabled>Searching...</SelectItem>}
-                {!p.customersLoading && p.customerSearch && p.customers.length === 0 && <SelectItem value="_empty" disabled>No customers found</SelectItem>}
-                {!p.customersLoading && p.customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>)}
+                {p.customersLoading && (
+                  <SelectItem value="_loading" disabled className="pointer-events-none">
+                    Searching...
+                  </SelectItem>
+                )}
+                {!p.customersLoading && p.customerSearch && p.customers.length === 0 && (
+                  <SelectItem value="_empty" disabled className="pointer-events-none">
+                    No customers found
+                  </SelectItem>
+                )}
+                {!p.customersLoading &&
+                  p.customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.fullName}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>

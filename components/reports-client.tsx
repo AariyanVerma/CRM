@@ -23,6 +23,7 @@ import {
 import Link from "next/link"
 import { FileDown, Printer, Loader2, BarChart3, Calendar, Users, Coins, TrendingUp, Search, Layers, Filter, LayoutGrid, List, PieChart, Table, Gem, Save, X, ChevronUp, ChevronDown } from "lucide-react"
 import { getCustomerDisplayName } from "@/lib/utils"
+import { PurityBreakdownView } from "@/components/purity-breakdown-view"
 
 type ReportData = {
   from: string
@@ -65,7 +66,7 @@ function getStatusBadgeClassName(status: string) {
       : "bg-yellow-500 text-white border-yellow-600"
 }
 
-type ViewMode = "full" | "simplified" | "summary" | "table" | "byCustomer" | "byDay" | "timeline"
+type ViewMode = "full" | "simplified" | "summary" | "table" | "byCustomer" | "byDay" | "timeline" | "purity"
 type SortKey = "date" | "customer" | "total" | "type" | "status"
 type TableDensity = "normal" | "compact"
 const SAVED_FILTERS_KEY = "reportSavedFilters"
@@ -542,6 +543,15 @@ export function ReportsClient() {
                 <BarChart3 className="h-4 w-4" />
                 Timeline
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("purity")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === "purity" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+                title="Metal by purity"
+              >
+                <Gem className="h-4 w-4" />
+                Purity
+              </button>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50">
@@ -603,16 +613,16 @@ export function ReportsClient() {
         </Card>
       )}
 
-      {loading && !data && (
+      {loading && !data && viewMode !== "purity" && (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {data && !loading && (
+      {viewMode === "purity" && <PurityBreakdownView />}
+
+      {data && !loading && viewMode !== "purity" && (
         <>
-          {
-}
           {(viewMode === "full" || viewMode === "simplified" || viewMode === "summary" || viewMode === "byCustomer" || viewMode === "byDay" || viewMode === "timeline") && (
           <section className="dashboard-section" aria-label="Key metrics">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Key metrics</h2>
