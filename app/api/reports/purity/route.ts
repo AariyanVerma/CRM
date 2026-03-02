@@ -64,16 +64,17 @@ export async function GET(request: NextRequest) {
     const toDate = to ? new Date(to) : new Date()
     toDate.setHours(23, 59, 59, 999)
 
+    const lineItemsFilter =
+      metalFilter && ["GOLD", "SILVER", "PLATINUM"].includes(metalFilter)
+        ? { some: { metalType: metalFilter as any } }
+        : undefined
+
     const transactions = await prisma.transaction.findMany({
       where: {
         createdAt: { gte: fromDate, lte: toDate },
         type: typeFilter === "MELT" ? "MELT" : "SCRAP",
         ...(customerId ? { customerId } : {}),
-        lineItems: {
-          some: metalFilter && ["GOLD", "SILVER", "PLATINUM"].includes(metalFilter)
-            ? { metalType: metalFilter }
-            : undefined,
-        },
+        ...(lineItemsFilter ? { lineItems: lineItemsFilter } : {}),
       },
       include: {
         customer: { select: { id: true, fullName: true, isBusiness: true, businessName: true } },

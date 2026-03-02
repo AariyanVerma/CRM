@@ -15,7 +15,7 @@ function stripLineComments(str) {
 
 function stripTrailingInlineComment(line) {
   const trimmed = line.trim();
-  if (trimmed.startsWith("//")) return line;
+  if (trimmed.startsWith("
   const idx = line.indexOf("//");
   if (idx === -1) return line;
   const before = line.slice(0, idx);
