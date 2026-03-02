@@ -486,31 +486,31 @@ export function PurityBreakdownView() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs sm:text-sm">
                     <thead className="bg-slate-900/95 text-slate-50 dark:bg-white dark:text-slate-900">
                       <tr className="border-b border-slate-800">
-                        <th className="text-left py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           Date
                         </th>
-                        <th className="text-left py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           Customer
                         </th>
-                        <th className="text-left py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           Metal
                         </th>
-                        <th className="text-left py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           Purity
                         </th>
-                        <th className="text-right py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500 whitespace-nowrap" style={{ width: "1%" }}>
                           Purity %
                         </th>
-                        <th className="text-right py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           DWT
                         </th>
-                        <th className="text-right py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           Value
                         </th>
-                        <th className="text-center py-3 px-4 font-extrabold text-[12px] uppercase tracking-[0.16em] text-red-500">
+                        <th className="text-center py-2.5 px-2 font-extrabold text-[11px] md:text-[12px] uppercase tracking-[0.1em] text-red-500">
                           Action
                         </th>
                       </tr>
@@ -518,14 +518,14 @@ export function PurityBreakdownView() {
                     <tbody>
                       {data.lineItems.map((item) => (
                         <tr key={item.id} className="border-b hover:bg-muted/50">
-                          <td className="py-2.5 px-4">{formatDate(item.createdAt)}</td>
-                          <td className="py-2.5 px-4">{getCustomerDisplayName(item.customer)}</td>
-                          <td className="py-2.5 px-4">{item.metalType}</td>
-                          <td className="py-2.5 px-4">{item.purityLabel}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums">{item.purityPercentage != null ? `${item.purityPercentage}%` : "–"}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums">{item.dwt.toFixed(2)}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums font-medium">{formatCurrency(item.lineTotal)}</td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td className="py-2 px-2 text-center">{formatDate(item.createdAt)}</td>
+                          <td className="py-2 px-2 text-center min-w-0 max-w-[120px] truncate" title={getCustomerDisplayName(item.customer)}>{getCustomerDisplayName(item.customer)}</td>
+                          <td className="py-2 px-2 text-center">{item.metalType}</td>
+                          <td className="py-2 px-2 text-center">{item.purityLabel}</td>
+                          <td className="py-2 px-2 text-center tabular-nums whitespace-nowrap" style={{ width: "1%" }}>{item.purityPercentage != null ? `${item.purityPercentage}%` : "–"}</td>
+                          <td className="py-2 px-2 text-center tabular-nums">{item.dwt.toFixed(2)}</td>
+                          <td className="py-2 px-2 text-center tabular-nums font-medium">{formatCurrency(item.lineTotal)}</td>
+                          <td className="py-2 px-2 text-center">
                             <Link href={`/print/${item.transactionId}`} target="_blank" rel="noopener noreferrer">
                               <Button
                                 variant="outline"
