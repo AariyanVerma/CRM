@@ -16,6 +16,7 @@ export async function PATCH(
       email,
       password,
       role,
+      canIssueCard,
       firstName,
       lastName,
       address,
@@ -39,6 +40,7 @@ export async function PATCH(
     const updateData: any = {}
     if (email !== undefined) updateData.email = email
     if (role !== undefined) updateData.role = role
+    if (canIssueCard !== undefined) updateData.canIssueCard = canIssueCard === true
     if (firstName !== undefined) updateData.firstName = firstName || null
     if (lastName !== undefined) updateData.lastName = lastName || null
     if (address !== undefined) updateData.address = address || null
@@ -75,6 +77,7 @@ export async function PATCH(
       id: user.id,
       email: user.email,
       role: user.role,
+      canIssueCard: user.canIssueCard,
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,

@@ -334,7 +334,26 @@ export function PricingTable({
               throw new Error(errorData.message || "Failed to save")
             }
 
-            await res.json()
+            await res.json().catch(() => ({}))
+
+            // Proactively refresh line items for parent combined totals,
+            // instead of waiting only on the socket event.
+            if (onLineItemsUpdate) {
+              try {
+                const latest = await fetch(`/api/transactions/${transaction.id}/line-items`, {
+                  method: "GET",
+                  credentials: "include",
+                })
+                if (latest.ok) {
+                  const data = await latest.json().catch(() => ({}))
+                  if (Array.isArray(data.lineItems)) {
+                    onLineItemsUpdate(data.lineItems)
+                  }
+                }
+              } catch (e) {
+                console.error("Error refreshing line items after save:", e)
+              }
+            }
 
             // Update last saved values
             lastSavedValuesRef.current[key] = {
@@ -374,7 +393,7 @@ export function PricingTable({
         }, 800) // Increased from 400ms to 800ms to wait longer for user to finish typing
       }
     })()
-  , [transaction.id, transaction.type, toast, purityPercentages])
+  , [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate])
 
   function handleDwtChange(metalType: MetalType, purity: string, value: string, purityPercentage?: number) {
     const numValue = parseFloat(value) || 0

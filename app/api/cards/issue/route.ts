@@ -5,7 +5,13 @@ import { generateToken } from "@/lib/utils"
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth()
+    const session = await requireAuth()
+    if (session.role !== "ADMIN" && session.canIssueCard !== true) {
+      return NextResponse.json(
+        { message: "You do not have permission to issue cards" },
+        { status: 403 }
+      )
+    }
 
     const body = await request.json()
     const { customerId } = body

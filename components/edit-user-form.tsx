@@ -19,6 +19,7 @@ import Image from "next/image"
 import { Trash2, Key } from "lucide-react"
 import { PasswordInput } from "@/components/password-input"
 import { getDisplayName } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ interface EditUserFormProps {
     id: string
     email: string
     role: "ADMIN" | "STAFF"
+    canIssueCard?: boolean
     firstName?: string | null
     lastName?: string | null
     address?: string | null
@@ -51,6 +53,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false)
   const [role, setRole] = useState<"ADMIN" | "STAFF">(user.role)
+  const [canIssueCard, setCanIssueCard] = useState<boolean>(user.canIssueCard ?? false)
   const [profileImage, setProfileImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(user.profileImageUrl || null)
 
@@ -118,6 +121,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
       email: formData.get("email") as string,
       password: formData.get("password") as string || undefined,
       role,
+      canIssueCard,
       firstName: formData.get("firstName") as string || null,
       lastName: formData.get("lastName") as string || null,
       address: formData.get("address") as string || null,
@@ -381,6 +385,17 @@ export function EditUserForm({ user }: EditUserFormProps) {
                 <SelectItem value="ADMIN">Admin</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="canIssueCard"
+              checked={canIssueCard}
+              onCheckedChange={(checked) => setCanIssueCard(checked === true)}
+            />
+            <Label htmlFor="canIssueCard" className="font-normal cursor-pointer">
+              Can issue NFC cards (show &quot;Issue New Card&quot; on customer detail)
+            </Label>
           </div>
 
           <div className="flex gap-4">

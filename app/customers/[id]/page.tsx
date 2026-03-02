@@ -9,6 +9,7 @@ import { ArrowLeft, CreditCard, Building2, User, CheckCircle2, XCircle, Edit } f
 import { IssueCardDialog } from "@/components/issue-card-dialog"
 import { Badge } from "@/components/ui/badge"
 import { TransactionsListSkeleton } from "@/components/skeletons"
+import { CustomerDocumentsPortal } from "@/components/customer-documents-portal"
 
 const TransactionsListClient = dynamic(
   () => import("@/components/transactions-list-client").then((m) => ({ default: m.TransactionsListClient })),
@@ -187,10 +188,12 @@ export default async function CustomerDetailPage({
                   </div>
                 )}
 
-                <IssueCardDialog customerId={customer.id} />
+                {(session.role === "ADMIN" || session.canIssueCard === true) && <IssueCardDialog customerId={customer.id} />}
               </CardContent>
             </Card>
           </div>
+
+          <CustomerDocumentsPortal customerId={customer.id} canManage={session.role === "ADMIN"} />
 
           <TransactionsListClient customerId={customer.id} showCustomerColumn={false} userRole={session.role} />
         </div>

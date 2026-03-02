@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         role: true,
+        canIssueCard: true,
         firstName: true,
         lastName: true,
         address: true,
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     await requireAdmin()
 
     const body = await request.json()
-    const { email, password, role, firstName, lastName, address, phoneNumber, profileImageUrl } = body
+    const { email, password, role, canIssueCard, firstName, lastName, address, phoneNumber, profileImageUrl } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
         email: normalizedEmail, // Store normalized email
         passwordHash,
         role: role || "STAFF",
+        canIssueCard: canIssueCard === true,
         firstName: firstName || null,
         lastName: lastName || null,
         address: address || null,
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
+      canIssueCard: user.canIssueCard,
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,

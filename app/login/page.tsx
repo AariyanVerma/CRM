@@ -32,14 +32,13 @@ export default async function LoginPage({
       }
 
       await createSession(user.id)
-      
-      // Get redirect URL from form data or use default
+
       const redirectUrl = formData.get("redirect") as string | null
       const targetUrl = redirectUrl || "/dashboard"
-      
-      // Redirect to dashboard - no need to revalidate cache
-      redirect(targetUrl)
-    } catch (error) {
+      // Return redirect URL for client to navigate - avoids server fetching the URL
+      // (which fails with self-signed cert in dev)
+      return { redirect: targetUrl }
+    } catch (error: unknown) {
       console.error("Login error:", error)
       return { error: "An error occurred during login. Please try again." }
     }

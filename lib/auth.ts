@@ -9,6 +9,7 @@ export interface SessionUser {
   id: string
   email: string
   role: 'ADMIN' | 'STAFF'
+  canIssueCard?: boolean
   firstName?: string | null
   lastName?: string | null
   address?: string | null
@@ -25,25 +26,38 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 
   try {
-    // In production, use proper session encryption/validation
-    // For MVP, we'll store user ID in cookie (not secure, but works for MVP)
     const userId = sessionCookie.value
-    
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        firstName: true,
-        lastName: true,
-        address: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-      },
-    })
 
-    return user as SessionUser | null
+    const users = await prisma.$queryRaw<Array<{
+      id: string
+      email: string
+      role: string
+      firstName: string | null
+      lastName: string | null
+      address: string | null
+      phoneNumber: string | null
+      profileImageUrl: string | null
+      canIssueCard: boolean | null
+    }>>`
+      SELECT id, email, role, "firstName", "lastName", address, "phoneNumber", "profileImageUrl", "canIssueCard"
+      FROM "User"
+      WHERE id = ${userId}
+      LIMIT 1
+    `
+    const user = users[0]
+    if (!user) return null
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'ADMIN' | 'STAFF',
+      canIssueCard: user.canIssueCard === true,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      address: user.address,
+      phoneNumber: user.phoneNumber,
+      profileImageUrl: user.profileImageUrl,
+    } as SessionUser
   } catch {
     return null
   }

@@ -22,6 +22,7 @@ export default async function EditUserPage({
       id: true,
       email: true,
       role: true,
+      canIssueCard: true,
       firstName: true,
       lastName: true,
       address: true,

@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
 import { PasswordInput } from "@/components/password-input"
+import { Logo } from "@/components/logo"
 
-export function LoginForm({ action }: { action: (formData: FormData) => Promise<{ error?: string } | void> }) {
+export function LoginForm({ action }: { action: (formData: FormData) => Promise<{ error?: string; redirect?: string } | void> }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
@@ -25,17 +26,11 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
       if (result?.error) {
         setError(result.error)
         setLoading(false)
+      } else if (result?.redirect) {
+        // Client-side redirect (avoids server fetch that fails with self-signed cert)
+        window.location.href = result.redirect
       } else {
-        // Server action completed successfully
-        // The redirect should happen automatically via Next.js
-        // But if it doesn't (e.g., due to cookie issues), force a redirect
-        setTimeout(() => {
-          // Check if we're still on login page
-          if (window.location.pathname === "/login") {
-            // Force a full page reload to check session
-            window.location.href = "/dashboard"
-          }
-        }, 500)
+        window.location.href = "/dashboard"
       }
     } catch (error) {
       console.error("Login form error:", error)
@@ -45,7 +40,10 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md overflow-hidden">
+      <div className="dark rounded-t-lg border-b border-border bg-background text-foreground flex justify-center items-center py-3 px-4">
+        <Logo size="lg" href="/" className="pointer-events-auto" />
+      </div>
       <CardHeader>
         <CardTitle>Staff Login</CardTitle>
         <CardDescription>
