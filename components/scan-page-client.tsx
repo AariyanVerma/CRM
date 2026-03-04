@@ -144,7 +144,7 @@ export function ScanPageClient({
     <div className="space-y-6">
       {
 }
-      <BackButton href="/customers" />
+      <BackButton />
 
       {
 }
