@@ -41,7 +41,7 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
 
   return (
     <Card className="w-full max-w-md overflow-hidden">
-      <div className="dark rounded-t-lg border-b border-border bg-background text-foreground flex justify-center items-center py-3 px-4">
+      <div className="rounded-t-lg border-b border-zinc-700 bg-zinc-900 text-zinc-100 flex justify-center items-center py-3 px-4">
         <Logo size="lg" href="/" className="pointer-events-auto" />
       </div>
       <CardHeader>

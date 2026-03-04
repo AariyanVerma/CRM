@@ -15,24 +15,20 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-3 sm:px-4 py-8 sm:py-12 md:py-16" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
+      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <div className="max-w-5xl mx-auto">
-          <div className="text-center space-y-6 sm:space-y-8 mb-12 sm:mb-16">
-            <div className="flex justify-center mb-4">
+          <div className="dark rounded-xl sm:rounded-2xl border border-border bg-background text-foreground text-center space-y-4 sm:space-y-5 mb-6 sm:mb-8 py-4 sm:py-6 px-4 sm:px-6">
+            <div className="flex justify-center mb-2">
               <Logo size="xl" showText={false} className="drop-shadow-lg scale-125 sm:scale-150" />
             </div>
-            
-            {
-}
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent">
+            <div className="space-y-1">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
                 New York Gold Market
               </h1>
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-blue-600 dark:text-blue-400">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-blue-400">
                 Precious Metals Transaction System
               </h2>
             </div>
-
           </div>
 
           <HomePageContent />
