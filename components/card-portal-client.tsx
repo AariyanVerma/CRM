@@ -148,7 +148,8 @@ export function CardPortalClient({ isAdmin, initialCustomer }: CardPortalClientP
   }
 
   const handleWriteNfc = async () => {
-    if (!card?.scanUrl || typeof window === "undefined" || !window.NDEFReader) {
+    const url = card?.scanUrl != null ? String(card.scanUrl) : ""
+    if (!url || typeof window === "undefined" || !window.NDEFReader) {
       toast({
         title: "NFC not available",
         description: "Web NFC is only supported in Chrome on Android (HTTPS).",
@@ -159,13 +160,11 @@ export function CardPortalClient({ isAdmin, initialCustomer }: CardPortalClientP
     setWriteLoading(true)
     try {
       const ndef = new window.NDEFReader()
-      const encoder = new TextEncoder()
-      const encoded = encoder.encode(card.scanUrl)
       await ndef.write({
         records: [
           {
             recordType: "url",
-            data: encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength),
+            data: url,
           },
         ],
       })

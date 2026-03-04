@@ -208,7 +208,7 @@ export function NFCScanCard() {
 
             console.log("Decoded text:", text)
 
-            const urlMatch = text.match(/\/scan\/([a-f0-9]{64})/i)
+            const urlMatch = text.match(/\/scan\/([a-zA-Z0-9]+)/)
             if (urlMatch && urlMatch[1]) {
               const token = urlMatch[1]
               console.log("Token extracted from URL:", token)
@@ -223,7 +223,7 @@ export function NFCScanCard() {
             }
 
             const trimmedText = text.trim()
-            if (/^[a-f0-9]{64}$/i.test(trimmedText)) {
+            if (/^[a-zA-Z0-9]{8,64}$/.test(trimmedText)) {
               console.log("Token found in text:", trimmedText)
               setScanning(false)
               toast({

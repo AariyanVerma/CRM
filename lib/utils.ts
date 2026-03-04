@@ -5,16 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const SLUG_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 export function generateToken(): string {
   const array = new Uint8Array(32)
   if (typeof window !== 'undefined') {
     crypto.getRandomValues(array)
   } else {
-
     const nodeCrypto = require('crypto')
     nodeCrypto.randomFillSync(array)
   }
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export function generateShortSlug(length = 12): string {
+  const array = new Uint8Array(length)
+  if (typeof window !== 'undefined') {
+    crypto.getRandomValues(array)
+  } else {
+    const nodeCrypto = require('crypto')
+    nodeCrypto.randomFillSync(array)
+  }
+  return Array.from(array, b => SLUG_CHARS[b % SLUG_CHARS.length]).join('')
 }
 
 export function formatDecimal(value: number): string {

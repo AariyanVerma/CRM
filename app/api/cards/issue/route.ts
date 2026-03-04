@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { generateToken } from "@/lib/utils"
+import { generateToken, generateShortSlug } from "@/lib/utils"
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     })
 
     const token = generateToken()
-    const scanSlug = generateToken()
+    const scanSlug = generateShortSlug(12)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const card = await prisma.membershipCard.create({
       data: {
