@@ -17,11 +17,7 @@ export default function HomePage() {
 
       <main className="flex-1 container mx-auto px-3 sm:px-4 py-8 sm:py-12 md:py-16" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <div className="max-w-5xl mx-auto">
-          {
-}
           <div className="text-center space-y-6 sm:space-y-8 mb-12 sm:mb-16">
-            {
-}
             <div className="flex justify-center mb-4">
               <Logo size="xl" showText={false} className="drop-shadow-lg scale-125 sm:scale-150" />
             </div>
@@ -39,12 +35,8 @@ export default function HomePage() {
 
           </div>
 
-          {
-}
           <HomePageContent />
 
-          {
-}
           <div className="text-center space-y-6 mt-12">
             <div>
               <Link href="/login">
