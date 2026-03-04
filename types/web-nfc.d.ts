@@ -6,7 +6,7 @@ interface NDEFMessage {
 interface NDEFRecord {
   recordType: string;
   mediaType?: string;
-  data: ArrayBuffer | DataView;
+  data: ArrayBuffer | DataView | string;
 }
 
 interface NDEFReadingEvent extends Event {
