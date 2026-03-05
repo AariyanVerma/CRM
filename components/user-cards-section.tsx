@@ -107,7 +107,15 @@ export function UserCardsSection({ userId }: { userId: string }) {
     setWriteLoading(url)
     try {
       const ndef = new window.NDEFReader()
-      await ndef.write({ records: [{ recordType: "application/vnd.nygm.card", data: url }] })
+      await ndef.write({
+        records: [
+          {
+            recordType: "mime",
+            mediaType: "application/vnd.nygm.card",
+            data: new TextEncoder().encode(url),
+          },
+        ],
+      })
       toast({ title: "Card written", description: "Login URL written to the NFC card.", variant: "success" })
     } catch (e) {
       toast({ title: "Write failed", description: e instanceof Error ? e.message : "NFC write failed", variant: "destructive" })

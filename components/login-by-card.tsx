@@ -65,7 +65,10 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
         if (!msg?.records?.length) return
         let slug: string | null = null
         for (const record of msg.records) {
-          if (record.recordType === NFC_APP_RECORD_TYPE) {
+          const isAppCard =
+            record.recordType === NFC_APP_RECORD_TYPE ||
+            (record.recordType === "mime" && record.mediaType === NFC_APP_RECORD_TYPE)
+          if (isAppCard) {
             const urlString = ndefRecordDataToString(record.data)
             slug = getSlugFromUrl(urlString)
             if (slug) break

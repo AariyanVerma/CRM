@@ -12,6 +12,7 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  duration?: number
 }
 
 const actionTypes = {
@@ -157,6 +158,10 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+
+  if (typeof props.duration === "number" && props.duration > 0) {
+    setTimeout(() => dispatch({ type: "DISMISS_TOAST", toastId: id }), props.duration)
+  }
 
   return {
     id: id,

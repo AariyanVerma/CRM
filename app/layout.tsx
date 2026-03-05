@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { PwaUpdatePrompt } from "@/components/pwa-update-prompt"
 import { InactivityProvider } from "@/components/inactivity-provider"
+import { GlobalNfcProvider } from "@/components/global-nfc-provider"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -65,9 +66,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <InactivityProvider>
-            {children}
-            <Toaster />
-            <PwaUpdatePrompt />
+            <GlobalNfcProvider>
+              {children}
+              <Toaster />
+              <PwaUpdatePrompt />
+            </GlobalNfcProvider>
           </InactivityProvider>
         </ThemeProvider>
       </body>

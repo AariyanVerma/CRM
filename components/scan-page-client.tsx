@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PricingTable } from "@/components/pricing-table"
-import { Building2, User, Clock, Sparkles, Flame, TrendingUp, Coins, Scale, Lock } from "lucide-react"
+import { Building2, User, Clock, Sparkles, Flame, TrendingUp, Coins, Scale } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -173,13 +173,6 @@ export function ScanPageClient({
           </div>
         </CardContent>
       </Card>
-
-      {cardLocked && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-400">
-          <Lock className="h-4 w-4 shrink-0" />
-          <span>Card is locked — view only. Unlock the card to edit.</span>
-        </div>
-      )}
 
       <div className="w-full min-w-0 max-w-full my-3 py-0">
         <TradingViewTickerTape />

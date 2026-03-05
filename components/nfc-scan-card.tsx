@@ -132,7 +132,10 @@ export function NFCScanCard() {
           try {
             let text = ""
 
-            if (record.recordType === NFC_APP_RECORD_TYPE) {
+            const isAppCard =
+              record.recordType === NFC_APP_RECORD_TYPE ||
+              (record.recordType === "mime" && record.mediaType === NFC_APP_RECORD_TYPE)
+            if (isAppCard) {
               text = ndefRecordDataToString(record.data)
             } else if (record.recordType === "url") {
 
@@ -220,9 +223,10 @@ export function NFCScanCard() {
               console.log("Token extracted from URL:", token)
               setScanning(false)
               toast({
-                title: "Card Scanned!",
-                description: "Redirecting to transaction page...",
-                variant: "success",
+                title: "Card scanned",
+                description: "Opening transaction...",
+                variant: "nfc",
+                duration: 2200,
               })
               router.push(`/scan/${token}`)
               return
@@ -234,9 +238,10 @@ export function NFCScanCard() {
               console.log("Token found in text:", trimmedText)
               setScanning(false)
               toast({
-                title: "Card Scanned!",
-                description: "Redirecting to transaction page...",
-                variant: "success",
+                title: "Card scanned",
+                description: "Opening transaction...",
+                variant: "nfc",
+                duration: 2200,
               })
               router.push(`/scan/${trimmedText}`)
               return
