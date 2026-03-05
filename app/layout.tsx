@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { Suspense } from "react"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -68,7 +69,9 @@ export default function RootLayout({
         >
           <InactivityProvider>
             <GlobalNfcProvider>
-              <SessionGuard />
+              <Suspense fallback={null}>
+                <SessionGuard />
+              </Suspense>
               {children}
               <Toaster />
               <PwaUpdatePrompt />
