@@ -72,21 +72,24 @@ export function GlobalNfcProvider({ children }: { children: React.ReactNode }) {
         router.push(`/scan/${parsed.token}`)
         return
       }
+      const redirectAfterLogin = pathname === "/" || pathname === "/login" ? "/dashboard" : (pathname || "/dashboard")
+      toast({ title: "Signing you in...", description: "Verifying staff card", variant: "nfc-login", duration: 3000 })
       try {
         const res = await fetch("/api/auth/login-by-card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug: parsed.slug, redirect: pathname || "/dashboard" }),
+          body: JSON.stringify({ slug: parsed.slug, redirect: redirectAfterLogin }),
           credentials: "include",
         })
         const data = await res.json().catch(() => ({}))
+        if (!mounted) return
         if (res.ok && data.redirect) {
           window.location.href = data.redirect
           return
         }
-        toast({ title: "Invalid or locked card", description: data.message || "Could not sign in.", variant: "destructive" })
+        toast({ title: "Invalid or locked card", description: data.message || "Could not sign in.", variant: "destructive", duration: 4000 })
       } catch {
-        toast({ title: "Error", description: "Sign in failed", variant: "destructive" })
+        if (mounted) toast({ title: "Error", description: "Sign in failed", variant: "destructive", duration: 4000 })
       }
     }
 
