@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
       where: { scanSlug: slug, status: "ACTIVE" },
       include: { user: { select: { id: true } } },
     })
-    if (!card || card.locked) {
-      return NextResponse.json({ message: "Invalid or locked card" }, { status: 401 })
+    if (!card) {
+      return NextResponse.json({ message: "Invalid card" }, { status: 401 })
     }
     await createSession(card.userId)
     const redirectUrl = typeof body?.redirect === "string" ? body.redirect : "/dashboard"

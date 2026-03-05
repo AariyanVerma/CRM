@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:https": "cross-env NODE_ENV=development node server.js",
     "setup:https": "node setup-https.js",
-    "build": "prisma generate && NODE_OPTIONS='--max-old-space-size=2048' next build --webpack",
+    "build": "prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=2048 next build --webpack",
     "start": "next start",
     "start:deploy": "PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 prisma migrate deploy && next start",
     "start:prod": "NODE_ENV=production next start",

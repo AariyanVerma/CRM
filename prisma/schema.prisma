@@ -33,17 +33,18 @@ model User {
 }
 
 model UserCard {
-  id         String     @id @default(cuid())
-  userId     String
-  token      String     @unique
-  scanSlug   String     @unique
-  status     CardStatus @default(ACTIVE)
-  locked     Boolean    @default(false)
-  lockedAt   DateTime?
-  issuedAt   DateTime   @default(now())
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String     @id @default(cuid())
+  userId                 String
+  token                  String     @unique
+  scanSlug               String     @unique
+  status                 CardStatus @default(ACTIVE)
+  locked                 Boolean    @default(false)
+  lockedAt               DateTime?
+  tagPermanentlyLockedAt DateTime?
+  issuedAt               DateTime   @default(now())
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  user                   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([scanSlug])
@@ -113,18 +114,19 @@ model CustomerDocument {
 }
 
 model MembershipCard {
-  id            String     @id @default(cuid())
-  token         String     @unique
-  scanSlug      String?    @unique
-  customerId    String
-  status        CardStatus @default(ACTIVE)
-  locked        Boolean    @default(false)
-  lockedAt      DateTime?
-  issuedAt      DateTime   @default(now())
-  lastScannedAt DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  customer      Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id                     String     @id @default(cuid())
+  token                  String     @unique
+  scanSlug               String?    @unique
+  customerId             String
+  status                 CardStatus @default(ACTIVE)
+  locked                 Boolean    @default(false)
+  lockedAt               DateTime?
+  tagPermanentlyLockedAt DateTime?
+  issuedAt               DateTime   @default(now())
+  lastScannedAt          DateTime?
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  customer               Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([scanSlug])

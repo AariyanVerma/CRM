@@ -56,8 +56,9 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
     try {
       const ndef = new window.NDEFReader()
       await ndef.scan()
-      ndef.addEventListener("reading", async (event: { message: { records: Array<{ recordType: string; data: string | DataView | ArrayBuffer }> } }) => {
-        const msg = event.message
+      ndef.addEventListener("reading", async (event: NDEFReadingEvent | ErrorEvent) => {
+        if (!("message" in event) || typeof event.message === "string") return
+        const msg = event.message as NDEFMessage
         if (!msg?.records?.length) return
         let slug: string | null = null
         for (const record of msg.records) {

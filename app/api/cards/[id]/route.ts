@@ -36,26 +36,29 @@ export async function PATCH(
     )
   }
   const { id } = await params
-  let body: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean }
+  let body: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean; tagPermanentlyLockedAt?: boolean }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ message: "Invalid JSON" }, { status: 400 })
   }
-  const { status, locked } = body
+  const { status, locked, tagPermanentlyLockedAt } = body
 
   const card = await prisma.membershipCard.findUnique({ where: { id } })
   if (!card) {
     return NextResponse.json({ message: "Card not found" }, { status: 404 })
   }
 
-  const data: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean; lockedAt?: Date | null } = {}
+  const data: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean; lockedAt?: Date | null; tagPermanentlyLockedAt?: Date | null } = {}
   if (status !== undefined && ["ACTIVE", "LOST", "DISABLED"].includes(status)) {
     data.status = status
   }
   if (locked !== undefined) {
     data.locked = locked
     data.lockedAt = locked ? new Date() : null
+  }
+  if (tagPermanentlyLockedAt === true) {
+    data.tagPermanentlyLockedAt = new Date()
   }
 
   try {
@@ -67,6 +70,34 @@ export async function PATCH(
     return NextResponse.json(updated)
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Update failed"
+    return NextResponse.json({ message: msg }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSessionFromRequest(request)
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+  }
+  if (session.role !== "ADMIN") {
+    return NextResponse.json(
+      { message: "Only administrators can delete cards" },
+      { status: 403 }
+    )
+  }
+  const { id } = await params
+  const card = await prisma.membershipCard.findUnique({ where: { id } })
+  if (!card) {
+    return NextResponse.json({ message: "Card not found" }, { status: 404 })
+  }
+  try {
+    await prisma.membershipCard.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Delete failed"
     return NextResponse.json({ message: msg }, { status: 500 })
   }
 }

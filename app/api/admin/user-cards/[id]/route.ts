@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     await requireAdmin()
     const { id } = await params
-    let body: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean }
+    let body: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean; tagPermanentlyLockedAt?: boolean }
     try {
       body = await request.json()
     } catch {
@@ -19,13 +19,16 @@ export async function PATCH(
     if (!card) {
       return NextResponse.json({ message: "Card not found" }, { status: 404 })
     }
-    const data: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean; lockedAt?: Date | null } = {}
+    const data: { status?: "ACTIVE" | "LOST" | "DISABLED"; locked?: boolean; lockedAt?: Date | null; tagPermanentlyLockedAt?: Date | null } = {}
     if (body.status !== undefined && ["ACTIVE", "LOST", "DISABLED"].includes(body.status)) {
       data.status = body.status
     }
     if (body.locked !== undefined) {
       data.locked = body.locked
       data.lockedAt = body.locked ? new Date() : null
+    }
+    if (body.tagPermanentlyLockedAt === true) {
+      data.tagPermanentlyLockedAt = new Date()
     }
     const updated = await prisma.userCard.update({ where: { id }, data })
     return NextResponse.json(updated)

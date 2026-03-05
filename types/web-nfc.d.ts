@@ -17,6 +17,7 @@ interface NDEFReadingEvent extends Event {
 interface NDEFReader extends EventTarget {
   scan(): Promise<void>;
   write(message: NDEFMessage, options?: NDEFWriteOptions): Promise<void>;
+    makeReadOnly(options?: { signal?: AbortSignal }): Promise<void>;
   addEventListener(
     type: "reading" | "readingerror",
     listener: (event: NDEFReadingEvent | ErrorEvent) => void

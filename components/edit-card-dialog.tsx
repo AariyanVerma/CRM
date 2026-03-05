@@ -106,7 +106,7 @@ export function EditCardDialog({
           <div className="space-y-2">
             <Label>Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as CardStatus)}>
-              <SelectTrigger>
+              <SelectTrigger disabled={card.locked}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

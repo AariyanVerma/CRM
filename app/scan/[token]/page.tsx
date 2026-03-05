@@ -185,6 +185,7 @@ export default async function ScanPage({
           meltTransaction={meltTransaction}
           userRole={session.role}
           userId={session.id}
+          cardLocked={isLocked}
         />
       </main>
     </div>

@@ -45,6 +45,7 @@ export function PricingTable({
   metalType,
   userRole = "STAFF",
   onLineItemsUpdate,
+  readOnly = false,
 }: {
   transaction: Transaction
   onPrint: () => void
@@ -52,6 +53,7 @@ export function PricingTable({
   metalType?: MetalType
   userRole?: "ADMIN" | "STAFF"
   onLineItemsUpdate?: (lineItems: LineItem[]) => void
+  readOnly?: boolean
 }) {
   const { toast } = useToast()
   const [dwtValues, setDwtValues] = useState<Record<string, number>>({})
@@ -364,6 +366,7 @@ export function PricingTable({
   , [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate])
 
   function handleDwtChange(metalType: MetalType, purity: string, value: string, purityPercentage?: number) {
+    if (readOnly) return
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
 
@@ -507,6 +510,7 @@ export function PricingTable({
   )
 
   function handlePriceChange(metalType: MetalType, value: string) {
+    if (readOnly) return
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
 
@@ -540,7 +544,7 @@ export function PricingTable({
   }
 
   function handlePercentageChange(metalType: MetalType, value: string) {
-
+    if (readOnly) return
     const transactionTypeLower = transaction.type.toLowerCase()
     const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
     const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
@@ -582,7 +586,7 @@ export function PricingTable({
   }
 
   function handlePurityPercentageChange(metalType: MetalType, purity: string, value: string) {
-
+    if (readOnly) return
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
 
     const currentValue = purityPercentages[key]
@@ -892,6 +896,7 @@ export function PricingTable({
                         onChange={(e) => handlePurityPercentageChange(metalType, row.purity, e.target.value)}
                         onFocus={(e) => handlePurityPercentageFocus(metalType, row.purity, e)}
                         onBlur={(e) => handlePurityPercentageBlur(metalType, row.purity, e)}
+                        disabled={readOnly}
                         className="w-full max-w-24 sm:max-w-28 text-center font-black text-base sm:text-lg text-red-600 transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 mx-auto"
                         placeholder="0.00"
                       />
@@ -910,6 +915,7 @@ export function PricingTable({
                       min="0"
                       value={row.dwt || ""}
                       onChange={(e) => handleDwtChange(metalType, row.purity, e.target.value)}
+                      disabled={readOnly}
                       className={`w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all ${
                         row.dwt > 0 
                           ? 'bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20' 
@@ -930,6 +936,7 @@ export function PricingTable({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleClear(metalType, row.purity)}
+                      disabled={readOnly}
                       className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
                       title="Clear DWT"
                     >
@@ -963,6 +970,7 @@ export function PricingTable({
                     variant="ghost"
                     size="icon"
                     onClick={() => handleClearAll(metalType)}
+                    disabled={readOnly}
                     className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
                     title="Clear all DWT values"
                   >
@@ -1024,6 +1032,7 @@ export function PricingTable({
                   value={spotPrice === "" ? "" : spotPrice}
                   onFocus={() => handleSpotFocus(metalType.toLowerCase() as "gold" | "silver" | "platinum")}
                   onChange={(e) => handlePriceChange(metalType, e.target.value)}
+                  disabled={readOnly}
                   className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="0.00"
                 />
@@ -1044,6 +1053,7 @@ export function PricingTable({
                   onFocus={() => handlePercentageFocus(metalType)}
                   onBlur={() => handlePercentageBlur(metalType)}
                   onChange={(e) => handlePercentageChange(metalType, e.target.value)}
+                  disabled={readOnly}
                   className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="95.00"
                 />
@@ -1097,6 +1107,7 @@ export function PricingTable({
                     value={spotPrices.gold === "" ? "" : spotPrices.gold}
                     onFocus={() => handleSpotFocus("gold")}
                     onChange={(e) => handlePriceChange("GOLD", e.target.value)}
+                    disabled={readOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
@@ -1117,6 +1128,7 @@ export function PricingTable({
                     onFocus={() => handlePercentageFocus("GOLD")}
                     onBlur={() => handlePercentageBlur("GOLD")}
                     onChange={(e) => handlePercentageChange("GOLD", e.target.value)}
+                    disabled={readOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
@@ -1163,6 +1175,7 @@ export function PricingTable({
                     value={spotPrices.silver === "" ? "" : spotPrices.silver}
                     onFocus={() => handleSpotFocus("silver")}
                     onChange={(e) => handlePriceChange("SILVER", e.target.value)}
+                    disabled={readOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
@@ -1183,6 +1196,7 @@ export function PricingTable({
                     onFocus={() => handlePercentageFocus("SILVER")}
                     onBlur={() => handlePercentageBlur("SILVER")}
                     onChange={(e) => handlePercentageChange("SILVER", e.target.value)}
+                    disabled={readOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
@@ -1229,6 +1243,7 @@ export function PricingTable({
                     value={spotPrices.platinum === "" ? "" : spotPrices.platinum}
                     onFocus={() => handleSpotFocus("platinum")}
                     onChange={(e) => handlePriceChange("PLATINUM", e.target.value)}
+                    disabled={readOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
@@ -1249,6 +1264,7 @@ export function PricingTable({
                     onFocus={() => handlePercentageFocus("PLATINUM")}
                     onBlur={() => handlePercentageBlur("PLATINUM")}
                     onChange={(e) => handlePercentageChange("PLATINUM", e.target.value)}
+                    disabled={readOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
@@ -1267,7 +1283,7 @@ export function PricingTable({
           <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
           <span className="whitespace-nowrap">Print</span>
         </Button>
-        <Button onClick={onNewTransaction} variant="outline" size="lg" className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
+        <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={readOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
           <span className="text-center">Start New <span className="text-red-600 font-semibold">{transaction.type}</span> Transaction</span>
         </Button>
       </div>
