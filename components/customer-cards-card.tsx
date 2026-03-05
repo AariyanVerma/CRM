@@ -27,7 +27,7 @@ type CardRecord = {
   status: string
   locked?: boolean
   lockedAt?: Date | null
-  tagPermanentlyLockedAt?: string | null
+  tagPermanentlyLockedAt?: Date | string | null
   issuedAt: Date
   lastScannedAt: Date | null
 }
