@@ -245,7 +245,7 @@ export function CardPortalClient({ isAdmin, initialCustomer }: CardPortalClientP
       await ndef.write({
         records: [
           {
-            recordType: "url",
+            recordType: "application/vnd.nygm.card",
             data: url,
           },
         ],

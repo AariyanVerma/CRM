@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { CreditCard, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { NFC_APP_RECORD_TYPE, ndefRecordDataToString } from "@/lib/nfc"
 
 export function NFCScanCard() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export function NFCScanCard() {
   const [nfcSupported, setNfcSupported] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const ndefReaderRef = useRef<any>(null)
+  const lastReadAt = useRef(0)
   const isSecureContext = typeof window !== "undefined" && window.isSecureContext
 
   useEffect(() => {
@@ -76,6 +78,7 @@ export function NFCScanCard() {
 
       ndef.addEventListener("reading", async (event: any) => {
         try {
+          if (Date.now() - lastReadAt.current < 3000) return
           console.log("NFC tag detected!", event)
           console.log("Event details:", {
             message: event.message,
@@ -129,7 +132,9 @@ export function NFCScanCard() {
           try {
             let text = ""
 
-            if (record.recordType === "url") {
+            if (record.recordType === NFC_APP_RECORD_TYPE) {
+              text = ndefRecordDataToString(record.data)
+            } else if (record.recordType === "url") {
 
               let dataView: DataView
               if (record.data instanceof DataView) {
@@ -210,6 +215,7 @@ export function NFCScanCard() {
 
             const urlMatch = text.match(/\/scan\/([a-zA-Z0-9]+)/)
             if (urlMatch && urlMatch[1]) {
+              lastReadAt.current = Date.now()
               const token = urlMatch[1]
               console.log("Token extracted from URL:", token)
               setScanning(false)
@@ -224,6 +230,7 @@ export function NFCScanCard() {
 
             const trimmedText = text.trim()
             if (/^[a-zA-Z0-9]{8,64}$/.test(trimmedText)) {
+              lastReadAt.current = Date.now()
               console.log("Token found in text:", trimmedText)
               setScanning(false)
               toast({

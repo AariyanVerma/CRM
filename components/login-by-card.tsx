@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { CreditCard, Loader2 } from "lucide-react"
+import { NFC_APP_RECORD_TYPE, ndefRecordDataToString } from "@/lib/nfc"
 
 function getSlugFromUrl(urlString: string): string | null {
   try {
@@ -47,6 +48,7 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
     return () => { cancelled = true }
   }, [slugFromUrl, redirectUrl, toast])
 
+  const lastReadAt = useRef(0)
   const handleTapToSignIn = async () => {
     if (typeof window === "undefined" || !("NDEFReader" in window)) {
       toast({ title: "NFC not supported", description: "Use Chrome on Android (HTTPS).", variant: "destructive" })
@@ -57,11 +59,17 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
       const ndef = new window.NDEFReader()
       await ndef.scan()
       ndef.addEventListener("reading", async (event: NDEFReadingEvent | ErrorEvent) => {
+        if (Date.now() - lastReadAt.current < 3000) return
         if (!("message" in event) || typeof event.message === "string") return
         const msg = event.message as NDEFMessage
         if (!msg?.records?.length) return
         let slug: string | null = null
         for (const record of msg.records) {
+          if (record.recordType === NFC_APP_RECORD_TYPE) {
+            const urlString = ndefRecordDataToString(record.data)
+            slug = getSlugFromUrl(urlString)
+            if (slug) break
+          }
           if (record.recordType === "url") {
             let urlString: string
             if (typeof record.data === "string") {
@@ -80,6 +88,7 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
           setNfcLoading(false)
           return
         }
+        lastReadAt.current = Date.now()
         const res = await fetch("/api/auth/login-by-card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
