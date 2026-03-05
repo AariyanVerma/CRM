@@ -21,7 +21,8 @@ export async function GET(
       return new NextResponse(null, { status: 404 })
     }
     const mimeType = MIME_TYPES[row.mimeType] || row.mimeType || "image/jpeg"
-    const body = Buffer.isBuffer(row.data) ? row.data : Buffer.from(row.data as ArrayBuffer)
+    const buf = Buffer.isBuffer(row.data) ? row.data : Buffer.from(row.data as ArrayBuffer)
+    const body = new Uint8Array(buf)
     return new NextResponse(body, {
       status: 200,
       headers: {
