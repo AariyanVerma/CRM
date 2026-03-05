@@ -107,12 +107,13 @@ export function UserCardsSection({ userId }: { userId: string }) {
     setWriteLoading(url)
     try {
       const ndef = new window.NDEFReader()
+      const encoded = new TextEncoder().encode(url)
       await ndef.write({
         records: [
           {
             recordType: "mime",
             mediaType: "application/vnd.nygm.card",
-            data: new TextEncoder().encode(url),
+            data: encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength),
           },
         ],
       })

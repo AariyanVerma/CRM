@@ -242,12 +242,13 @@ export function CardPortalClient({ isAdmin, initialCustomer }: CardPortalClientP
     setWriteLoading(true)
     try {
       const ndef = new window.NDEFReader()
+      const encoded = new TextEncoder().encode(url)
       await ndef.write({
         records: [
           {
             recordType: "mime",
             mediaType: "application/vnd.nygm.card",
-            data: new TextEncoder().encode(url),
+            data: encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength),
           },
         ],
       })

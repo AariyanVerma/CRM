@@ -90,12 +90,15 @@ export function GlobalNfcProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    ndef.addEventListener("reading", handleReading as EventListener)
+    const listener = (evt: Event) => {
+      void handleReading(evt as NDEFReadingEvent | ErrorEvent)
+    }
+    ndef.addEventListener("reading", listener)
     ndef.scan({ signal: ac.signal }).catch(() => {})
 
     return () => {
       mounted = false
-      ndef.removeEventListener("reading", handleReading as EventListener)
+      ndef.removeEventListener("reading", listener)
       ac.abort()
       abortRef.current = null
     }

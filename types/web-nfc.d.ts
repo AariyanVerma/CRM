@@ -14,8 +14,12 @@ interface NDEFReadingEvent extends Event {
   serialNumber?: string;
 }
 
+interface NDEFScanOptions {
+  signal?: AbortSignal;
+}
+
 interface NDEFReader extends EventTarget {
-  scan(): Promise<void>;
+  scan(options?: NDEFScanOptions): Promise<void>;
   write(message: NDEFMessage, options?: NDEFWriteOptions): Promise<void>;
     makeReadOnly(options?: { signal?: AbortSignal }): Promise<void>;
   addEventListener(
