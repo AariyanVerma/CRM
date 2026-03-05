@@ -13,7 +13,7 @@ const TransactionsListClient = dynamic(
 export default async function AdminTransactionsPage() {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

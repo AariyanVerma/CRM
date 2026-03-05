@@ -51,7 +51,7 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
   const lastReadAt = useRef(0)
   const handleTapToSignIn = async () => {
     if (typeof window === "undefined" || !("NDEFReader" in window)) {
-      toast({ title: "NFC not supported", description: "Use Chrome on Android (HTTPS).", variant: "destructive" })
+      toast({ title: "NFC not supported", description: "Card scan works on Android (Chrome). Not available on iPhone or Safari.", variant: "destructive" })
       return
     }
     setNfcLoading(true)

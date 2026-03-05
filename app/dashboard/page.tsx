@@ -10,7 +10,7 @@ import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
 export default async function DashboardPage() {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const todayStart = new Date()

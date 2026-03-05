@@ -7,7 +7,7 @@ import { ReportsLazy } from "@/components/reports-lazy"
 export default async function ReportsPage() {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

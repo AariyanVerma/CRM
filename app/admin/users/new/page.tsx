@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header"
 export default async function NewUserPage() {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

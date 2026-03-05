@@ -13,7 +13,7 @@ export default async function EditUserPage({
 }) {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const { id } = await params

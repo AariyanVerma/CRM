@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/page-header"
 export default async function PricesPage() {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const today = new Date()

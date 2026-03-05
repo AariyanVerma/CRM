@@ -12,7 +12,7 @@ import { Plus } from "lucide-react"
 export default async function UsersPage() {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const users = await prisma.user.findMany({

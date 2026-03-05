@@ -25,7 +25,7 @@ export default async function CustomerDetailPage({
 }) {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const { id } = await params

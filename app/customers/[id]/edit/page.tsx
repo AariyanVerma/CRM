@@ -13,8 +13,8 @@ export default async function EditCustomerPage({
 }) {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
-  }
+    redirect("/")
+  }
   if (session.role !== "ADMIN") {
     redirect("/customers")
   }

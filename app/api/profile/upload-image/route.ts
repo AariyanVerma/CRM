@@ -16,13 +16,13 @@ export async function POST(request: NextRequest) {
         { message: "No image file provided" },
         { status: 400 }
       )
-    }
+    }
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
         { message: "File must be an image" },
         { status: 400 }
       )
-    }
+    }
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json(
         { message: "Image size must be less than 5MB" },
@@ -31,17 +31,18 @@ export async function POST(request: NextRequest) {
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const buffer = Buffer.from(bytes)
     const uploadsDir = join(process.cwd(), "public", "uploads", "profiles")
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
-    }
+    }
     const timestamp = Date.now()
     const extension = file.name.split(".").pop()
     const filename = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`
-    const filepath = join(uploadsDir, filename)
-    await writeFile(filepath, buffer)
-    const url = `/uploads/profiles/${filename}`
+    const filepath = join(uploadsDir, filename)
+    await writeFile(filepath, buffer)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+    const url = `${baseUrl}/uploads/profiles/${filename}`
 
     return NextResponse.json({ url })
   } catch (error) {

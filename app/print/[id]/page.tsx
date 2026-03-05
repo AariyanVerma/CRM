@@ -18,7 +18,7 @@ export default async function PrintPage({
 }) {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const { id } = await params

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header"
 export default async function NewCustomerPage() {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

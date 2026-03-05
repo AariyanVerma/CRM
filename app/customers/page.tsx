@@ -17,7 +17,7 @@ export default async function CustomersPage({
 }) {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const { q } = await searchParams

@@ -12,7 +12,7 @@ export default async function CardPortalPage({
 }) {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
   const canAccess = session.role === "ADMIN" || session.canIssueCard === true
   if (!canAccess) {

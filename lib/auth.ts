@@ -89,9 +89,7 @@ export async function createSession(userId: string): Promise<void> {
     httpOnly: true,
     secure: useSecure,
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
     path: '/',
-
   })
 }
 

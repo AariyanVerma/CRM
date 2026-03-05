@@ -15,6 +15,12 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
   outputFileTracingRoot: require('path').join(__dirname),
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**', pathname: '/uploads/**' },
+      { protocol: 'http', hostname: '**', pathname: '/uploads/**' },
+    ],
+  },
   experimental: {
     workerThreads: false,
     cpus: 1,

@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/page-header"
 export default async function ManualScanPage() {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

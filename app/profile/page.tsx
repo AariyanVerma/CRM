@@ -7,7 +7,7 @@ import { ProfileForm } from "@/components/profile-form"
 export default async function ProfilePage() {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

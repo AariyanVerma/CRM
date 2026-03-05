@@ -234,7 +234,7 @@ export function CardPortalClient({ isAdmin, initialCustomer }: CardPortalClientP
     if (!url || typeof window === "undefined" || !window.NDEFReader) {
       toast({
         title: "NFC not available",
-        description: "Web NFC is only supported in Chrome on Android (HTTPS).",
+        description: "Card read/write works on Android (Chrome). Not available on iPhone or Safari.",
         variant: "destructive",
       })
       return

@@ -16,7 +16,7 @@ export default async function BatchPrintPage({
 }) {
   const session = await getSession()
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   const { ids: idsParam } = await searchParams

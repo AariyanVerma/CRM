@@ -7,7 +7,7 @@ import { AnalyticsDashboardLazy } from "@/components/analytics-dashboard-lazy"
 export default async function AnalyticsDashboardPage() {
   const session = await requireAdmin().catch(() => null)
   if (!session) {
-    redirect("/login")
+    redirect("/")
   }
 
   return (

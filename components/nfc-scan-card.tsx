@@ -37,7 +37,7 @@ export function NFCScanCard() {
         setNfcSupported(true)
         return true
       } else {
-        setError("NFC scanning is not supported in this browser.")
+        setError("NFC scanning is not supported here. Use Android with Chrome, or enter the token manually.")
         return false
       }
     }
@@ -339,7 +339,7 @@ export function NFCScanCard() {
             <AlertCircle className="w-12 h-12 text-destructive mb-4 animate-pulse" />
             <h2 className="text-lg font-semibold mb-2 text-destructive">NFC Not Available</h2>
             <p className="text-muted-foreground text-center text-sm max-w-sm">
-              NFC scanning is not supported in this browser. Please use the manual entry option below.
+              NFC scanning is not available on this device (e.g. iPhone/Safari). Use Android with Chrome, or enter the token below.
             </p>
           </>
         ) : scanning ? (
