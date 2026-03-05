@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
+import { clearSessionActive } from "@/components/session-guard"
 
 const INACTIVITY_TIMEOUT_CHANGED = "inactivity-timeout-changed"
 
@@ -23,6 +24,7 @@ export function InactivityProvider({ children }: { children: React.ReactNode }) 
     timerRef.current = setTimeout(() => {
       timerRef.current = null
       removeListenersRef.current?.()
+      clearSessionActive()
       fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {})
       window.location.href = "/"
     }, mins * 60 * 1000)

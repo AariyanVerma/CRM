@@ -15,10 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import Image from "next/image"
 import { Trash2, Key } from "lucide-react"
 import { PasswordInput } from "@/components/password-input"
 import { getDisplayName } from "@/lib/utils"
+import { toProfileImageSrc } from "@/lib/profile-image"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   AlertDialog,
@@ -281,12 +281,11 @@ export function EditUserForm({ user }: EditUserFormProps) {
             <Label htmlFor="profileImage">Profile Picture</Label>
             <div className="flex items-center gap-4">
               {imagePreview ? (
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border">
-                  <Image
-                    src={imagePreview}
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border">
+                  <img
+                    src={imagePreview.startsWith("data:") ? imagePreview : (toProfileImageSrc(imagePreview) ?? imagePreview)}
                     alt="Profile preview"
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               ) : (

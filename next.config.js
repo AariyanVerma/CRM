@@ -19,6 +19,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: '**', pathname: '/uploads/**' },
       { protocol: 'http', hostname: '**', pathname: '/uploads/**' },
+      { protocol: 'https', hostname: 'app.newyorkgoldmarket.com', pathname: '/**' },
+      { protocol: 'http', hostname: 'app.newyorkgoldmarket.com', pathname: '/**' },
     ],
   },
   experimental: {

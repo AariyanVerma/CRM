@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { CreditCard, Loader2 } from "lucide-react"
 import { NFC_APP_RECORD_TYPE, ndefRecordDataToString } from "@/lib/nfc"
+import { setSessionActive } from "@/components/session-guard"
 
 function getSlugFromUrl(urlString: string): string | null {
   try {
@@ -37,6 +38,7 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
         if (cancelled) return
         const data = await res.json().catch(() => ({}))
         if (res.ok && data.redirect) {
+          setSessionActive()
           window.location.href = data.redirect
           return
         }
@@ -100,6 +102,7 @@ export function LoginByCard({ slugFromUrl, redirectUrl }: { slugFromUrl: string 
         })
         const data = await res.json().catch(() => ({}))
         if (res.ok && data.redirect) {
+          setSessionActive()
           window.location.href = data.redirect
           return
         }

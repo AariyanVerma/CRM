@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import Image from "next/image"
 import { User, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { toProfileImageSrc } from "@/lib/profile-image"
 
 interface ProfileFormProps {
   user: {
@@ -59,7 +59,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setLoading(true)
+    setLoading(true)
     let profileImageUrl: string | null = user.profileImageUrl || null
     if (profileImage) {
       try {
@@ -83,7 +83,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         setLoading(false)
         return
       }
-    }
+    }
     try {
       const res = await fetch("/api/profile", {
         method: "PATCH",
@@ -128,12 +128,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
 }
           <div className="flex items-center gap-4 pb-4 border-b">
             {imagePreview ? (
-              <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
-                <Image
-                  src={imagePreview}
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
+                <img
+                  src={imagePreview.startsWith("data:") ? imagePreview : (toProfileImageSrc(imagePreview) ?? imagePreview)}
                   alt={fullName}
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             ) : (
@@ -162,12 +161,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
             </label>
             <div className="flex items-center gap-4">
               {imagePreview ? (
-                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-border">
-                  <Image
-                    src={imagePreview}
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-border">
+                  <img
+                    src={imagePreview.startsWith("data:") ? imagePreview : (toProfileImageSrc(imagePreview) ?? imagePreview)}
                     alt="Profile preview"
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               ) : (

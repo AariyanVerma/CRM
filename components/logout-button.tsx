@@ -3,15 +3,15 @@
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
+import { clearSessionActive } from "@/components/session-guard"
 
 export function LogoutButton() {
   const router = useRouter()
 
-  async function handleLogout() {
-    window.history.replaceState(null, '', '/')
-    router.replace("/")
-    fetch("/api/auth/logout", { method: "POST" }).catch(() => {
-    })
+  async function handleLogout() {
+    clearSessionActive()
+    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {})
+    window.location.href = "/"
   }
 
   return (

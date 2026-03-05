@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation"
-import { getSession, createSession, verifyCredentials } from "@/lib/auth"
+import { createSession, verifyCredentials } from "@/lib/auth"
 import { LoginForm } from "@/components/login-form"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Logo } from "@/components/logo"
@@ -13,10 +12,6 @@ export default async function LoginPage({
   const params = await searchParams
   const redirectUrl = params.redirect ?? ""
   const cardSlug = params.card ?? null
-  const session = await getSession()
-  if (session) {
-    redirect(redirectUrl || "/dashboard")
-  }
 
   async function handleLogin(formData: FormData) {
     "use server"

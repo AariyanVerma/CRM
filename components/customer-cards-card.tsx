@@ -268,7 +268,6 @@ export function CustomerCardsCard({
             ))}
           </ul>
 
-        {/* Permanent lock confirmation */}
         <AlertDialog open={permanentLockConfirmCardId !== null} onOpenChange={(open) => !open && setPermanentLockConfirmCardId(null)}>
           <AlertDialogContent className="border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-background shadow-xl sm:max-w-md">
             <AlertDialogHeader>

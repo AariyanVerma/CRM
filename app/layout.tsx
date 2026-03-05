@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { PwaUpdatePrompt } from "@/components/pwa-update-prompt"
 import { InactivityProvider } from "@/components/inactivity-provider"
 import { GlobalNfcProvider } from "@/components/global-nfc-provider"
+import { SessionGuard } from "@/components/session-guard"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -67,6 +68,7 @@ export default function RootLayout({
         >
           <InactivityProvider>
             <GlobalNfcProvider>
+              <SessionGuard />
               {children}
               <Toaster />
               <PwaUpdatePrompt />

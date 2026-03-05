@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
-import { existsSync } from "fs"
+import { prisma } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,18 +30,11 @@ export async function POST(request: NextRequest) {
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const uploadsDir = join(process.cwd(), "public", "uploads", "profiles")
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-    const timestamp = Date.now()
-    const extension = file.name.split(".").pop()
-    const filename = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`
-    const filepath = join(uploadsDir, filename)
-    await writeFile(filepath, buffer)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
-    const url = `${baseUrl}/uploads/profiles/${filename}`
-
+    const mimeType = file.type || "image/jpeg"
+    const row = await prisma.profileImageUpload.create({
+      data: { data: buffer, mimeType },
+    })
+    const url = `/api/profile-image/${row.id}`
     return NextResponse.json({ url })
   } catch (error) {
     console.error("Error uploading image:", error)

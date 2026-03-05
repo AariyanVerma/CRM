@@ -9,6 +9,7 @@ import {
   parseNfcCardFromUrl,
   type ParsedNfcCard,
 } from "@/lib/nfc"
+import { setSessionActive } from "@/components/session-guard"
 
 function getUrlFromRecord(record: NDEFRecord): string | null {
   const isAppCard =
@@ -84,6 +85,7 @@ export function GlobalNfcProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json().catch(() => ({}))
         if (!mounted) return
         if (res.ok && data.redirect) {
+          setSessionActive()
           window.location.href = data.redirect
           return
         }

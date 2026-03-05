@@ -19,9 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import Image from "next/image"
 import Link from "next/link"
 import { dispatchInactivityTimeoutChanged } from "@/components/inactivity-provider"
+import { toProfileImageSrc } from "@/lib/profile-image"
 
 const TIMEOUT_OPTIONS: { value: number | null; label: string }[] = [
   { value: 5, label: "5 minutes" },
@@ -57,6 +57,7 @@ export function UserMenu({
   const [open, setOpen] = useState(false)
   const [timeoutMinutes, setTimeoutMinutes] = useState<number | null>(inactivityTimeoutMinutes ?? null)
   const fullName = [firstName, lastName].filter(Boolean).join(" ") || email
+  const profileImgSrc = toProfileImageSrc(profileImageUrl)
 
   useEffect(() => {
     setTimeoutMinutes(inactivityTimeoutMinutes ?? null)
@@ -86,13 +87,12 @@ export function UserMenu({
         className="relative rounded-full"
         aria-label="User menu"
       >
-        {profileImageUrl ? (
-          <div className="relative w-8 h-8 rounded-full overflow-hidden">
-            <Image
-              src={profileImageUrl}
+        {profileImgSrc ? (
+          <div className="w-8 h-8 rounded-full overflow-hidden">
+            <img
+              src={profileImgSrc}
               alt={fullName}
-              fill
-              className="object-cover"
+              className="w-full h-full object-cover"
             />
           </div>
         ) : (
@@ -109,13 +109,12 @@ export function UserMenu({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-4">
-              {profileImageUrl ? (
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
-                  <Image
-                    src={profileImageUrl}
+              {profileImgSrc ? (
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
+                  <img
+                    src={profileImgSrc}
                     alt={fullName}
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               ) : (

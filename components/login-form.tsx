@@ -9,6 +9,7 @@ import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
 import { PasswordInput } from "@/components/password-input"
 import { Logo } from "@/components/logo"
 import { LoginByCard } from "@/components/login-by-card"
+import { setSessionActive } from "@/components/session-guard"
 
 export function LoginForm({
   action,
@@ -36,9 +37,10 @@ export function LoginForm({
         setError(result.error)
         setLoading(false)
       } else if (result?.redirect) {
-
+        setSessionActive()
         window.location.href = result.redirect
       } else {
+        setSessionActive()
         window.location.href = "/dashboard"
       }
     } catch (error) {

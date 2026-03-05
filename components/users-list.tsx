@@ -2,8 +2,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Shield, User, Mail, Phone, MapPin, Edit } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
+import { toProfileImageSrc } from "@/lib/profile-image"
 
 interface User {
   id: string
@@ -32,18 +32,18 @@ export function UsersList({ users }: { users: User[] }) {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {users.map((user) => {
         const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email
+        const profileImgSrc = toProfileImageSrc(user.profileImageUrl)
         return (
           <Card key={user.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  {user.profileImageUrl ? (
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
-                      <Image
-                        src={user.profileImageUrl}
+                  {profileImgSrc ? (
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border flex-shrink-0">
+                      <img
+                        src={profileImgSrc}
                         alt={fullName}
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   ) : (

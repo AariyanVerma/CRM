@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model ProfileImageUpload {
+  id        String   @id @default(cuid())
+  data      Bytes
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model User {
   id                         String               @id @default(cuid())
   email                      String               @unique
