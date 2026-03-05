@@ -12,6 +12,7 @@ export interface SessionUser {
   role: 'ADMIN' | 'STAFF'
   canIssueCard?: boolean
   canAccessLockedCards?: boolean
+  inactivityTimeoutMinutes?: number | null
   firstName?: string | null
   lastName?: string | null
   address?: string | null
@@ -41,6 +42,7 @@ export async function getSession(): Promise<SessionUser | null> {
       profileImageUrl: string | null
       canIssueCard: boolean | null
       canAccessLockedCards: boolean | null
+      inactivityTimeoutMinutes?: number | null
     }>>`
       SELECT id, email, role, "firstName", "lastName", address, "phoneNumber", "profileImageUrl", "canIssueCard", "canAccessLockedCards"
       FROM "User"
@@ -49,6 +51,15 @@ export async function getSession(): Promise<SessionUser | null> {
     `
     const user = users[0]
     if (!user) return null
+    let inactivityTimeoutMinutes: number | null = null
+    try {
+      const withTimeout = await prisma.$queryRaw<Array<{ inactivityTimeoutMinutes: number | null }>>`
+        SELECT "inactivityTimeoutMinutes" FROM "User" WHERE id = ${userId} LIMIT 1
+      `
+      inactivityTimeoutMinutes = withTimeout[0]?.inactivityTimeoutMinutes ?? null
+    } catch {
+      inactivityTimeoutMinutes = null
+    }
 
     return {
       id: user.id,
@@ -56,6 +67,7 @@ export async function getSession(): Promise<SessionUser | null> {
       role: user.role as 'ADMIN' | 'STAFF',
       canIssueCard: user.canIssueCard === true,
       canAccessLockedCards: user.canAccessLockedCards === true,
+      inactivityTimeoutMinutes,
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,
@@ -163,12 +175,22 @@ export async function getSessionFromRequest(request: NextRequest): Promise<Sessi
     `
     const user = users[0]
     if (!user) return null
+    let inactivityTimeoutMinutes: number | null = null
+    try {
+      const withTimeout = await prisma.$queryRaw<Array<{ inactivityTimeoutMinutes: number | null }>>`
+        SELECT "inactivityTimeoutMinutes" FROM "User" WHERE id = ${userId} LIMIT 1
+      `
+      inactivityTimeoutMinutes = withTimeout[0]?.inactivityTimeoutMinutes ?? null
+    } catch {
+      inactivityTimeoutMinutes = null
+    }
     return {
       id: user.id,
       email: user.email,
       role: user.role as 'ADMIN' | 'STAFF',
       canIssueCard: user.canIssueCard === true,
       canAccessLockedCards: user.canAccessLockedCards === true,
+      inactivityTimeoutMinutes,
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,

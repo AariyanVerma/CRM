@@ -8,8 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
 import { PasswordInput } from "@/components/password-input"
 import { Logo } from "@/components/logo"
+import { LoginByCard } from "@/components/login-by-card"
 
-export function LoginForm({ action }: { action: (formData: FormData) => Promise<{ error?: string; redirect?: string } | void> }) {
+export function LoginForm({
+  action,
+  cardSlug,
+  redirectUrl,
+}: {
+  action: (formData: FormData) => Promise<{ error?: string; redirect?: string } | void>
+  cardSlug?: string | null
+  redirectUrl?: string
+}) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
@@ -91,6 +100,7 @@ export function LoginForm({ action }: { action: (formData: FormData) => Promise<
               Forgot Password?
             </button>
           </div>
+          <LoginByCard slugFromUrl={cardSlug ?? null} redirectUrl={redirectUrl ?? "/dashboard"} />
         </form>
         <ForgotPasswordDialog
           open={forgotPasswordOpen}

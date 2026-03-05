@@ -47,6 +47,7 @@ export async function PageHeader({
                 address={session.address}
                 phoneNumber={session.phoneNumber}
                 profileImageUrl={session.profileImageUrl}
+                inactivityTimeoutMinutes={session.inactivityTimeoutMinutes}
               />
             </>
           )}

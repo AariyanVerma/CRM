@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { PwaUpdatePrompt } from "@/components/pwa-update-prompt"
+import { InactivityProvider } from "@/components/inactivity-provider"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -63,9 +64,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
-          <PwaUpdatePrompt />
+          <InactivityProvider>
+            {children}
+            <Toaster />
+            <PwaUpdatePrompt />
+          </InactivityProvider>
         </ThemeProvider>
       </body>
     </html>

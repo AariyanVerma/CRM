@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { EditUserForm } from "@/components/edit-user-form"
+import { UserCardsSection } from "@/components/user-cards-section"
 import { BackButton } from "@/components/back-button"
 import { PageHeader } from "@/components/page-header"
 
@@ -44,6 +45,7 @@ export default async function EditUserPage({
         <div className="space-y-6">
           <BackButton href="/admin/users" />
           <EditUserForm user={user} />
+          <UserCardsSection userId={user.id} />
         </div>
       </main>
     </div>

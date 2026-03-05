@@ -8,9 +8,11 @@ import { PreventBackNavigation } from "@/components/prevent-back-navigation"
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirect?: string }>
+  searchParams: Promise<{ redirect?: string; card?: string }>
 }) {
-  const { redirect: redirectUrl } = await searchParams
+  const params = await searchParams
+  const redirectUrl = params.redirect ?? ""
+  const cardSlug = params.card ?? null
   const session = await getSession()
   if (session) {
     redirect(redirectUrl || "/dashboard")
@@ -54,7 +56,7 @@ export default async function LoginPage({
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4 max-w-full overflow-x-hidden">
-        <LoginForm action={handleLogin} />
+        <LoginForm action={handleLogin} cardSlug={cardSlug} redirectUrl={redirectUrl || "/dashboard"} />
       </main>
     </div>
   )

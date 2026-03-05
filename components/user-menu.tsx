@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { User, Shield, Mail, Phone, MapPin } from "lucide-react"
 import {
@@ -11,8 +11,27 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import Image from "next/image"
 import Link from "next/link"
+import { dispatchInactivityTimeoutChanged } from "@/components/inactivity-provider"
+
+const TIMEOUT_OPTIONS: { value: number | null; label: string }[] = [
+  { value: 5, label: "5 minutes" },
+  { value: 10, label: "10 minutes" },
+  { value: 20, label: "20 minutes" },
+  { value: 30, label: "30 minutes" },
+  { value: 60, label: "1 hour" },
+  { value: 120, label: "2 hours" },
+  { value: null, label: "Never" },
+]
 
 interface UserMenuProps {
   email: string
@@ -22,6 +41,7 @@ interface UserMenuProps {
   address?: string | null
   phoneNumber?: string | null
   profileImageUrl?: string | null
+  inactivityTimeoutMinutes?: number | null
 }
 
 export function UserMenu({
@@ -32,9 +52,30 @@ export function UserMenu({
   address,
   phoneNumber,
   profileImageUrl,
+  inactivityTimeoutMinutes,
 }: UserMenuProps) {
   const [open, setOpen] = useState(false)
+  const [timeoutMinutes, setTimeoutMinutes] = useState<number | null>(inactivityTimeoutMinutes ?? null)
   const fullName = [firstName, lastName].filter(Boolean).join(" ") || email
+
+  useEffect(() => {
+    setTimeoutMinutes(inactivityTimeoutMinutes ?? null)
+  }, [inactivityTimeoutMinutes])
+
+  async function handleTimeoutChange(value: number | null) {
+    setTimeoutMinutes(value)
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inactivityTimeoutMinutes: value }),
+        credentials: "include",
+      })
+      if (res.ok) dispatchInactivityTimeoutChanged(value)
+    } catch (e) {
+      setTimeoutMinutes(timeoutMinutes)
+    }
+  }
 
   return (
     <>
@@ -111,6 +152,24 @@ export function UserMenu({
                   <span className="text-sm">{address}</span>
                 </div>
               )}
+            </div>
+            <div className="space-y-2 pt-4 border-t">
+              <Label className="text-sm">Log out after</Label>
+              <Select
+                value={timeoutMinutes === null ? "never" : String(timeoutMinutes)}
+                onValueChange={(v) => handleTimeoutChange(v === "never" ? null : Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEOUT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value ?? "never"} value={opt.value === null ? "never" : String(opt.value)}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="pt-4 border-t">
               <Link href="/profile">
