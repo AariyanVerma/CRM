@@ -57,7 +57,9 @@ export function ApprovalsClient({ adminId }: { adminId: string }) {
     const socket = getSocket()
     const onNew = () => fetchRequests()
     socket.on("approval_request_new", onNew)
-    return () => socket.off("approval_request_new", onNew)
+    return () => {
+      socket.off("approval_request_new", onNew)
+    }
   }, [])
 
   async function handleApprove(requestId: string) {

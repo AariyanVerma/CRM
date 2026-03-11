@@ -425,7 +425,7 @@ export function StonesAnalyticsClient() {
                         <TableRow key={row.id}>
                           <TableCell className="font-black">
                             {usedRowIds.has(row.id) ? (
-                              <CheckCircle2 className="h-5 w-5 text-muted-foreground" title="Used in report" />
+                              <span title="Used in report" className="inline-flex"><CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden /></span>
                             ) : (
                               <Checkbox
                                 checked={selectedIds.has(row.id)}

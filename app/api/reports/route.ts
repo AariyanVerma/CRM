@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (customerIds.length > 0) where.customerId = { in: customerIds }
     else if (customerId) where.customerId = customerId
     if (typeFilter === "SCRAP" || typeFilter === "MELT") where.type = typeFilter as TransactionType
-    if (statusFilter === "OPEN" || statusFilter === "PENDING_APPROVAL" || statusFilter === "PRINTED" || statusFilter === "VOID") where.status = statusFilter as TransactionStatus
+    if (statusFilter === "OPEN" || statusFilter === "PENDING_APPROVAL" || statusFilter === "APPROVED" || statusFilter === "PRINTED" || statusFilter === "VOID") where.status = statusFilter as TransactionStatus
     if (metalFilter === "GOLD" || metalFilter === "SILVER" || metalFilter === "PLATINUM") {
       where.lineItems = { some: { metalType: metalFilter } }
     }
@@ -70,7 +70,13 @@ export async function GET(request: NextRequest) {
     }
 
     const byType = { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
-    const byStatus = { OPEN: { count: 0, total: 0 }, PENDING_APPROVAL: { count: 0, total: 0 }, PRINTED: { count: 0, total: 0 }, VOID: { count: 0, total: 0 } }
+    const byStatus: Record<TransactionStatus, { count: number; total: number }> = {
+      OPEN: { count: 0, total: 0 },
+      PENDING_APPROVAL: { count: 0, total: 0 },
+      APPROVED: { count: 0, total: 0 },
+      PRINTED: { count: 0, total: 0 },
+      VOID: { count: 0, total: 0 },
+    }
     const byMetal = { GOLD: 0, SILVER: 0, PLATINUM: 0 }
     withTotal.forEach((t) => {
       byType[t.type].count += 1

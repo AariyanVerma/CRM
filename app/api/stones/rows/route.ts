@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import type { MetalType } from "@prisma/client"
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,10 +13,10 @@ export async function GET(request: NextRequest) {
     const to = toStr ? new Date(toStr) : undefined
     const metal = searchParams.get("metal")
     const purity = searchParams.get("purity")
-    const where: { date?: { gte?: Date; lte?: Date }; metal?: string; purity?: { contains: string; mode?: "insensitive" } } = {}
+    const where: { date?: { gte?: Date; lte?: Date }; metal?: MetalType; purity?: { contains: string; mode?: "insensitive" } } = {}
     if (from) where.date = { ...where.date, gte: from }
     if (to) where.date = { ...where.date, lte: to }
-    if (metal && metal !== "ALL") where.metal = metal
+    if (metal && metal !== "ALL") where.metal = metal as MetalType
     if (purity != null && purity !== "") where.purity = { contains: purity, mode: "insensitive" }
     const rows = await prisma.stonesSaveRow.findMany({
       where: Object.keys(where).length ? where : undefined,
