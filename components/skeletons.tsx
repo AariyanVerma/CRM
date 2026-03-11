@@ -224,3 +224,17 @@ export function PrintViewSkeleton() {
     </div>
   )
 }
+
+export function ApprovalReviewSkeleton() {
+  return (
+    <div className="min-h-[50vh] flex flex-col gap-6">
+      <Skeleton className="h-10 w-24" />
+      <Skeleton className="h-24 w-full max-w-md" />
+      <Skeleton className="h-10 w-full max-w-[200px]" />
+      <div className="flex gap-4">
+        <Skeleton className="h-32 flex-1 rounded-lg" />
+        <Skeleton className="h-32 flex-1 rounded-lg" />
+      </div>
+    </div>
+  )
+}

@@ -526,7 +526,7 @@ export function PurityBreakdownView() {
                           <td className="py-2 px-2 text-center tabular-nums">{item.dwt.toFixed(2)}</td>
                           <td className="py-2 px-2 text-center tabular-nums font-medium">{formatCurrency(item.lineTotal)}</td>
                           <td className="py-2 px-2 text-center">
-                            <Link href={`/print/${item.transactionId}`} target="_blank" rel="noopener noreferrer">
+                            <Link href={`/print/${item.transactionId}`}>
                               <Button
                                 variant="outline"
                                 size="sm"

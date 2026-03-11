@@ -8,14 +8,19 @@ interface BackButtonProps {
   href?: string
   label?: string
   className?: string
+  replace?: boolean
 }
 
-export function BackButton({ href, label = "Back", className }: BackButtonProps) {
+export function BackButton({ href, label = "Back", className, replace }: BackButtonProps) {
   const router = useRouter()
 
   const handleClick = () => {
     if (href) {
-      router.push(href)
+      if (replace) {
+        router.replace(href)
+      } else {
+        router.push(href)
+      }
     } else {
       router.back()
     }

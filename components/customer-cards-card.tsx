@@ -310,7 +310,6 @@ export function CustomerCardsCard({
           </AlertDialogContent>
         </AlertDialog>
 
-        {}
         <AlertDialog open={deleteConfirmCardId !== null} onOpenChange={(open) => !open && setDeleteConfirmCardId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

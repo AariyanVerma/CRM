@@ -167,7 +167,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
               const s = derived.byStatus[status] || { count: 0, total: 0 }
               return (
                 <div key={status} className="flex justify-between items-center rounded-lg bg-muted/50 px-4 py-3">
-                  <span className="font-medium">{status}</span>
+                  <span className="font-medium">{status === "OPEN" ? "Approved" : status}</span>
                   <span className="tabular-nums text-sm">{s.count} trans · {formatCurrency(s.total)}</span>
                 </div>
               )
@@ -286,7 +286,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
                   .reduce((s, t) => s + t.total, 0)
                 return (
                   <div key={`${type}-${status}`} className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
-                    <span className="font-medium">{type} · {status}</span>
+                    <span className="font-medium">{type} · {status === "OPEN" ? "Approved" : status}</span>
                     <span className="tabular-nums">{count} · {formatCurrency(total)}</span>
                   </div>
                 )

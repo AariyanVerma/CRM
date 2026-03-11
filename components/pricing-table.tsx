@@ -30,12 +30,75 @@ interface LineItem {
 }
 
 interface Transaction {
-  id: string
+  id: string | null
   type: "SCRAP" | "MELT"
   goldSpot: number
   silverSpot: number
   platinumSpot: number
   lineItems: LineItem[]
+}
+
+function buildDraftLineItems(
+  type: "SCRAP" | "MELT",
+  dwtValues: Record<string, number>,
+  purityPercentages: Record<string, number | string>,
+  spotPrices: { gold: number | ""; silver: number | ""; platinum: number | "" },
+  percentages: Record<string, number | string>
+): LineItem[] {
+  const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
+  const silver = typeof spotPrices.silver === "number" ? spotPrices.silver : parseFloat(String(spotPrices.silver)) || 0
+  const platinum = typeof spotPrices.platinum === "number" ? spotPrices.platinum : parseFloat(String(spotPrices.platinum)) || 0
+  const pct = (key: string) => {
+    const v = percentages[key]
+    return typeof v === "number" ? v : parseFloat(String(v)) || 95
+  }
+  const items: LineItem[] = []
+  let id = 0
+  if (type === "SCRAP") {
+    for (const metalType of ["GOLD", "SILVER", "PLATINUM"] as MetalType[]) {
+      const purities = metalType === "GOLD" ? GOLD_PURITIES : metalType === "SILVER" ? SILVER_PURITIES : PLATINUM_PURITIES
+      const spot = metalType === "GOLD" ? gold : metalType === "SILVER" ? silver : platinum
+      const pctKey = `scrap${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage`
+      const percentage = pct(pctKey)
+      const currentDwt: Record<string, number> = {}
+      purities.forEach((p) => { currentDwt[p] = dwtValues[`${metalType}-${p}`] ?? 0 })
+      const rows = getScrapPricingRows(metalType, spot, currentDwt, percentage)
+      rows.forEach((row) => {
+        if (row.dwt > 0) {
+          items.push({
+            id: `draft-${++id}`,
+            metalType,
+            purityLabel: row.purity,
+            dwt: row.dwt,
+            pricePerOz: row.pricePerDWT,
+            lineTotal: row.lineTotal,
+          })
+        }
+      })
+    }
+  } else {
+    for (const metalType of ["GOLD", "SILVER", "PLATINUM"] as MetalType[]) {
+      const spot = metalType === "GOLD" ? gold : metalType === "SILVER" ? silver : platinum
+      const pctKey = `melt${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage`
+      const percentage = pct(pctKey)
+      const key = metalType
+      const dwt = dwtValues[key] ?? 0
+      const purityPct = typeof purityPercentages[key] === "number" ? purityPercentages[key] : parseFloat(String(purityPercentages[key] || 0)) || 0
+      const rows = getMeltPricingRows(metalType, spot, { [key]: dwt }, { [key]: purityPct }, percentage)
+      rows.forEach((row) => {
+        items.push({
+          id: `draft-${++id}`,
+          metalType,
+          purityLabel: row.purity,
+          dwt: row.dwt,
+          pricePerOz: row.pricePerDWT,
+          lineTotal: row.lineTotal,
+          purityPercentage: row.purityPercentage ?? null,
+        })
+      })
+    }
+  }
+  return items
 }
 
 export function PricingTable({
@@ -46,6 +109,11 @@ export function PricingTable({
   userRole = "STAFF",
   onLineItemsUpdate,
   readOnly = false,
+  canPrint = true,
+  approvalStatus = null,
+  onSendForApproval,
+  pendingAdminName,
+  customBottom,
 }: {
   transaction: Transaction
   onPrint: () => void
@@ -54,6 +122,11 @@ export function PricingTable({
   userRole?: "ADMIN" | "STAFF"
   onLineItemsUpdate?: (lineItems: LineItem[]) => void
   readOnly?: boolean
+  canPrint?: boolean
+  approvalStatus?: "PENDING" | "APPROVED" | "DENIED" | null
+  onSendForApproval?: () => void
+  pendingAdminName?: string | null
+  customBottom?: React.ReactNode
 }) {
   const { toast } = useToast()
   const [dwtValues, setDwtValues] = useState<Record<string, number>>({})
@@ -80,21 +153,34 @@ export function PricingTable({
   const pendingPriceRef = useRef<Record<string, number>>({})
   const spotPricesRef = useRef(spotPrices)
   spotPricesRef.current = spotPrices
+  const percentagesRef = useRef(percentages)
+  percentagesRef.current = percentages
+  const dwtValuesRef = useRef(dwtValues)
+  dwtValuesRef.current = dwtValues
+  const purityPercentagesRef = useRef(purityPercentages)
+  purityPercentagesRef.current = purityPercentages
+
+  const isDraft = !transaction.id
 
   useEffect(() => {
+    if (isDraft) return
     const values: Record<string, number> = {}
     const purityValues: Record<string, number> = {}
     transaction.lineItems.forEach((item) => {
-      const key = `${item.metalType}-${item.purityLabel}`
-      values[key] = item.dwt
-
+      const key = transaction.type === "MELT" ? item.metalType : `${item.metalType}-${item.purityLabel}`
+      const existing = values[key]
+      if (transaction.type === "MELT" && existing !== undefined) {
+        values[key] = existing + item.dwt
+      } else {
+        values[key] = item.dwt
+      }
       if (transaction.type === "MELT" && item.purityPercentage !== undefined && item.purityPercentage !== null) {
         purityValues[key] = item.purityPercentage
       }
     })
     setDwtValues(values)
     setPurityPercentages(purityValues)
-  }, [transaction.lineItems, transaction.type])
+  }, [transaction.lineItems, transaction.type, isDraft])
 
   useSocketPrices(
     useCallback((prices) => {
@@ -136,7 +222,7 @@ export function PricingTable({
   )
 
   useSocketTransaction(
-    transaction.id,
+    transaction.id ?? "",
     useCallback((lineItems) => {
 
       if (onLineItemsUpdate) {
@@ -240,7 +326,7 @@ export function PricingTable({
         })
       }
     }, [transaction.type, onLineItemsUpdate]),
-    { enabled: true }
+    { enabled: !isDraft }
   )
 
   const inFlightRequestsRef = useRef<Set<string>>(new Set())
@@ -251,7 +337,31 @@ export function PricingTable({
     (() => {
       const timeouts: Record<string, NodeJS.Timeout | null> = {}
       return (metalType: MetalType, purity: string, dwt: number, purityPercentage?: number) => {
-        const key = `${metalType}-${purity}`
+        const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
+
+        if (isDraft) {
+          if (onLineItemsUpdate) {
+            setTimeout(() => {
+              try {
+                const latestDwt = { ...dwtValuesRef.current, [key]: dwt }
+                const latestPurity = transaction.type === "MELT" && purityPercentage !== undefined
+                  ? { ...purityPercentagesRef.current, [key]: purityPercentage }
+                  : purityPercentagesRef.current
+                const items = buildDraftLineItems(
+                  transaction.type,
+                  latestDwt,
+                  latestPurity,
+                  spotPricesRef.current,
+                  percentagesRef.current
+                )
+                onLineItemsUpdate(items)
+              } catch (e) {
+                console.error("Error building draft line items:", e)
+              }
+            }, 0)
+          }
+          return
+        }
 
         if (inFlightRequestsRef.current.has(key)) {
           console.log(`[debouncedSave] Skipping POST for ${key} - request already in flight`)
@@ -363,7 +473,7 @@ export function PricingTable({
         }, 800)
       }
     })()
-  , [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate])
+  , [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate, isDraft])
 
   function handleDwtChange(metalType: MetalType, purity: string, value: string, purityPercentage?: number) {
     if (readOnly) return
@@ -1276,16 +1386,37 @@ export function PricingTable({
         </Card>
       </div>
 
-      {
-}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sticky bottom-2 sm:bottom-4 bg-background p-2 sm:p-3 md:p-4 border rounded-lg shadow-lg z-50 mx-2 sm:mx-0">
-        <Button onClick={onPrint} className="flex-1 w-full sm:w-auto text-sm sm:text-base" size="lg">
-          <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-          <span className="whitespace-nowrap">Print</span>
-        </Button>
+        {customBottom !== undefined ? (
+          customBottom
+        ) : (
+          <>
+        {canPrint ? (
+          <Button onClick={onPrint} className="flex-1 w-full sm:w-auto text-sm sm:text-base" size="lg">
+            <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span className="whitespace-nowrap">Print</span>
+          </Button>
+        ) : approvalStatus === "PENDING" ? (
+          <div className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 px-4 py-3 text-sm font-medium text-emerald-800 dark:text-emerald-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
+            Waiting for {pendingAdminName || "admin"}
+          </div>
+        ) : approvalStatus === "DENIED" ? (
+          <div className="flex-1 flex items-center justify-center rounded-lg border-2 border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400">
+            Denied — cannot print
+          </div>
+        ) : onSendForApproval ? (
+          <Button onClick={onSendForApproval} variant="outline" className="flex-1 w-full sm:w-auto text-sm sm:text-base border-cyan-500/60 text-cyan-600 dark:text-cyan-400" size="lg">
+            <span className="whitespace-nowrap">Send for approval</span>
+          </Button>
+        ) : (
+          <div className="flex-1" />
+        )}
         <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={readOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
           <span className="text-center">Start New <span className="text-red-600 font-semibold">{transaction.type}</span> Transaction</span>
         </Button>
+          </>
+        )}
       </div>
     </div>
   )

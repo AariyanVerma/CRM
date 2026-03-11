@@ -228,7 +228,8 @@ export function NFCScanCard() {
                 variant: "nfc",
                 duration: 2200,
               })
-              router.push(`/scan/${token}`)
+              if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("scanBlockReentry")
+              router.replace(`/scan/${token}`)
               return
             }
 
@@ -243,7 +244,8 @@ export function NFCScanCard() {
                 variant: "nfc",
                 duration: 2200,
               })
-              router.push(`/scan/${trimmedText}`)
+              if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("scanBlockReentry")
+              router.replace(`/scan/${trimmedText}`)
               return
             }
           } catch (e) {
@@ -345,8 +347,6 @@ export function NFCScanCard() {
         ) : scanning ? (
           <>
             <div className="relative mb-6 flex items-center justify-center min-h-[200px] w-full">
-              {
-}
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -357,8 +357,6 @@ export function NFCScanCard() {
                   }}
                 />
               ))}
-              {
-}
               <div
                 className="absolute left-1/2 top-1/2 w-36 h-36 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80"
                 style={{
@@ -367,14 +365,8 @@ export function NFCScanCard() {
                 }}
               />
               <div className="absolute left-1/2 top-1/2 w-32 h-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" />
-              {
-}
               <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/30 dark:bg-cyan-400/20 animate-scan-glow" />
-              {
-}
               <CreditCard className="w-14 h-14 text-blue-600 dark:text-cyan-400 relative z-10 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]" />
-              {
-}
               <div className="absolute left-1/2 top-1/2 z-20 w-32 h-32 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full pointer-events-none">
                 <div className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-scan-line" style={{ top: 0 }} />
               </div>

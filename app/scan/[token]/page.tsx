@@ -100,7 +100,7 @@ export default async function ScanPage({
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const [, todayPrice, scrapTransactionOrNull, meltTransactionOrNull] = await Promise.all([
+  const [, todayPrice] = await Promise.all([
     prisma.membershipCard.update({
       where: { id: card.id },
       data: { lastScannedAt: new Date() },
@@ -108,22 +108,6 @@ export default async function ScanPage({
     prisma.dailyPrice.findFirst({
       where: { date: { lte: today } },
       orderBy: { date: "desc" },
-    }),
-    prisma.transaction.findFirst({
-      where: {
-        customerId: card.customerId,
-        type: "SCRAP",
-        status: "OPEN",
-      },
-      include: { lineItems: true },
-    }),
-    prisma.transaction.findFirst({
-      where: {
-        customerId: card.customerId,
-        type: "MELT",
-        status: "OPEN",
-      },
-      include: { lineItems: true },
     }),
   ])
 
@@ -142,36 +126,24 @@ export default async function ScanPage({
     )
   }
 
-  let scrapTransaction = scrapTransactionOrNull
-  if (!scrapTransaction) {
-    scrapTransaction = await prisma.transaction.create({
-      data: {
-        customerId: card.customerId,
-        createdByUserId: session.id,
-        type: "SCRAP",
-        status: "OPEN",
-        goldSpot: todayPrice.gold,
-        silverSpot: todayPrice.silver,
-        platinumSpot: todayPrice.platinum,
-      },
-      include: { lineItems: true },
-    })
+  type DraftTransaction = { id: string | null; type: "SCRAP" | "MELT"; status: string; goldSpot: number; silverSpot: number; platinumSpot: number; lineItems: { id: string; metalType: "GOLD" | "SILVER" | "PLATINUM"; purityLabel: string; dwt: number; pricePerOz: number; lineTotal: number; purityPercentage?: number | null }[] }
+  const scrapDraft: DraftTransaction = {
+    id: null,
+    type: "SCRAP",
+    status: "DRAFT",
+    goldSpot: todayPrice.gold,
+    silverSpot: todayPrice.silver,
+    platinumSpot: todayPrice.platinum,
+    lineItems: [],
   }
-
-  let meltTransaction = meltTransactionOrNull
-  if (!meltTransaction) {
-    meltTransaction = await prisma.transaction.create({
-      data: {
-        customerId: card.customerId,
-        createdByUserId: session.id,
-        type: "MELT",
-        status: "OPEN",
-        goldSpot: todayPrice.gold,
-        silverSpot: todayPrice.silver,
-        platinumSpot: todayPrice.platinum,
-      },
-      include: { lineItems: true },
-    })
+  const meltDraft: DraftTransaction = {
+    id: null,
+    type: "MELT",
+    status: "DRAFT",
+    goldSpot: todayPrice.gold,
+    silverSpot: todayPrice.silver,
+    platinumSpot: todayPrice.platinum,
+    lineItems: [],
   }
 
   return (
@@ -181,8 +153,8 @@ export default async function ScanPage({
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8" style={{ touchAction: "pan-y", maxWidth: "100vw", overflowX: "hidden" }}>
         <ScanPageClient
           customer={card.customer}
-          scrapTransaction={scrapTransaction}
-          meltTransaction={meltTransaction}
+          scrapTransaction={scrapDraft}
+          meltTransaction={meltDraft}
           userRole={session.role}
           userId={session.id}
           cardLocked={isLocked}

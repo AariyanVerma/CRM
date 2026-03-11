@@ -159,7 +159,6 @@ body::-webkit-scrollbar,
   animation: fadeIn 0.6s ease-out forwards, slideInFromLeft 0.6s ease-out forwards;
 }
 
-/* NFC toast – one-time “read complete” feel, no looping */
 .nfc-toast-shimmer {
   background: linear-gradient(
     105deg,
@@ -220,8 +219,6 @@ body::-webkit-scrollbar,
   outline: none;
 }
 
-
-
 .chart-always-black {
   background-color: #000 !important;
 }
@@ -243,3 +240,84 @@ body::-webkit-scrollbar,
   fill: #e4e4e7;
 }
 
+@keyframes tech-panel-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes tech-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tech-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px -4px rgba(59, 130, 246, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 28px -2px rgba(59, 130, 246, 0.4);
+  }
+}
+
+@keyframes tech-accent-line {
+  0% {
+    opacity: 0.4;
+    transform: scaleY(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.animate-tech-panel-in {
+  animation: tech-panel-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-tech-card-in {
+  animation: tech-card-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-tech-glow-pulse {
+  animation: tech-glow-pulse 2.5s ease-in-out infinite;
+}
+
+.animate-tech-accent-line {
+  animation: tech-accent-line 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes approval-toast-shimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes approval-toast-progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.approval-toast-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.25) 55%, transparent 100%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: approval-toast-shimmer 2.5s ease-in-out infinite;
+}
+
+.approval-toast-progress {
+  animation: approval-toast-progress 5s linear forwards;
+  transform-origin: left;
+}

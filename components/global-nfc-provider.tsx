@@ -70,7 +70,8 @@ export function GlobalNfcProvider({ children }: { children: React.ReactNode }) {
       lastReadAt.current = Date.now()
       if (parsed.type === "scan") {
         toast({ title: "Card scanned", description: "Opening transaction...", variant: "nfc", duration: 2200 })
-        router.push(`/scan/${parsed.token}`)
+        if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("scanBlockReentry")
+        router.replace(`/scan/${parsed.token}`)
         return
       }
       const redirectAfterLogin = pathname === "/" || pathname === "/login" ? "/dashboard" : (pathname || "/dashboard")

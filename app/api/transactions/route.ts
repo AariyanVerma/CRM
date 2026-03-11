@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const where: Prisma.TransactionWhereInput = {}
 
     if (customerId) where.customerId = customerId
-    if (status && ["OPEN", "PRINTED", "VOID"].includes(status)) where.status = status as "OPEN" | "PRINTED" | "VOID"
+    if (status && ["OPEN", "PRINTED", "VOID", "PENDING_APPROVAL", "APPROVED"].includes(status)) where.status = status as "OPEN" | "PRINTED" | "VOID" | "PENDING_APPROVAL" | "APPROVED"
     if (type && ["SCRAP", "MELT"].includes(type)) where.type = type as "SCRAP" | "MELT"
     if (from || to) {
       where.createdAt = {}
@@ -44,6 +44,12 @@ export async function GET(request: NextRequest) {
         include: {
           customer: { select: { id: true, fullName: true, isBusiness: true, businessName: true } },
           lineItems: { select: { id: true, lineTotal: true } },
+          approvalRequests: {
+            where: { status: "PENDING" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { id: true },
+          },
         },
         orderBy: { createdAt: "desc" },
         take: limit,
@@ -52,10 +58,14 @@ export async function GET(request: NextRequest) {
       prisma.transaction.count({ where }),
     ])
 
-    const withTotal = transactions.map((t) => ({
-      ...t,
-      total: t.lineItems.reduce((s, i) => s + i.lineTotal, 0),
-    }))
+    const withTotal = transactions.map((t) => {
+      const { approvalRequests, ...rest } = t
+      return {
+        ...rest,
+        total: t.lineItems.reduce((s, i) => s + i.lineTotal, 0),
+        pendingApprovalRequestId: approvalRequests?.[0]?.id ?? null,
+      }
+    })
 
     return NextResponse.json({ transactions: withTotal, total })
   } catch (error) {

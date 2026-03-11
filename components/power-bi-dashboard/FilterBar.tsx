@@ -123,7 +123,7 @@ export function FilterBar(p: FilterBarProps) {
               <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All</SelectItem>
-                <SelectItem value="OPEN">OPEN</SelectItem>
+                <SelectItem value="OPEN">Approved</SelectItem>
                 <SelectItem value="PRINTED">PRINTED</SelectItem>
                 <SelectItem value="VOID">VOID</SelectItem>
               </SelectContent>

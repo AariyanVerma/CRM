@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getSocket } from "@/lib/socketClient"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +30,7 @@ type Tx = {
   customer: { id: string; fullName: string; isBusiness?: boolean; businessName?: string | null }
   total: number
   lineItems: Array<{ id: string; lineTotal: number }>
+  pendingApprovalRequestId?: string | null
 }
 
 interface TransactionsListClientProps {
@@ -69,6 +71,22 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
   useEffect(() => {
     load()
   }, [load])
+
+  const loadRef = useRef(load)
+  loadRef.current = load
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const socket = getSocket()
+    const onApprovalOrChange = () => {
+      loadRef.current()
+    }
+    socket.on("approval_status", onApprovalOrChange)
+    socket.on("transaction_changed", onApprovalOrChange)
+    return () => {
+      socket.off("approval_status", onApprovalOrChange)
+      socket.off("transaction_changed", onApprovalOrChange)
+    }
+  }, [])
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -111,9 +129,9 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
     const ids = Array.from(selectedIds)
     if (ids.length === 0) return
     if (ids.length === 1) {
-      window.open(`/print/${ids[0]}`, "_blank", "noopener")
+      window.location.href = `/print/${ids[0]}`
     } else {
-      window.open(`/print/batch?ids=${ids.join(",")}`, "_blank", "noopener")
+      window.location.href = `/print/batch?ids=${ids.join(",")}`
     }
   }
 
@@ -146,9 +164,11 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="OPEN">OPEN</SelectItem>
+                <SelectItem value="OPEN">Approved</SelectItem>
+                <SelectItem value="PENDING_APPROVAL">Pending approval</SelectItem>
+                <SelectItem value="APPROVED">Approved</SelectItem>
                 <SelectItem value="PRINTED">PRINTED</SelectItem>
-                <SelectItem value="VOID">VOID</SelectItem>
+                <SelectItem value="VOID">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -195,7 +215,7 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
                     Mark PRINTED
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => bulkSetStatus("VOID")} disabled={bulkLoading}>
-                    Mark VOID
+                    Mark Cancelled
                   </Button>
                   <Button variant="outline" size="sm" onClick={bulkPrint}>
                     <Printer className="h-4 w-4 mr-1" />
@@ -263,10 +283,14 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
                                 ? "bg-green-500 text-white border-green-600"
                                 : t.status === "VOID"
                                   ? "bg-red-500 text-white border-red-600"
-                                  : "bg-yellow-500 text-white border-yellow-600"
+                                  : t.status === "APPROVED" || t.status === "OPEN"
+                                    ? "bg-blue-500 text-white border-blue-600"
+                                    : t.status === "PENDING_APPROVAL"
+                                      ? "bg-yellow-500 text-white border-yellow-600"
+                                      : "bg-yellow-500 text-white border-yellow-600"
                             }
                           >
-                            {t.status}
+                            {t.status === "VOID" ? "Cancelled" : t.status === "PENDING_APPROVAL" ? "Pending approval" : (t.status === "APPROVED" || t.status === "OPEN") ? "Approved" : t.status}
                           </Badge>
                         </td>
                         {showCustomerColumn && (
@@ -281,18 +305,31 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
                         </td>
                         <td className="py-2 px-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
                           <span className="inline-flex items-center justify-center gap-1">
-                            <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
-                              <Button variant="ghost" size="sm" className="h-7 text-xs">
-                                Print
-                              </Button>
-                            </Link>
+                            {t.status === "PENDING_APPROVAL" && t.pendingApprovalRequestId ? (
+                              <Link href={`/dashboard/approvals/review/${t.pendingApprovalRequestId}`}>
+                                <Button variant="ghost" size="sm" className="h-7 text-xs">
+                                  Review
+                                </Button>
+                              </Link>
+                            ) : (t.status === "APPROVED" || t.status === "OPEN" || t.status === "PRINTED") ? (
+                              <Link href={`/print/${t.id}`}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs text-blue-600 border border-blue-500/60 rounded-md hover:bg-blue-500 hover:text-white hover:border-blue-600 hover:opacity-95 transition-colors"
+                                >
+                                  Print
+                                </Button>
+                              </Link>
+                            ) : null}
                             <TransactionActions
                               transaction={{
                                 id: t.id,
                                 type: t.type as "SCRAP" | "MELT",
-                                status: t.status as "OPEN" | "PRINTED" | "VOID",
+                                status: t.status as "OPEN" | "PRINTED" | "VOID" | "PENDING_APPROVAL" | "APPROVED",
                                 createdAt: new Date(t.createdAt),
                                 lineItems: t.lineItems,
+                                pendingApprovalRequestId: t.pendingApprovalRequestId ?? undefined,
                               }}
                               customerId={t.customer.id}
                               userRole={userRole}

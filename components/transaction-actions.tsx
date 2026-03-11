@@ -44,9 +44,10 @@ import { getCustomerDisplayName } from "@/lib/utils"
 interface Transaction {
   id: string
   type: "SCRAP" | "MELT"
-  status: "OPEN" | "PRINTED" | "VOID"
+  status: "OPEN" | "PRINTED" | "VOID" | "PENDING_APPROVAL" | "APPROVED"
   createdAt: Date
   lineItems: Array<{ id: string }>
+  pendingApprovalRequestId?: string
 }
 
 interface TransactionActionsProps {
@@ -68,14 +69,25 @@ export function TransactionActions({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [newStatus, setNewStatus] = useState<"OPEN" | "PRINTED" | "VOID">(transaction.status)
+  const [newStatus, setNewStatus] = useState<"OPEN" | "PRINTED" | "VOID" | "APPROVED">(
+    (transaction.status === "PENDING_APPROVAL" ? "OPEN" : transaction.status) as "OPEN" | "PRINTED" | "VOID" | "APPROVED"
+  )
   const [newCustomerId, setNewCustomerId] = useState("")
   const [customerSearch, setCustomerSearch] = useState("")
 
   const isAdmin = userRole === "ADMIN"
 
   if (!isAdmin) {
-
+    if (transaction.status === "PENDING_APPROVAL" && transaction.pendingApprovalRequestId) {
+      return (
+        <Link href={`/dashboard/approvals/review/${transaction.pendingApprovalRequestId}`}>
+          <Button variant="ghost" size="sm">
+            <Eye className="h-4 w-4 mr-2" />
+            Review
+          </Button>
+        </Link>
+      )
+    }
     return (
       <Link href={`/print/${transaction.id}`}>
         <Button variant="ghost" size="sm">
@@ -204,12 +216,21 @@ export function TransactionActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <Link href={`/print/${transaction.id}`}>
-            <DropdownMenuItem>
-              <Eye className="h-4 w-4 mr-2" />
-              View
-            </DropdownMenuItem>
-          </Link>
+          {transaction.status === "PENDING_APPROVAL" && transaction.pendingApprovalRequestId ? (
+            <Link href={`/dashboard/approvals/review/${transaction.pendingApprovalRequestId}`}>
+              <DropdownMenuItem>
+                <Eye className="h-4 w-4 mr-2" />
+                Review
+              </DropdownMenuItem>
+            </Link>
+          ) : (
+            <Link href={`/print/${transaction.id}`}>
+              <DropdownMenuItem>
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </DropdownMenuItem>
+            </Link>
+          )}
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Status
@@ -228,8 +249,6 @@ export function TransactionActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {
-}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -243,15 +262,16 @@ export function TransactionActions({
               <Label htmlFor="status">Status</Label>
               <Select
                 value={newStatus}
-                onValueChange={(value) => setNewStatus(value as "OPEN" | "PRINTED" | "VOID")}
+                onValueChange={(value) => setNewStatus(value as "OPEN" | "PRINTED" | "VOID" | "APPROVED")}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OPEN">OPEN</SelectItem>
+                  <SelectItem value="OPEN">Approved</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
                   <SelectItem value="PRINTED">PRINTED</SelectItem>
-                  <SelectItem value="VOID">VOID</SelectItem>
+                  <SelectItem value="VOID">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -291,8 +311,6 @@ export function TransactionActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      {
-}
       <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
         <DialogContent>
           <DialogHeader>

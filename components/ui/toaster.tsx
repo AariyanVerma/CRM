@@ -9,7 +9,7 @@ import {
   ToastViewport,
 } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
-import { CreditCard, LogIn } from "lucide-react"
+import { CreditCard, LogIn, Bell } from "lucide-react"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -19,9 +19,27 @@ export function Toaster() {
       {toasts.map(function ({ id, title, description, action, variant, duration, ...props }) {
         const isNfc = variant === "nfc"
         const isNfcLogin = variant === "nfc-login"
+        const isApproval = variant === "approval"
         return (
           <Toast key={id} variant={variant} {...props}>
-            {isNfcLogin ? (
+            {isApproval ? (
+              <div className="relative flex flex-col w-full overflow-hidden rounded-2xl">
+                <div className="approval-toast-shimmer absolute inset-0 pointer-events-none" aria-hidden />
+                <div className="relative flex items-center gap-4 px-5 py-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-2 ring-white/40 animate-in zoom-in-95 duration-300">
+                    <Bell className="h-6 w-6 text-white drop-shadow-md" strokeWidth={2} />
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    {title && <ToastTitle className="text-[15px] font-bold text-white drop-shadow-sm">{title}</ToastTitle>}
+                    {description && <ToastDescription className="text-sm text-white/95">{description}</ToastDescription>}
+                  </div>
+                  <ToastClose className="relative right-0 top-0 translate-y-0 opacity-80 hover:opacity-100 text-white transition-opacity rounded-full p-1.5 hover:bg-white/20" />
+                </div>
+                <div className="relative h-1 w-full overflow-hidden bg-black/20">
+                  <div className="approval-toast-progress h-full w-full bg-white/90 rounded-r-full" />
+                </div>
+              </div>
+            ) : isNfcLogin ? (
               <div className="relative flex flex-col w-full overflow-hidden rounded-2xl">
                 <div className="nfc-toast-shimmer absolute inset-0 pointer-events-none" aria-hidden />
                 <div className="relative flex items-center gap-3 px-5 py-4">

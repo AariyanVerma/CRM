@@ -226,16 +226,17 @@ export function ByStatusBarChart({ derived, height, hideTitle, onTitleClick }: {
   const chart = (
     <>
       <BarChart data={data} margin={CHART_MARGIN}>
-        <XAxis dataKey="status" tick={{ fontSize: 12 }} />
+        <XAxis dataKey="status" tick={{ fontSize: 12 }} tickFormatter={(v) => (v === "OPEN" ? "Approved" : v)} />
         <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v >= 1000 ? `${v / 1000}k` : v}`} width={48} />
         <Tooltip
           cursor={false}
           content={({ active, payload, label }) => {
             if (!active || !payload?.length || !label) return null
             const d = payload[0]?.payload as { count: number; total: number }
+            const displayLabel = label === "OPEN" ? "Approved" : label
             return (
               <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-md">
-                <p className="font-medium mb-1">{label}</p>
+                <p className="font-medium mb-1">{displayLabel}</p>
                 <p className="tabular-nums">Transactions: {d?.count ?? 0}</p>
                 <p className="tabular-nums">Total: {formatCurrency(d?.total ?? 0)}</p>
               </div>
@@ -272,7 +273,7 @@ export function ByStatusBarChart({ derived, height, hideTitle, onTitleClick }: {
         ) : (
           <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>
         )}
-        <ChartColorKey items={[{ color: STATUS_COLORS.OPEN, label: "OPEN (blue)" }, { color: STATUS_COLORS.PRINTED, label: "PRINTED (green)" }, { color: STATUS_COLORS.VOID, label: "VOID (grey)" }]} />
+        <ChartColorKey items={[{ color: STATUS_COLORS.OPEN, label: "Approved (blue)" }, { color: STATUS_COLORS.PRINTED, label: "PRINTED (green)" }, { color: STATUS_COLORS.VOID, label: "VOID (grey)" }]} />
         <p className="text-xs text-muted-foreground text-center mt-1">Bars = total $ · Hover for transaction count</p>
       </CardContent>
     </Card>
@@ -677,7 +678,7 @@ export function StatusOverTimeChart({ derived, height, hideTitle, onTitleClick }
       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
       <YAxis tickFormatter={(v) => `$${v}`} tick={{ fontSize: 11 }} width={60} />
       <Tooltip cursor={false} content={<CustomTooltip />} />
-      <Area type="monotone" dataKey="OPEN" name="OPEN" stackId="1" stroke={STATUS_COLORS.OPEN} fill={STATUS_COLORS.OPEN} fillOpacity={0.5} />
+      <Area type="monotone" dataKey="OPEN" name="Approved" stackId="1" stroke={STATUS_COLORS.OPEN} fill={STATUS_COLORS.OPEN} fillOpacity={0.5} />
       <Area type="monotone" dataKey="PRINTED" name="PRINTED" stackId="1" stroke={STATUS_COLORS.PRINTED} fill={STATUS_COLORS.PRINTED} fillOpacity={0.5} />
       <Area type="monotone" dataKey="VOID" name="VOID" stackId="1" stroke={STATUS_COLORS.VOID} fill={STATUS_COLORS.VOID} fillOpacity={0.5} />
     </AreaChart>
@@ -693,7 +694,7 @@ export function StatusOverTimeChart({ derived, height, hideTitle, onTitleClick }
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
-        <ChartColorKey items={[{ color: STATUS_COLORS.OPEN, label: "OPEN (blue)" }, { color: STATUS_COLORS.PRINTED, label: "PRINTED (green)" }, { color: STATUS_COLORS.VOID, label: "VOID (grey)" }]} />
+        <ChartColorKey items={[{ color: STATUS_COLORS.OPEN, label: "Approved (blue)" }, { color: STATUS_COLORS.PRINTED, label: "PRINTED (green)" }, { color: STATUS_COLORS.VOID, label: "VOID (grey)" }]} />
       </CardContent>
     </Card>
   )

@@ -39,6 +39,8 @@ model User {
   transactionAuditLogs       TransactionAuditLog[]
   uploadedDocuments          CustomerDocument[]
   userCards                  UserCard[]
+  approvalRequestsSent       TransactionApprovalRequest[] @relation("ApprovalRequestsSent")
+  approvalRequestsReceived   TransactionApprovalRequest[] @relation("ApprovalRequestsReceived")
 }
 
 model UserCard {
@@ -159,6 +161,7 @@ model Transaction {
   completedBy       User?             @relation("CompletedTransactions", fields: [completedByUserId], references: [id])
   createdBy         User              @relation("CreatedTransactions", fields: [createdByUserId], references: [id])
   customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  approvalRequests  TransactionApprovalRequest[]
 
   @@index([customerId])
   @@index([type, status])
@@ -218,8 +221,36 @@ enum TransactionType {
 
 enum TransactionStatus {
   OPEN
+  PENDING_APPROVAL
+  APPROVED
   PRINTED
   VOID
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+model TransactionApprovalRequest {
+  id                String                 @id @default(cuid())
+  transactionId     String
+  requestedByUserId String
+  requestedToUserId String
+  status            ApprovalRequestStatus  @default(PENDING)
+  approvalGroupId   String?
+  createdAt         DateTime               @default(now())
+  respondedAt       DateTime?
+  adminEditedAt     DateTime?
+  transaction       Transaction            @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  requestedBy       User                   @relation("ApprovalRequestsSent", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  requestedTo       User                   @relation("ApprovalRequestsReceived", fields: [requestedToUserId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, requestedByUserId])
+  @@index([requestedToUserId, status])
+  @@index([transactionId])
+  @@index([approvalGroupId])
 }
 
 enum MetalType {
@@ -232,13 +263,54 @@ model TransactionAuditLog {
   id             String   @id @default(cuid())
   transactionId  String
   userId         String
-  action         String   // STATUS_CHANGE | MOVE | DELETE
-  oldValue       String?  // JSON snapshot of relevant old data
-  newValue       String?  // JSON snapshot of relevant new data
+  action         String
+  oldValue       String?
+  newValue       String?
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([transactionId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model StonesSave {
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now())
+  rows      StonesSaveRow[]
+}
+
+model StonesSaveRow {
+  id           String     @id @default(cuid())
+  stonesSaveId String
+  date         DateTime   @db.Date
+  metal        MetalType
+  purity       String
+  dwt          Float
+  pricePaid    Float
+  stonesSave   StonesSave @relation(fields: [stonesSaveId], references: [id], onDelete: Cascade)
+
+  @@index([stonesSaveId])
+  @@index([date])
+}
+
+enum StonesReportPeriod {
+  DAY
+  WEEK
+  MONTH
+  SIX_MONTHS
+  YEAR
+}
+
+model StonesReport {
+  id                String             @id @default(cuid())
+  createdAt         DateTime           @default(now())
+  periodType        StonesReportPeriod
+  periodStart       DateTime           @db.Date
+  periodEnd         DateTime           @db.Date
+  totalPaid         Float
+  grandTotal        Float
+  profit            Float
+  selectedRowIds    String?
+  selectedRowsData  Json?
 }

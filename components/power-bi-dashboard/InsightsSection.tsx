@@ -53,7 +53,7 @@ export function InsightsSection({ summary, derived }: { summary: Summary; derive
   if (goldPct >= 70) insights.push(`Gold represents ${goldPct.toFixed(0)}% of metal value`)
   else if (goldPct >= 50) insights.push(`Gold leads metals at ${goldPct.toFixed(0)}%`)
   if (topStatus.total > 0)
-    insights.push(`${topStatus.status} has the highest total value (${formatCurrency(topStatus.total)})`)
+    insights.push(`${topStatus.status === "OPEN" ? "Approved" : topStatus.status} has the highest total value (${formatCurrency(topStatus.total)})`)
   if (peakDay && peakDay.day)
     insights.push(`Peak day: ${new Date(peakDay.day).toLocaleDateString(undefined, { month: "short", day: "numeric" })} with ${formatCurrency(peakDay.total)}`)
 

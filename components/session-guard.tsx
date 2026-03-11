@@ -41,6 +41,8 @@ export function SessionGuard() {
       return
     }
     if (active) return
+
+    if (pathname?.startsWith("/print")) return
     fetch("/api/auth/logout", { method: "POST", credentials: "include" }).then(() => {
       if (pathname !== "/" && pathname !== "/login") {
         window.location.href = "/"

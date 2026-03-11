@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight, BarChart3, Search, LayoutDashboard } from "lucide-react"
+import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight, BarChart3, Search, LayoutDashboard, Gem, ClipboardCheck } from "lucide-react"
 import { useEffect, useRef } from "react"
 
 interface ActionCardProps {
@@ -175,8 +175,31 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
               variant: "outline",
               icon: <UserCog className="h-4 w-4" />,
             },
+            {
+              label: "Pending Approvals",
+              href: "/dashboard/approvals",
+              variant: "outline",
+              icon: <ClipboardCheck className="h-4 w-4" />,
+            },
           ]}
           delay={200}
+        />
+      )}
+
+      {isAdmin && (
+        <ActionCard
+          title="Stones Table"
+          description="Record stone purchases by metal, purity, DWT and price paid"
+          icon={<Gem className="h-7 w-7" />}
+          gradient="from-amber-500/20 via-yellow-500/10 to-transparent"
+          actions={[
+            {
+              label: "Go to Stones Table",
+              href: "/dashboard/stones-table",
+              icon: <ArrowRight className="h-4 w-4" />,
+            },
+          ]}
+          delay={300}
         />
       )}
     </div>

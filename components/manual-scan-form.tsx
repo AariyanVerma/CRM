@@ -30,7 +30,8 @@ export function ManualScanForm() {
       return
     }
 
-    router.push(`/scan/${token}`)
+    if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("scanBlockReentry")
+    router.replace(`/scan/${token}`)
   }
 
   return (

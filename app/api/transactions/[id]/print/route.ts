@@ -11,6 +11,32 @@ export async function POST(
     const session = await requireAuth()
 
     const { id } = await params
+    const existing = await prisma.transaction.findUnique({
+      where: { id },
+    })
+    if (!existing) {
+      return NextResponse.json({ message: "Transaction not found" }, { status: 404 })
+    }
+    if (existing.status !== "PENDING_APPROVAL" && existing.status !== "OPEN" && existing.status !== "APPROVED") {
+      return NextResponse.json({ message: "Transaction is not available to print" }, { status: 400 })
+    }
+
+    if (session.role === "STAFF") {
+      const approved = await prisma.transactionApprovalRequest.findFirst({
+        where: {
+          transactionId: id,
+          requestedByUserId: session.id,
+          status: "APPROVED",
+        },
+      })
+      if (!approved) {
+        return NextResponse.json(
+          { message: "This transaction requires admin approval before printing" },
+          { status: 403 }
+        )
+      }
+    }
+
     const transaction = await prisma.transaction.update({
       where: { id },
       data: { 
@@ -18,7 +44,7 @@ export async function POST(
         completedByUserId: session.id,
         completedAt: new Date(),
       },
-    })
+    })
     try {
       const io = getIO()
       io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })

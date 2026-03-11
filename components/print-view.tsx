@@ -1,9 +1,13 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Logo } from "@/components/logo"
 import { formatDecimal, getDisplayName, getCustomerDisplayName } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { GOLD_PURITIES, SILVER_PURITIES, PLATINUM_PURITIES } from "@/lib/pricing"
+import { Home, Printer } from "lucide-react"
+import { setSessionActive } from "@/components/session-guard"
 
 interface Customer {
   id: string
@@ -49,14 +53,33 @@ interface Transaction {
 }
 
 export function PrintView({ transaction, layout = "label", hidePrintButton }: { transaction: Transaction; layout?: "label" | "a4"; hidePrintButton?: boolean }) {
+  const router = useRouter()
   const { toast } = useToast()
   const [printing, setPrinting] = useState(false)
   const hasMarkedAsPrinted = useRef(false)
+  const hasPushedHistoryRef = useRef(false)
   const isA4 = layout === "a4"
+
+  useEffect(() => {
+    setSessionActive()
+  }, [])
+
+  useEffect(() => {
+    if (!hasPushedHistoryRef.current) {
+      window.history.pushState(null, "", window.location.href)
+      hasPushedHistoryRef.current = true
+    }
+    const handlePopState = () => {
+      setSessionActive()
+      window.location.replace("/dashboard")
+    }
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
 
   const markAsPrinted = async () => {
 
-    if (hasMarkedAsPrinted.current || transaction.status !== "OPEN") {
+    if (hasMarkedAsPrinted.current || (transaction.status !== "OPEN" && transaction.status !== "APPROVED")) {
       return
     }
 
@@ -84,23 +107,40 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
 
   useEffect(() => {
     const handleBeforePrint = async () => {
-
       await markAsPrinted()
     }
-
+    const handleAfterPrint = () => {
+      router.replace("/dashboard")
+    }
     window.addEventListener("beforeprint", handleBeforePrint)
+    window.addEventListener("afterprint", handleAfterPrint)
     return () => {
       window.removeEventListener("beforeprint", handleBeforePrint)
+      window.removeEventListener("afterprint", handleAfterPrint)
     }
-  }, [transaction.id, transaction.status])
+  }, [transaction.id, transaction.status, router])
 
   const handlePrint = async () => {
-
     await markAsPrinted()
-
     await new Promise(resolve => setTimeout(resolve, 100))
-
     window.print()
+  }
+
+  const purityOrder: Record<string, string[]> = {
+    GOLD: GOLD_PURITIES,
+    SILVER: SILVER_PURITIES,
+    PLATINUM: PLATINUM_PURITIES,
+  }
+  const sortByPurityOrder = (items: LineItem[], metalType: string) => {
+    const order = purityOrder[metalType] ?? []
+    return [...items].sort((a, b) => {
+      const i = order.indexOf(a.purityLabel)
+      const j = order.indexOf(b.purityLabel)
+      if (i === -1 && j === -1) return 0
+      if (i === -1) return 1
+      if (j === -1) return -1
+      return i - j
+    }).reverse()
   }
 
   const groupedItems: Record<string, LineItem[]> = {
@@ -111,6 +151,10 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
 
   transaction.lineItems.forEach((item) => {
     groupedItems[item.metalType].push(item)
+  })
+
+  Object.keys(groupedItems).forEach((metalType) => {
+    groupedItems[metalType] = sortByPurityOrder(groupedItems[metalType], metalType)
   })
 
   const grandTotal = transaction.lineItems.reduce(
@@ -200,8 +244,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
       `}</style>
 
       <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : ""}`} style={{ width: 'auto', maxWidth: '100%' }}>
-        {
-}
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="mb-2 flex justify-center">
             <Logo size="lg" showText={false} className="print:max-h-16" />
@@ -218,8 +260,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {
-}
         <div className="mb-4 pb-3 border-b border-gray-700">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -254,8 +294,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {
-}
         <div className="mb-4 pb-2 border-b border-gray-700 text-xs text-black">
           <p className="font-semibold mb-1">Price Snapshot:</p>
           <div className="flex gap-4">
@@ -265,8 +303,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {
-}
         <div className="mb-4">
           <table className="w-full text-sm border-collapse text-black">
             <thead>
@@ -313,8 +349,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </table>
         </div>
 
-        {
-}
         <div className="mt-4 pt-3 border-t-2 border-black font-black text-red-600">
           <div className="flex justify-between items-center">
             <div>
@@ -327,24 +361,38 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
           </div>
         </div>
 
-        {
-}
         <div className="mt-4 pt-2 border-t border-gray-700 text-xs text-center text-black">
           <p>Thank you for your business</p>
         </div>
       </div>
 
-      {
-}
       {!hidePrintButton && (
-        <div className="no-print mt-8 text-center">
-          <button
-            onClick={handlePrint}
-            disabled={printing}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="no-print mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/dashboard"
+            onClick={(e) => {
+              e.preventDefault()
+              setSessionActive()
+              window.location.replace("/dashboard")
+            }}
+            className="inline-flex items-center gap-2 px-5 py-3 border border-input bg-background rounded-md font-medium hover:bg-accent hover:text-accent-foreground no-underline text-foreground cursor-pointer"
           >
-            {printing ? "Updating..." : "Print"}
-          </button>
+            <Home className="h-4 w-4" />
+            Go home
+          </a>
+          {transaction.status === "PENDING_APPROVAL" ? (
+            <p className="text-muted-foreground text-sm">This transaction is pending approval. Use Review from the customer or approvals page to approve before printing.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={printing || !["OPEN", "APPROVED", "PRINTED"].includes(transaction.status)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Printer className="h-4 w-4" />
+              {printing ? "Updating..." : "Print"}
+            </button>
+          )}
         </div>
       )}
     </div>

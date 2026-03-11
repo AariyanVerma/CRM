@@ -36,6 +36,7 @@ const toastVariants = cva(
           "border-yellow-500/50 bg-yellow-500 text-white shadow-yellow-500/20",
         nfc: "rounded-2xl border-0 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-xl shadow-emerald-500/30 px-0 py-0 flex-col items-stretch gap-0 overflow-hidden",
         "nfc-login": "rounded-2xl border-0 bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 text-white shadow-xl shadow-violet-500/30 px-0 py-0 flex-col items-stretch gap-0 overflow-hidden",
+        approval: "rounded-2xl border-0 bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/35 px-0 py-0 flex-col items-stretch gap-0 overflow-hidden",
       },
     },
     defaultVariants: {

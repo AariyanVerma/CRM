@@ -63,7 +63,13 @@ function getStatusBadgeClassName(status: string) {
     ? "bg-green-500 text-white border-green-600"
     : status === "VOID"
       ? "bg-red-500 text-white border-red-600"
-      : "bg-yellow-500 text-white border-yellow-600"
+      : status === "OPEN" || status === "APPROVED"
+        ? "bg-blue-500 text-white border-blue-600"
+        : "bg-yellow-500 text-white border-yellow-600"
+}
+
+function getStatusDisplayLabel(status: string) {
+  return status === "OPEN" || status === "APPROVED" ? "Approved" : status === "VOID" ? "Cancelled" : status
 }
 
 type ViewMode = "full" | "simplified" | "summary" | "table" | "byCustomer" | "byDay" | "timeline" | "purity"
@@ -297,8 +303,6 @@ export function ReportsClient() {
   return (
     <div className="reports-page min-h-full">
       <div className="space-y-10 print:hidden pb-12">
-      {
-}
       <section className="dashboard-section">
       <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-background via-background to-primary/5 dark:to-primary/10 shadow-xl shadow-primary/5">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.15),transparent)] pointer-events-none" />
@@ -441,7 +445,7 @@ export function ReportsClient() {
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 <SelectItem value="ALL">All statuses</SelectItem>
-                <SelectItem value="OPEN">OPEN</SelectItem>
+                <SelectItem value="OPEN">Approved</SelectItem>
                 <SelectItem value="PRINTED">PRINTED</SelectItem>
                 <SelectItem value="VOID">VOID</SelectItem>
               </SelectContent>
@@ -710,7 +714,7 @@ export function ReportsClient() {
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
-                  <span className="font-medium">OPEN</span>
+                  <span className="font-medium">Approved</span>
                   <span className="tabular-nums">{data.summary.byStatus.OPEN.count} trans · {formatCurrency(data.summary.byStatus.OPEN.total)}</span>
                 </div>
                 <div className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
@@ -728,8 +732,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           {viewMode === "full" && (
           <section className="dashboard-section" aria-label="Report at a glance and transaction list">
             {data.transactions.length > 0 && (() => {
@@ -831,12 +833,12 @@ export function ReportsClient() {
                               <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
                             </td>
                             <td className="py-2.5 px-4 text-center align-middle">
-                              <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
+                              <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
                             </td>
                             <td className="py-2.5 px-4 text-center align-middle truncate" title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</td>
                             <td className="py-2.5 px-4 text-center align-middle font-medium tabular-nums">{formatCurrency(t.total)}</td>
                             <td className="py-2.5 px-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                              <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
+                              <Link href={`/print/${t.id}`}>
                                 <Button variant="ghost" size="sm">
                                   Print
                                 </Button>
@@ -853,8 +855,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           {viewMode === "simplified" && (
           <section className="dashboard-section" aria-label="Transactions (card view)">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -885,13 +885,13 @@ export function ReportsClient() {
                         <span className="text-xs text-muted-foreground tabular-nums">{formatDate(t.createdAt)}</span>
                         <div className="flex gap-1">
                           <Badge variant={t.type === "SCRAP" ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">{t.type}</Badge>
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusBadgeClassName(t.status)}`}>{t.status}</Badge>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusBadgeClassName(t.status)}`}>{getStatusDisplayLabel(t.status)}</Badge>
                         </div>
                       </div>
                       <p className="font-semibold text-foreground truncate" title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</p>
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
                         <span className="text-lg font-bold tabular-nums text-primary">{formatCurrency(t.total)}</span>
-                        <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
+                        <Link href={`/print/${t.id}`}>
                           <Button variant="outline" size="sm" className="rounded-lg h-8">
                             <Printer className="h-3.5 w-3.5 mr-1.5" />
                             Print
@@ -906,8 +906,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           {viewMode === "table" && (
           <section className="dashboard-section" aria-label="Transaction data">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -972,12 +970,12 @@ export function ReportsClient() {
                             <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
                           </td>
                           <td className={`text-center align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`}>
-                            <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
+                            <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
                           </td>
                           <td className={`text-center align-middle truncate ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`} title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</td>
                           <td className={`text-center font-medium tabular-nums align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`}>{formatCurrency(t.total)}</td>
                           <td className={`text-center align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`} onClick={(e) => e.stopPropagation()}>
-                            <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
+                            <Link href={`/print/${t.id}`}>
                               <Button variant="ghost" size="sm" className={tableDensity === "compact" ? "h-6 text-xs" : ""}>
                                 Print
                               </Button>
@@ -993,8 +991,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           {viewMode === "byCustomer" && data && (
           <section className="dashboard-section" aria-label="By customer">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">By customer</h2>
@@ -1045,11 +1041,11 @@ export function ReportsClient() {
                                       <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
                                     </td>
                                     <td className="py-2 px-3 text-center align-middle">
-                                      <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
+                                      <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
                                     </td>
                                     <td className="py-2 px-3 text-center font-medium tabular-nums align-middle">{formatCurrency(t.total)}</td>
                                     <td className="py-2 px-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                                      <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
+                                      <Link href={`/print/${t.id}`}>
                                         <Button variant="ghost" size="sm" className="h-7 text-xs">Print</Button>
                                       </Link>
                                     </td>
@@ -1068,8 +1064,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           {viewMode === "byDay" && data && (
           <section className="dashboard-section" aria-label="By day">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">By day</h2>
@@ -1109,8 +1103,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           {viewMode === "timeline" && data && (
           <section className="dashboard-section" aria-label="Timeline">
             <h2 className="text-lg font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Timeline</h2>
@@ -1159,12 +1151,12 @@ export function ReportsClient() {
                                     <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
                                   </td>
                                   <td className="py-2.5 px-4 text-center align-middle">
-                                    <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
+                                    <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
                                   </td>
                                   <td className="py-2.5 px-4 text-center align-middle truncate" title={getCustomerDisplayName(t.customer)}>{getCustomerDisplayName(t.customer)}</td>
                                   <td className="py-2.5 px-4 text-center align-middle font-medium tabular-nums">{formatCurrency(t.total)}</td>
                                   <td className="py-2.5 px-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                                    <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
+                                    <Link href={`/print/${t.id}`}>
                                       <Button variant="ghost" size="sm">Print</Button>
                                     </Link>
                                   </td>
@@ -1182,8 +1174,6 @@ export function ReportsClient() {
           </section>
           )}
 
-          {
-}
           <Dialog open={!!selectedTransactionId} onOpenChange={(open) => !open && setSelectedTransactionId(null)}>
             <DialogContent className="max-w-lg">
               <DialogHeader>
@@ -1197,7 +1187,7 @@ export function ReportsClient() {
                     <p><span className="text-muted-foreground">Date:</span> {formatDate(t.createdAt)}</p>
                     <p><span className="text-muted-foreground">Customer:</span> {getCustomerDisplayName(t.customer)}</p>
                     <p><span className="text-muted-foreground">Type:</span> <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge></p>
-                    <p><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge></p>
+                    <p><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge></p>
                     <p><span className="text-muted-foreground">Total:</span> <strong>{formatCurrency(t.total)}</strong></p>
                     {t.lineItems?.length > 0 && (
                       <div>
@@ -1213,7 +1203,7 @@ export function ReportsClient() {
                       </div>
                     )}
                     <div className="pt-2">
-                      <Link href={`/print/${t.id}`} target="_blank" rel="noopener noreferrer">
+                      <Link href={`/print/${t.id}`}>
                         <Button variant="outline" size="sm">Open print view</Button>
                       </Link>
                     </div>
@@ -1235,7 +1225,7 @@ export function ReportsClient() {
           <p className="mb-2">Grand total: {formatCurrency(data.summary.grandTotal)}</p>
           {data.summary.avgTransaction != null && <p className="mb-2">Avg transaction: {formatCurrency(data.summary.avgTransaction)}</p>}
           {data.summary.byStatus && (
-            <p className="mb-6 text-sm">By status: OPEN {data.summary.byStatus.OPEN.count} · PRINTED {data.summary.byStatus.PRINTED.count} · VOID {data.summary.byStatus.VOID.count}</p>
+            <p className="mb-6 text-sm">By status: Approved {data.summary.byStatus.OPEN.count} · PRINTED {data.summary.byStatus.PRINTED.count} · VOID {data.summary.byStatus.VOID.count}</p>
           )}
           {!data.summary.byStatus && <p className="mb-6" />}
           <table className="w-full text-sm border-collapse table-fixed">
@@ -1261,7 +1251,7 @@ export function ReportsClient() {
                   <td className="py-2 px-4 text-center truncate">{formatDate(t.createdAt)}</td>
                   <td className="py-2 px-4 text-center">{t.type}</td>
                   <td className="py-2 px-4 text-center">
-                  <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{t.status}</Badge>
+                  <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
                 </td>
                   <td className="py-2 px-4 text-center truncate">{getCustomerDisplayName(t.customer)}</td>
                   <td className="py-2 px-4 text-center tabular-nums">{formatCurrency(t.total)}</td>

@@ -86,6 +86,22 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on('join_admin', (data) => {
+      if (data && data.adminId) {
+        const room = `admin:${data.adminId}`;
+        socket.join(room);
+        console.log(`[Socket.IO] Client ${socket.id} joined room: ${room}`);
+      }
+    });
+
+    socket.on('join_staff', (data) => {
+      if (data && data.staffId) {
+        const room = `staff:${data.staffId}`;
+        socket.join(room);
+        console.log(`[Socket.IO] Client ${socket.id} joined room: ${room}`);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
