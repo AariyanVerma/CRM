@@ -17,6 +17,8 @@ type LineItemInput = {
   purityLabel: string
   dwt: number
   purityPercentage?: number | null
+  pricePerOz?: number
+  lineTotal?: number
 }
 
 export async function POST(request: NextRequest) {
@@ -78,35 +80,45 @@ export async function POST(request: NextRequest) {
     const createdLineItems: { id: string; metalType: string; purityLabel: string; dwt: number; pricePerOz: number; lineTotal: number; purityPercentage?: number | null }[] = []
 
     for (const item of lineItems) {
-      const { metalType, purityLabel, dwt: rawDwt, purityPercentage: rawPct } = item
+      const { metalType, purityLabel, dwt: rawDwt, purityPercentage: rawPct, pricePerOz, lineTotal: clientLineTotal } = item
       const parsedDwt = parseFloat(String(rawDwt)) || 0
       if (type === "SCRAP" && parsedDwt <= 0) continue
       if (!metalType || !purityLabel) continue
 
-      const percentageKey = `${type.toLowerCase()}${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage` as keyof typeof todayPrice
-      const percentage = (todayPrice[percentageKey] as number) ?? 95
+      
+      
+      let pricePerDWT: number
+      let lineTotal: number
 
-      let pricePerDWT = 0
-      if (type === "SCRAP") {
-        if (metalType === "GOLD") {
-          pricePerDWT = calculateScrapGoldPricePerDWT(purityLabel as any, goldSpot, percentage)
-        } else if (metalType === "SILVER") {
-          pricePerDWT = calculateScrapSilverPricePerDWT(purityLabel as any, silverSpot, percentage)
-        } else if (metalType === "PLATINUM") {
-          pricePerDWT = calculateScrapPlatinumPricePerDWT(purityLabel as any, platinumSpot, percentage)
-        }
+      if (typeof pricePerOz === "number" && !Number.isNaN(pricePerOz) && pricePerOz > 0 && typeof clientLineTotal === "number" && !Number.isNaN(clientLineTotal) && clientLineTotal >= 0) {
+        pricePerDWT = pricePerOz
+        lineTotal = clientLineTotal
       } else {
-        const purityPct = rawPct != null ? parseFloat(String(rawPct)) || 0 : 0
-        if (metalType === "GOLD") {
-          pricePerDWT = calculateMeltGoldPricePerDWT(goldSpot, purityPct, parsedDwt, percentage)
-        } else if (metalType === "SILVER") {
-          pricePerDWT = calculateMeltSilverPricePerDWT(silverSpot, purityPct, parsedDwt, percentage)
-        } else if (metalType === "PLATINUM") {
-          pricePerDWT = calculateMeltPlatinumPricePerDWT(platinumSpot, purityPct, parsedDwt, percentage)
-        }
-      }
+        const percentageKey = `${type.toLowerCase()}${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage` as keyof typeof todayPrice
+        const percentage = (todayPrice[percentageKey] as number) ?? 95
 
-      const lineTotal = type === "MELT" ? pricePerDWT : calculateLineTotal(pricePerDWT, parsedDwt)
+        pricePerDWT = 0
+        if (type === "SCRAP") {
+          if (metalType === "GOLD") {
+            pricePerDWT = calculateScrapGoldPricePerDWT(purityLabel as any, goldSpot, percentage)
+          } else if (metalType === "SILVER") {
+            pricePerDWT = calculateScrapSilverPricePerDWT(purityLabel as any, silverSpot, percentage)
+          } else if (metalType === "PLATINUM") {
+            pricePerDWT = calculateScrapPlatinumPricePerDWT(purityLabel as any, platinumSpot, percentage)
+          }
+        } else {
+          const purityPct = rawPct != null ? parseFloat(String(rawPct)) || 0 : 0
+          if (metalType === "GOLD") {
+            pricePerDWT = calculateMeltGoldPricePerDWT(goldSpot, purityPct, parsedDwt, percentage)
+          } else if (metalType === "SILVER") {
+            pricePerDWT = calculateMeltSilverPricePerDWT(silverSpot, purityPct, parsedDwt, percentage)
+          } else if (metalType === "PLATINUM") {
+            pricePerDWT = calculateMeltPlatinumPricePerDWT(platinumSpot, purityPct, parsedDwt, percentage)
+          }
+        }
+
+        lineTotal = type === "MELT" ? pricePerDWT : calculateLineTotal(pricePerDWT, parsedDwt)
+      }
       const purityPct = type === "MELT" && rawPct != null ? parseFloat(String(rawPct)) || 0 : null
 
       const created = await prisma.lineItem.create({

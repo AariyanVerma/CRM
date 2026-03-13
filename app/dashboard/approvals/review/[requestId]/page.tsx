@@ -32,15 +32,20 @@ export default async function ApprovalReviewPage({
     notFound()
   }
   const isPending = request.status === "PENDING"
+  const isApproved = request.status === "APPROVED"
   const hasGroup = !!request.approvalGroupId
-  if (!isPending && hasGroup) {
+  
+  if (!isPending && !isApproved && hasGroup) {
     const pendingInGroup = await prisma.transactionApprovalRequest.findFirst({
       where: { approvalGroupId: request.approvalGroupId, requestedToUserId: session.id, status: "PENDING" },
     })
     if (!pendingInGroup) {
-      notFound()
+      const approvedInGroup = await prisma.transactionApprovalRequest.findFirst({
+        where: { approvalGroupId: request.approvalGroupId, requestedToUserId: session.id, status: "APPROVED" },
+      })
+      if (!approvedInGroup) notFound()
     }
-  } else if (!isPending) {
+  } else if (!isPending && !isApproved) {
     notFound()
   }
 
@@ -50,6 +55,8 @@ export default async function ApprovalReviewPage({
   let meltTx: typeof reqTx | null = null
   let scrapRequestId: string | null = null
   let meltRequestId: string | null = null
+  let scrapRequestApproved = false
+  let meltRequestApproved = false
 
   if (request.approvalGroupId) {
     const groupRequests = await prisma.transactionApprovalRequest.findMany({
@@ -64,9 +71,11 @@ export default async function ApprovalReviewPage({
       if (r.transaction.type === "SCRAP") {
         scrapTx = r.transaction
         if (r.status === "PENDING") scrapRequestId = r.id
+        if (r.status === "APPROVED") scrapRequestApproved = true
       } else {
         meltTx = r.transaction
         if (r.status === "PENDING") meltRequestId = r.id
+        if (r.status === "APPROVED") meltRequestApproved = true
       }
     }
   }
@@ -74,20 +83,30 @@ export default async function ApprovalReviewPage({
   if (!scrapTx && !meltTx) {
     scrapTx = reqTx.type === "SCRAP" ? reqTx : null
     meltTx = reqTx.type === "MELT" ? reqTx : null
-    if (reqTx.type === "SCRAP") scrapRequestId = requestId
-    else meltRequestId = requestId
+    if (reqTx.type === "SCRAP") {
+      scrapRequestId = requestId
+      if (isApproved) scrapRequestApproved = true
+    } else {
+      meltRequestId = requestId
+      if (isApproved) meltRequestApproved = true
+    }
     if (!scrapTx) {
       scrapTx = await prisma.transaction.findFirst({
-        where: { customerId, type: "SCRAP", status: { in: ["OPEN", "PENDING_APPROVAL"] } },
+        where: { customerId, type: "SCRAP", status: { in: ["OPEN", "PENDING_APPROVAL", "APPROVED"] } },
         include: { lineItems: true, customer: true },
       })
     }
     if (!meltTx) {
       meltTx = await prisma.transaction.findFirst({
-        where: { customerId, type: "MELT", status: { in: ["OPEN", "PENDING_APPROVAL"] } },
+        where: { customerId, type: "MELT", status: { in: ["OPEN", "PENDING_APPROVAL", "APPROVED"] } },
         include: { lineItems: true, customer: true },
       })
     }
+  }
+  
+  if (!request.approvalGroupId && isApproved) {
+    if (reqTx.type === "SCRAP") scrapRequestApproved = true
+    else meltRequestApproved = true
   }
 
   const scrapFallback = {
@@ -122,6 +141,8 @@ export default async function ApprovalReviewPage({
           requestId={requestId}
           scrapRequestId={scrapRequestId}
           meltRequestId={meltRequestId}
+          scrapRequestApproved={scrapRequestApproved}
+          meltRequestApproved={meltRequestApproved}
           customer={customer}
           scrapTransaction={scrapForReview as any}
           meltTransaction={meltForReview as any}

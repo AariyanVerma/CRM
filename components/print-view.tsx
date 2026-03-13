@@ -105,20 +105,18 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
     }
   }
 
+  
+  
+  
   useEffect(() => {
     const handleBeforePrint = async () => {
       await markAsPrinted()
     }
-    const handleAfterPrint = () => {
-      router.replace("/dashboard")
-    }
     window.addEventListener("beforeprint", handleBeforePrint)
-    window.addEventListener("afterprint", handleAfterPrint)
     return () => {
       window.removeEventListener("beforeprint", handleBeforePrint)
-      window.removeEventListener("afterprint", handleAfterPrint)
     }
-  }, [transaction.id, transaction.status, router])
+  }, [transaction.id, transaction.status])
 
   const handlePrint = async () => {
     await markAsPrinted()

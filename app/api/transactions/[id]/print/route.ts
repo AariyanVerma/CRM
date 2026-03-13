@@ -44,10 +44,42 @@ export async function POST(
         completedByUserId: session.id,
         completedAt: new Date(),
       },
+      include: {
+        completedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
     })
     try {
       const io = getIO()
+      const printedByName =
+        [transaction.completedBy?.firstName, transaction.completedBy?.lastName]
+          .filter(Boolean)
+          .join(" ") || transaction.completedBy?.email || "Admin"
+
+      
       io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })
+      io.to(`tx:${id}`).emit("transaction_printed", {
+        transactionId: id,
+        printedByName,
+      })
+
+      
+      try {
+        const approval = await prisma.transactionApprovalRequest.findFirst({
+          where: { transactionId: id, status: "APPROVED" },
+          orderBy: { respondedAt: "desc" },
+          include: { requestedBy: { select: { id: true } } },
+        })
+        if (approval?.requestedBy?.id) {
+          io.to(`staff:${approval.requestedBy.id}`).emit("transaction_printed", {
+            transactionId: id,
+            printedByName,
+          })
+        }
+      } catch (innerError) {
+        console.error("Error emitting transaction_printed event:", innerError)
+      }
     } catch (error) {
       console.error("Error emitting socket event:", error)
     }

@@ -7,6 +7,7 @@ import { useSocketTransaction } from "@/hooks/use-socket-transaction"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Star } from "lucide-react"
 import {
@@ -58,7 +59,8 @@ function buildDraftLineItems(
     for (const metalType of ["GOLD", "SILVER", "PLATINUM"] as MetalType[]) {
       const purities = metalType === "GOLD" ? GOLD_PURITIES : metalType === "SILVER" ? SILVER_PURITIES : PLATINUM_PURITIES
       const spot = metalType === "GOLD" ? gold : metalType === "SILVER" ? silver : platinum
-      const pctKey = `scrap${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage`
+      const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+      const pctKey = `scrap${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
       const percentage = pct(pctKey)
       const currentDwt: Record<string, number> = {}
       purities.forEach((p) => { currentDwt[p] = dwtValues[`${metalType}-${p}`] ?? 0 })
@@ -79,7 +81,8 @@ function buildDraftLineItems(
   } else {
     for (const metalType of ["GOLD", "SILVER", "PLATINUM"] as MetalType[]) {
       const spot = metalType === "GOLD" ? gold : metalType === "SILVER" ? silver : platinum
-      const pctKey = `melt${metalType.charAt(0) + metalType.slice(1).toLowerCase()}Percentage`
+      const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+      const pctKey = `melt${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
       const percentage = pct(pctKey)
       const key = metalType
       const dwt = dwtValues[key] ?? 0
@@ -114,6 +117,7 @@ export function PricingTable({
   onSendForApproval,
   pendingAdminName,
   customBottom,
+  initialPercentages,
 }: {
   transaction: Transaction
   onPrint: () => void
@@ -127,6 +131,7 @@ export function PricingTable({
   onSendForApproval?: () => void
   pendingAdminName?: string | null
   customBottom?: React.ReactNode
+  initialPercentages?: Record<string, number | string>
 }) {
   const { toast } = useToast()
   const [dwtValues, setDwtValues] = useState<Record<string, number>>({})
@@ -137,19 +142,15 @@ export function PricingTable({
     platinum: transaction.platinumSpot,
   })
 
-  const [percentages, setPercentages] = useState<Record<string, number | string>>({
-    scrapGold: 95,
-    scrapSilver: 95,
-    scrapPlatinum: 95,
-    meltGold: 95,
-    meltSilver: 95,
-    meltPlatinum: 95,
-  })
+  const [percentages, setPercentages] = useState<Record<string, number | string>>(
+    initialPercentages ?? {}
+  )
 
   const [purityPercentages, setPurityPercentages] = useState<Record<string, number | string>>({})
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const lastEditTimeRef = useRef<Record<string, number>>({})
   const isTypingRef = useRef<Record<string, boolean>>({})
+  const focusedFieldRef = useRef<string | null>(null)
   const pendingPriceRef = useRef<Record<string, number>>({})
   const spotPricesRef = useRef(spotPrices)
   spotPricesRef.current = spotPrices
@@ -159,8 +160,18 @@ export function PricingTable({
   dwtValuesRef.current = dwtValues
   const purityPercentagesRef = useRef(purityPercentages)
   purityPercentagesRef.current = purityPercentages
+  const originalPercentagesRef = useRef<Record<string, number | string | undefined>>({})
 
   const isDraft = !transaction.id
+  const isStaffLocked = userRole === "STAFF" && approvalStatus !== null
+  const isReadOnly = readOnly || isStaffLocked
+
+  const [pendingPercentageChange, setPendingPercentageChange] = useState<{
+    metalType: MetalType
+    value: number
+    scope: "GLOBAL" | "LOCAL" | null
+  } | null>(null)
+  const [isPercentageScopeDialogOpen, setIsPercentageScopeDialogOpen] = useState(false)
 
   useEffect(() => {
     if (isDraft) return
@@ -263,10 +274,11 @@ export function PricingTable({
         let hasChanges = false
 
         Object.keys(values).forEach((key) => {
+          if (focusedFieldRef.current === key) return
           const lastEditTime = lastEditTimeRef.current[key] || 0
           const timeSinceEdit = now - lastEditTime
 
-          if (prev[key] !== values[key] && timeSinceEdit > 3000) {
+          if (prev[key] !== values[key] && timeSinceEdit > 500) {
             updated[key] = values[key]
             hasChanges = true
           }
@@ -274,10 +286,11 @@ export function PricingTable({
 
         Object.keys(prev).forEach((key) => {
           if (!(key in values) && prev[key] !== 0) {
+            if (focusedFieldRef.current === key) return
             const lastEditTime = lastEditTimeRef.current[key] || 0
             const timeSinceEdit = now - lastEditTime
             
-            if (timeSinceEdit > 2000) {
+            if (timeSinceEdit > 500) {
               delete updated[key]
               hasChanges = true
 
@@ -296,7 +309,9 @@ export function PricingTable({
           let hasChanges = false
 
           Object.keys(purityValues).forEach((key) => {
-            const lastEditTime = lastEditTimeRef.current[`purity-${key}`] || 0
+            const focusKey = `purity-${key}`
+            if (focusedFieldRef.current === focusKey) return
+            const lastEditTime = lastEditTimeRef.current[focusKey] || 0
             const timeSinceEdit = now - lastEditTime
 
             const currentValue = prev[key]
@@ -304,7 +319,7 @@ export function PricingTable({
 
             const valueChanged = currentValue !== newValue
             
-            if (valueChanged && timeSinceEdit > 2000) {
+            if (valueChanged && timeSinceEdit > 500) {
               updated[key] = newValue
               hasChanges = true
             }
@@ -312,10 +327,12 @@ export function PricingTable({
 
           Object.keys(prev).forEach((key) => {
             if (!(key in purityValues)) {
-              const lastEditTime = lastEditTimeRef.current[`purity-${key}`] || 0
+              const focusKey = `purity-${key}`
+              if (focusedFieldRef.current === focusKey) return
+              const lastEditTime = lastEditTimeRef.current[focusKey] || 0
               const timeSinceEdit = now - lastEditTime
               
-              if (timeSinceEdit > 2000) {
+              if (timeSinceEdit > 500) {
                 delete updated[key]
                 hasChanges = true
               }
@@ -333,150 +350,93 @@ export function PricingTable({
 
   const lastSavedValuesRef = useRef<Record<string, { dwt: number; purityPercentage?: number }>>({})
 
-  const debouncedSave = useCallback(
-    (() => {
-      const timeouts: Record<string, NodeJS.Timeout | null> = {}
-      return (metalType: MetalType, purity: string, dwt: number, purityPercentage?: number) => {
-        const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
+  const saveLineItemBlur = useCallback(
+    async (metalType: MetalType, purity: string, dwt: number, purityPercentage?: number) => {
+      const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
 
-        if (isDraft) {
-          if (onLineItemsUpdate) {
-            setTimeout(() => {
-              try {
-                const latestDwt = { ...dwtValuesRef.current, [key]: dwt }
-                const latestPurity = transaction.type === "MELT" && purityPercentage !== undefined
-                  ? { ...purityPercentagesRef.current, [key]: purityPercentage }
-                  : purityPercentagesRef.current
-                const items = buildDraftLineItems(
-                  transaction.type,
-                  latestDwt,
-                  latestPurity,
-                  spotPricesRef.current,
-                  percentagesRef.current
-                )
-                onLineItemsUpdate(items)
-              } catch (e) {
-                console.error("Error building draft line items:", e)
-              }
-            }, 0)
-          }
-          return
-        }
-
-        if (inFlightRequestsRef.current.has(key)) {
-          console.log(`[debouncedSave] Skipping POST for ${key} - request already in flight`)
-          return
-        }
-
-        const lastSaved = lastSavedValuesRef.current[key]
-        const currentDwt = parseFloat(dwt.toString()) || 0
-        const currentPurityPct = purityPercentage !== undefined ? purityPercentage : (typeof purityPercentages[key] === 'number' ? purityPercentages[key] : parseFloat(String(purityPercentages[key] || 0)))
-        
-        if (lastSaved && 
-            lastSaved.dwt === currentDwt && 
-            (transaction.type !== "MELT" || lastSaved.purityPercentage === currentPurityPct)) {
-          console.log(`[debouncedSave] Skipping POST for ${key} - value unchanged (dwt: ${currentDwt}, purity: ${currentPurityPct})`)
-          return
-        }
-
-        if (timeouts[key]) {
-          clearTimeout(timeouts[key])
-        }
-        
-        timeouts[key] = setTimeout(async () => {
-
-          if (inFlightRequestsRef.current.has(key)) {
-            console.log(`[debouncedSave] Skipping POST for ${key} - request started during debounce`)
-            return
-          }
-
-          inFlightRequestsRef.current.add(key)
-          setSaving((prev) => ({ ...prev, [key]: true }))
-
+      if (isDraft) {
+        if (onLineItemsUpdate) {
           try {
-            const body: any = {
-              metalType,
-              purityLabel: purity,
-              dwt: currentDwt,
-            }
-
-            if (transaction.type === "MELT") {
-              body.purityPercentage = currentPurityPct
-            }
-
-            console.log(`[debouncedSave] POST /api/transactions/${transaction.id}/line-items for ${key}`, body)
-
-            const res = await fetch(`/api/transactions/${transaction.id}/line-items`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-              credentials: 'include',
-            })
-
-            if (!res.ok) {
-              const errorData = await res.json().catch(() => ({}))
-              throw new Error(errorData.message || "Failed to save")
-            }
-
-            await res.json().catch(() => ({}))
-
-            if (onLineItemsUpdate) {
-              try {
-                const latest = await fetch(`/api/transactions/${transaction.id}/line-items`, {
-                  method: "GET",
-                  credentials: "include",
-                })
-                if (latest.ok) {
-                  const data = await latest.json().catch(() => ({}))
-                  if (Array.isArray(data.lineItems)) {
-                    onLineItemsUpdate(data.lineItems)
-                  }
-                }
-              } catch (e) {
-                console.error("Error refreshing line items after save:", e)
-              }
-            }
-
-            lastSavedValuesRef.current[key] = {
-              dwt: currentDwt,
-              purityPercentage: transaction.type === "MELT" ? currentPurityPct : undefined
-            }
-
-            inFlightRequestsRef.current.delete(key)
-            setSaving((prev) => {
-              const updated = { ...prev }
-              delete updated[key]
-              return updated
-            })
-
-            toast({
-              title: "Saved",
-              description: `${purity} ${metalType} updated`,
-              variant: "success",
-            })
-          } catch (error) {
-            console.error("Error saving line item:", error)
-
-            inFlightRequestsRef.current.delete(key)
-            setSaving((prev) => {
-              const updated = { ...prev }
-              delete updated[key]
-              return updated
-            })
-            
-            toast({
-              title: "Error",
-              description: error instanceof Error ? error.message : "Failed to save line item",
-              variant: "destructive",
-            })
+            const latestDwt = { ...dwtValuesRef.current, [key]: dwt }
+            const latestPurity = transaction.type === "MELT" && purityPercentage !== undefined
+              ? { ...purityPercentagesRef.current, [key]: purityPercentage }
+              : purityPercentagesRef.current
+            const items = buildDraftLineItems(
+              transaction.type,
+              latestDwt,
+              latestPurity,
+              spotPricesRef.current,
+              percentagesRef.current
+            )
+            onLineItemsUpdate(items)
+          } catch (e) {
+            console.error("Error building draft line items:", e)
           }
-        }, 800)
+        }
+        return
       }
-    })()
-  , [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate, isDraft])
+
+      if (inFlightRequestsRef.current.has(key)) return
+
+      const currentDwt = parseFloat(String(dwt)) || 0
+      const currentPurityPct = purityPercentage !== undefined ? purityPercentage : (typeof purityPercentages[key] === "number" ? purityPercentages[key] : parseFloat(String(purityPercentages[key] || 0)) ?? 0)
+      const lastSaved = lastSavedValuesRef.current[key]
+      if (lastSaved && lastSaved.dwt === currentDwt && (transaction.type !== "MELT" || lastSaved.purityPercentage === currentPurityPct)) return
+
+      inFlightRequestsRef.current.add(key)
+      setSaving((prev) => ({ ...prev, [key]: true }))
+
+      try {
+        const body: Record<string, unknown> = { metalType, purityLabel: purity, dwt: currentDwt }
+        if (transaction.type === "MELT") (body as Record<string, number>).purityPercentage = currentPurityPct
+
+        const res = await fetch(`/api/transactions/${transaction.id}/line-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          credentials: "include",
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          throw new Error((errorData as { message?: string }).message || "Failed to save")
+        }
+
+        await res.json().catch(() => ({}))
+
+        if (onLineItemsUpdate) {
+          try {
+            const latest = await fetch(`/api/transactions/${transaction.id}/line-items`, { method: "GET", credentials: "include" })
+            if (latest.ok) {
+              const data = await latest.json().catch(() => ({})) as { lineItems?: unknown[] }
+              if (Array.isArray(data.lineItems)) onLineItemsUpdate(data.lineItems as LineItem[])
+            }
+          } catch (e) {
+            console.error("Error refreshing line items after save:", e)
+          }
+        }
+
+        lastSavedValuesRef.current[key] = { dwt: currentDwt, purityPercentage: transaction.type === "MELT" ? currentPurityPct : undefined }
+        toast({ title: "Saved", description: `${purity} ${metalType} updated`, variant: "success" })
+      } catch (error) {
+        console.error("Error saving line item:", error)
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save line item", variant: "destructive" })
+      } finally {
+        inFlightRequestsRef.current.delete(key)
+        setSaving((prev) => {
+          const next = { ...prev }
+          delete next[key]
+          return next
+        })
+      }
+    },
+    [transaction.id, transaction.type, toast, purityPercentages, onLineItemsUpdate, isDraft]
+  )
+
+  const debouncedSave = saveLineItemBlur
 
   function handleDwtChange(metalType: MetalType, purity: string, value: string, purityPercentage?: number) {
-    if (readOnly) return
+    if (isReadOnly) return
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
 
@@ -490,137 +450,20 @@ export function PricingTable({
     
     lastEditTimeRef.current[key] = Date.now()
     setDwtValues((prev) => ({ ...prev, [key]: numValue }))
-
-    const purityPctValue = purityPercentage ?? purityPercentages[key] ?? 0
-    const currentPurityPercentage = typeof purityPctValue === 'string' ? parseFloat(purityPctValue) || 0 : purityPctValue
-
-    const purityParam = transaction.type === "MELT" ? metalType : purity
-    debouncedSave(metalType, purityParam, numValue, currentPurityPercentage)
   }
 
-  const debouncedPriceUpdate = useCallback(
-    (() => {
-      let timeout: NodeJS.Timeout | null = null
-      return (metalType: string, price: number) => {
-
-        pendingPriceRef.current[metalType] = price
-
-        isTypingRef.current[metalType] = true
-        
-        if (timeout) clearTimeout(timeout)
-        timeout = setTimeout(async () => {
-
-          if (!isTypingRef.current[metalType]) return
-
-          const priceToSave = pendingPriceRef.current[metalType]
-          isTypingRef.current[metalType] = false
-          
-          try {
-            const res = await fetch("/api/admin/prices", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                metalType,
-                price: priceToSave,
-              }),
-              credentials: 'include',
-            })
-
-            if (!res.ok) {
-              const errorData = await res.json().catch(() => ({ message: "Failed to update price" }))
-              throw new Error(errorData.message || "Failed to update price")
-            }
-
-            await res.json()
-
-            toast({
-              title: "Price updated",
-              description: `${metalType} spot price updated to $${formatDecimal(priceToSave)}`,
-              variant: "success",
-            })
-          } catch (error) {
-            toast({
-              title: "Error",
-              description: error instanceof Error ? error.message : "Failed to update price",
-              variant: "destructive",
-            })
-          }
-        }, 2500)
-      }
-    })()
-  , [toast])
-
-  const debouncedTransactionPercentageUpdate = useCallback(
-    (() => {
-      const timeouts: Record<string, NodeJS.Timeout | null> = {}
-      return (metalType: MetalType, percentageValue: number) => {
-
-        const transactionTypeLower = transaction.type.toLowerCase()
-        const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-        const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
-        const typingKey = `percentage-${key}`
-
-        isTypingRef.current[typingKey] = true
-
-        if (timeouts[typingKey]) {
-          clearTimeout(timeouts[typingKey])
-        }
-        
-        timeouts[typingKey] = setTimeout(async () => {
-
-          try {
-
-            const currentSpotPrice = spotPricesRef.current[metalType.toLowerCase() as keyof typeof spotPricesRef.current]
-            const priceNum = Number(currentSpotPrice) || 0
-
-            const percentageKey = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
-            const requestBody: any = {
-              metalType: metalType.toLowerCase(),
-              price: priceNum,
-              transactionType: transaction.type,
-            }
-            requestBody[percentageKey] = percentageValue
-            
-            
-            const res = await fetch("/api/admin/prices", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(requestBody),
-              credentials: 'include',
-            })
-
-            if (!res.ok) {
-              const errorData = await res.json().catch(() => ({ message: "Failed to update percentage" }))
-              throw new Error(errorData.message || "Failed to update percentage")
-            }
-
-            const updated = await res.json()
-
-            isTypingRef.current[typingKey] = false
-
-            toast({
-              title: "Percentage updated",
-              description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}%`,
-              variant: "success",
-            })
-          } catch (error) {
-
-            isTypingRef.current[typingKey] = false
-            
-            toast({
-              title: "Error",
-              description: error instanceof Error ? error.message : "Failed to update percentage",
-              variant: "destructive",
-            })
-          }
-        }, 2500)
-      }
-    })(),
-    [toast, transaction.id, transaction.type]
-  )
+  function handleDwtBlur(metalType: MetalType, purity: string) {
+    const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
+    focusedFieldRef.current = null
+    const dwt = dwtValuesRef.current[key] ?? dwtValues[key] ?? 0
+    const purityPctValue = purityPercentagesRef.current[key] ?? purityPercentages[key] ?? 0
+    const currentPurityPercentage = typeof purityPctValue === "string" ? parseFloat(purityPctValue) || 0 : purityPctValue
+    const purityParam = transaction.type === "MELT" ? metalType : purity
+    void saveLineItemBlur(metalType, purityParam, dwt, currentPurityPercentage)
+  }
 
   function handlePriceChange(metalType: MetalType, value: string) {
-    if (readOnly) return
+    if (isReadOnly) return
     const numValue = parseFloat(value) || 0
     if (numValue < 0) return
 
@@ -631,7 +474,30 @@ export function PricingTable({
       [metalKey]: numValue,
     }))
 
-    debouncedPriceUpdate(metalKey, numValue)
+    pendingPriceRef.current[metalKey] = numValue
+  }
+
+  async function handleSpotBlur(metalKey: "gold" | "silver" | "platinum", e: React.FocusEvent<HTMLInputElement>) {
+    const raw = e.target.value
+    if (raw === "" || raw === null || raw === undefined) return
+    const num = parseFloat(raw)
+    if (isNaN(num) || num < 0) return
+    try {
+      const res = await fetch("/api/admin/prices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metalType: metalKey, price: num }),
+        credentials: "include",
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Failed to update price" }))
+        throw new Error((errorData as { message?: string }).message || "Failed to update price")
+      }
+      await res.json()
+      toast({ title: "Price updated", description: `${metalKey} spot price updated to $${formatDecimal(num)}`, variant: "success" })
+    } catch (error) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to update price", variant: "destructive" })
+    }
   }
 
   function handleSpotFocus(metalKey: "gold" | "silver" | "platinum") {
@@ -642,19 +508,70 @@ export function PricingTable({
     const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
     const key = `${transaction.type.toLowerCase()}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
     const typingKey = `percentage-${key}`
+    originalPercentagesRef.current[key] = percentagesRef.current[key]
     isTypingRef.current[typingKey] = true
     setPercentages((prev) => ({ ...prev, [key]: "" }))
   }
 
-  function handlePercentageBlur(metalType: MetalType) {
+  function handlePercentageBlur(metalType: MetalType, e: React.FocusEvent<HTMLInputElement>) {
+    const transactionTypeLower = transaction.type.toLowerCase()
     const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-    const key = `${transaction.type.toLowerCase()}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+    const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
     const typingKey = `percentage-${key}`
     isTypingRef.current[typingKey] = false
+
+    const raw = e.target.value
+    if (raw === "" || raw === null || raw === undefined) return
+    const percentageValue = parseFloat(raw)
+    if (isNaN(percentageValue) || percentageValue < 0 || percentageValue > 100) return
+
+    if (userRole === "ADMIN") {
+      setPendingPercentageChange({ metalType, value: percentageValue, scope: null })
+      setIsPercentageScopeDialogOpen(true)
+      return
+    }
+
+    const percentageKey = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
+    const currentSpotPrice = spotPricesRef.current[metalType.toLowerCase() as keyof typeof spotPricesRef.current]
+    const priceNum = Number(currentSpotPrice) || 0
+    const requestBody: Record<string, unknown> = {
+      metalType: metalType.toLowerCase(),
+      price: priceNum,
+      transactionType: transaction.type,
+      [percentageKey]: percentageValue,
+    }
+
+    fetch("/api/admin/prices", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: "Failed to update percentage" }))
+          throw new Error((errorData as { message?: string }).message || "Failed to update percentage")
+        }
+        return res.json()
+      })
+      .then(() => {
+        toast({
+          title: "Percentage updated",
+          description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}%`,
+          variant: "success",
+        })
+      })
+      .catch((error) => {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update percentage",
+          variant: "destructive",
+        })
+      })
   }
 
   function handlePercentageChange(metalType: MetalType, value: string) {
-    if (readOnly) return
+    if (isReadOnly) return
     const transactionTypeLower = transaction.type.toLowerCase()
     const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
     const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
@@ -684,7 +601,6 @@ export function PricingTable({
         [key]: numValue
       }))
 
-      debouncedTransactionPercentageUpdate(metalType, numValue)
     } else if (value.match(/^[0-9]*\.?[0-9]*$/)) {
 
       setPercentages(prev => ({
@@ -695,8 +611,115 @@ export function PricingTable({
     }
   }
 
+  async function applyPercentageChangeScope() {
+    if (!pendingPercentageChange || !pendingPercentageChange.scope) return
+    const { metalType, value, scope } = pendingPercentageChange
+    const percentageValue = value
+
+    if (scope === "GLOBAL") {
+      try {
+        const transactionTypeLower = transaction.type.toLowerCase()
+        const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+        const stateKey = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+        const percentageKey = `${stateKey}Percentage`
+        const currentSpotPrice = spotPricesRef.current[metalType.toLowerCase() as keyof typeof spotPricesRef.current]
+        const priceNum = Number(currentSpotPrice) || 0
+        const requestBody: Record<string, unknown> = {
+          metalType: metalType.toLowerCase(),
+          price: priceNum,
+          transactionType: transaction.type,
+          [percentageKey]: percentageValue,
+        }
+
+        const res = await fetch("/api/admin/prices", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+          credentials: "include",
+        })
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: "Failed to update percentage" }))
+          throw new Error((errorData as { message?: string }).message || "Failed to update percentage")
+        }
+        await res.json()
+
+        
+        
+        setPercentages(prev => ({
+          ...prev,
+          [stateKey]: percentageValue,
+        }))
+        percentagesRef.current = {
+          ...percentagesRef.current,
+          [stateKey]: percentageValue,
+        }
+        if (onLineItemsUpdate) {
+          const items = buildDraftLineItems(
+            transaction.type,
+            dwtValuesRef.current,
+            purityPercentagesRef.current,
+            spotPricesRef.current,
+            percentagesRef.current
+          )
+          onLineItemsUpdate(items)
+        }
+        toast({
+          title: "Percentage updated",
+          description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}% for everyone`,
+          variant: "success",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update percentage",
+          variant: "destructive",
+        })
+      }
+    } else {
+      try {
+        if (onLineItemsUpdate) {
+          const items = buildDraftLineItems(
+            transaction.type,
+            dwtValuesRef.current,
+            purityPercentagesRef.current,
+            spotPricesRef.current,
+            percentagesRef.current
+          )
+          onLineItemsUpdate(items)
+        }
+        toast({
+          title: "Percentage updated",
+          description: `${metalType} ${transaction.type.toLowerCase()} percentage updated only for this customer`,
+          variant: "success",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to apply customer-only percentage",
+          variant: "destructive",
+        })
+      }
+    }
+
+    setIsPercentageScopeDialogOpen(false)
+    setPendingPercentageChange(null)
+  }
+
+  function resetPendingPercentageToOriginal() {
+    if (!pendingPercentageChange) return
+    const { metalType } = pendingPercentageChange
+    const transactionTypeLower = transaction.type.toLowerCase()
+    const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+    const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+    const original = originalPercentagesRef.current[key]
+    setPercentages((prev) => ({
+      ...prev,
+      [key]: original === undefined ? "" : original,
+    }))
+  }
+
   function handlePurityPercentageChange(metalType: MetalType, purity: string, value: string) {
-    if (readOnly) return
+    if (isReadOnly) return
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
 
     const currentValue = purityPercentages[key]
@@ -739,14 +762,12 @@ export function PricingTable({
     }))
 
     const currentDwt = dwtValues[key] || 0
-
-    const purityParam = transaction.type === "MELT" ? metalType : purity
-    debouncedSave(metalType, purityParam, currentDwt, numValue)
   }
   
   function handlePurityPercentageFocus(metalType: MetalType, purity: string, e: React.FocusEvent<HTMLInputElement>) {
-
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
+    focusedFieldRef.current = `purity-${key}`
+
     const currentValue = purityPercentages[key] ?? 0
 
     if (currentValue === 0) {
@@ -761,8 +782,9 @@ export function PricingTable({
   }
   
   function handlePurityPercentageBlur(metalType: MetalType, purity: string, e: React.FocusEvent<HTMLInputElement>) {
-
     const key = transaction.type === "MELT" ? metalType : `${metalType}-${purity}`
+    focusedFieldRef.current = null
+
     const value = e.target.value
 
     if (value === "" || value === null || value === undefined) {
@@ -770,12 +792,17 @@ export function PricingTable({
         ...prev,
         [key]: 0
       }))
-      const currentDwt = dwtValues[key] || 0
-      if (transaction.type === "MELT") {
-        debouncedSave(metalType, metalType, currentDwt, 0)
-      } else {
-        debouncedSave(metalType, purity, currentDwt, 0)
-      }
+      const currentDwt = dwtValuesRef.current[key] ?? dwtValues[key] ?? 0
+      const purityParam = transaction.type === "MELT" ? metalType : purity
+      void saveLineItemBlur(metalType, purityParam, currentDwt, 0)
+      return
+    }
+
+    const numValue = parseFloat(value)
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+      const currentDwt = dwtValuesRef.current[key] ?? dwtValues[key] ?? 0
+      const purityParam = transaction.type === "MELT" ? metalType : purity
+      void saveLineItemBlur(metalType, purityParam, currentDwt, numValue)
     }
   }
 
@@ -805,7 +832,6 @@ export function PricingTable({
     const spotPriceNum = Number(spotPrice) || 0
 
     if (transaction.type === "MELT") {
-
       const key = metalType
       const dwt = dwtValues[key] || 0
       const purityPctValue = purityPercentages[key] ?? 0
@@ -822,13 +848,25 @@ export function PricingTable({
       
       const rows = getMeltPricingRows(metalType, spotPriceNum, { [key]: dwt }, { [key]: purityPercentage }, percentage)
       const row = rows[0]
+
       
+      
+      
+      const useLockedValues = isStaffLocked || readOnly
+      const finalDwt = useLockedValues && existingItem ? existingItem.dwt : row.dwt
+      const finalPricePerDWT = useLockedValues && existingItem ? existingItem.pricePerOz : row.pricePerDWT
+      const finalLineTotal = useLockedValues && existingItem ? existingItem.lineTotal : row.lineTotal
+      const finalPurityPercentage =
+        useLockedValues && existingItem && existingItem.purityPercentage != null
+          ? existingItem.purityPercentage
+          : row.purityPercentage
+
       return [{
         purity: metalType,
-        dwt: row.dwt,
-        pricePerDWT: row.pricePerDWT,
-        lineTotal: row.lineTotal,
-        purityPercentage: row.purityPercentage,
+        dwt: finalDwt,
+        pricePerDWT: finalPricePerDWT,
+        lineTotal: finalLineTotal,
+        purityPercentage: finalPurityPercentage,
         saving: saving[key] || false,
         existingItem,
       }]
@@ -871,8 +909,15 @@ export function PricingTable({
       const percentage = typeof percentageValue === 'number' ? percentageValue : (typeof percentageValue === 'string' && percentageValue !== '' ? parseFloat(percentageValue) || 95 : 95)
       const rows = getScrapPricingRows(metalType, spotPriceNum, { [purity]: dwt }, percentage)
       const row = rows.find((r) => r.purity === purity)!
-      pricePerDWT = row.pricePerDWT
-      lineTotal = row.lineTotal
+
+      if ((isStaffLocked || readOnly) && existingItem) {
+        
+        pricePerDWT = existingItem.pricePerOz
+        lineTotal = existingItem.lineTotal
+      } else {
+        pricePerDWT = row.pricePerDWT
+        lineTotal = row.lineTotal
+      }
 
       return {
         purity,
@@ -1006,7 +1051,7 @@ export function PricingTable({
                         onChange={(e) => handlePurityPercentageChange(metalType, row.purity, e.target.value)}
                         onFocus={(e) => handlePurityPercentageFocus(metalType, row.purity, e)}
                         onBlur={(e) => handlePurityPercentageBlur(metalType, row.purity, e)}
-                        disabled={readOnly}
+                        disabled={isReadOnly}
                         className="w-full max-w-24 sm:max-w-28 text-center font-black text-base sm:text-lg text-red-600 transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 mx-auto"
                         placeholder="0.00"
                       />
@@ -1025,7 +1070,9 @@ export function PricingTable({
                       min="0"
                       value={row.dwt || ""}
                       onChange={(e) => handleDwtChange(metalType, row.purity, e.target.value)}
-                      disabled={readOnly}
+                      onFocus={() => { const k = transaction.type === "MELT" ? metalType : `${metalType}-${row.purity}`; focusedFieldRef.current = k }}
+                      onBlur={() => handleDwtBlur(metalType, row.purity)}
+                      disabled={isReadOnly}
                       className={`w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all ${
                         row.dwt > 0 
                           ? 'bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20' 
@@ -1046,7 +1093,7 @@ export function PricingTable({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleClear(metalType, row.purity)}
-                      disabled={readOnly}
+                      disabled={isReadOnly}
                       className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
                       title="Clear DWT"
                     >
@@ -1080,7 +1127,7 @@ export function PricingTable({
                     variant="ghost"
                     size="icon"
                     onClick={() => handleClearAll(metalType)}
-                    disabled={readOnly}
+                    disabled={isReadOnly}
                     className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
                     title="Clear all DWT values"
                   >
@@ -1142,7 +1189,8 @@ export function PricingTable({
                   value={spotPrice === "" ? "" : spotPrice}
                   onFocus={() => handleSpotFocus(metalType.toLowerCase() as "gold" | "silver" | "platinum")}
                   onChange={(e) => handlePriceChange(metalType, e.target.value)}
-                  disabled={readOnly}
+                  onBlur={(e) => handleSpotBlur(metalType.toLowerCase() as "gold" | "silver" | "platinum", e)}
+                  disabled={isReadOnly}
                   className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="0.00"
                 />
@@ -1161,9 +1209,9 @@ export function PricingTable({
                     return String(val)
                   })()}
                   onFocus={() => handlePercentageFocus(metalType)}
-                  onBlur={() => handlePercentageBlur(metalType)}
+                  onBlur={(e) => handlePercentageBlur(metalType, e)}
                   onChange={(e) => handlePercentageChange(metalType, e.target.value)}
-                  disabled={readOnly}
+                  disabled={isReadOnly}
                   className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="95.00"
                 />
@@ -1217,7 +1265,8 @@ export function PricingTable({
                     value={spotPrices.gold === "" ? "" : spotPrices.gold}
                     onFocus={() => handleSpotFocus("gold")}
                     onChange={(e) => handlePriceChange("GOLD", e.target.value)}
-                    disabled={readOnly}
+                    onBlur={(e) => handleSpotBlur("gold", e)}
+                    disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
@@ -1236,9 +1285,9 @@ export function PricingTable({
                       return String(val)
                     })()}
                     onFocus={() => handlePercentageFocus("GOLD")}
-                    onBlur={() => handlePercentageBlur("GOLD")}
+                    onBlur={(e) => handlePercentageBlur("GOLD", e)}
                     onChange={(e) => handlePercentageChange("GOLD", e.target.value)}
-                    disabled={readOnly}
+                    disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
@@ -1285,7 +1334,8 @@ export function PricingTable({
                     value={spotPrices.silver === "" ? "" : spotPrices.silver}
                     onFocus={() => handleSpotFocus("silver")}
                     onChange={(e) => handlePriceChange("SILVER", e.target.value)}
-                    disabled={readOnly}
+                    onBlur={(e) => handleSpotBlur("silver", e)}
+                    disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
@@ -1304,9 +1354,9 @@ export function PricingTable({
                       return String(val)
                     })()}
                     onFocus={() => handlePercentageFocus("SILVER")}
-                    onBlur={() => handlePercentageBlur("SILVER")}
+                    onBlur={(e) => handlePercentageBlur("SILVER", e)}
                     onChange={(e) => handlePercentageChange("SILVER", e.target.value)}
-                    disabled={readOnly}
+                    disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
@@ -1353,7 +1403,8 @@ export function PricingTable({
                     value={spotPrices.platinum === "" ? "" : spotPrices.platinum}
                     onFocus={() => handleSpotFocus("platinum")}
                     onChange={(e) => handlePriceChange("PLATINUM", e.target.value)}
-                    disabled={readOnly}
+                    onBlur={(e) => handleSpotBlur("platinum", e)}
+                    disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="0.00"
                   />
@@ -1372,9 +1423,9 @@ export function PricingTable({
                       return String(val)
                     })()}
                     onFocus={() => handlePercentageFocus("PLATINUM")}
-                    onBlur={() => handlePercentageBlur("PLATINUM")}
+                    onBlur={(e) => handlePercentageBlur("PLATINUM", e)}
                     onChange={(e) => handlePercentageChange("PLATINUM", e.target.value)}
-                    disabled={readOnly}
+                    disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="95.00"
                   />
@@ -1385,6 +1436,137 @@ export function PricingTable({
           <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderMetalTable("PLATINUM")}</CardContent>
         </Card>
       </div>
+
+      {userRole === "ADMIN" && pendingPercentageChange && (
+        <Dialog
+          open={isPercentageScopeDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              resetPendingPercentageToOriginal()
+              setIsPercentageScopeDialogOpen(false)
+              setPendingPercentageChange(null)
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-lg border border-primary/40 bg-gradient-to-br from-white via-slate-50 to-primary/10 text-slate-900 shadow-2xl shadow-primary/20 rounded-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+            <DialogHeader className="space-y-2 pb-2 border-b border-primary/20">
+              <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl font-extrabold tracking-tight">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/40 flex items-center justify-center shadow-inner shadow-primary/20">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <span className="bg-gradient-to-r from-red-600 via-amber-500 to-primary bg-clip-text text-transparent">
+                  Apply Percentage Change
+                </span>
+              </DialogTitle>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600">
+                Decide whether this new{" "}
+                <span className="font-extrabold text-slate-900">
+                  {transaction.type.toLowerCase()} %
+                </span>{" "}
+                should be used just for this customer or across all transactions.
+              </p>
+            </DialogHeader>
+            <div className="mt-3 space-y-4">
+              <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-amber-100 px-4 py-3 text-xs sm:text-sm font-extrabold text-slate-900 shadow-sm">
+                {pendingPercentageChange.metalType} {transaction.type.toLowerCase()} percentage →{" "}
+                <span className="text-red-600">
+                  {formatDecimal(pendingPercentageChange.value)}%
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div
+                  className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
+                    pendingPercentageChange.scope === "LOCAL"
+                      ? "border-emerald-500 bg-emerald-50 shadow-md scale-[1.01]"
+                      : "border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/70"
+                  }`}
+                  onClick={() =>
+                    setPendingPercentageChange((prev) =>
+                      prev ? { ...prev, scope: "LOCAL" } : prev
+                    )
+                  }
+                >
+                  <div
+                    className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
+                      pendingPercentageChange.scope === "LOCAL"
+                        ? "border-emerald-500 bg-emerald-500"
+                        : "border-slate-400"
+                    }`}
+                  >
+                    {pendingPercentageChange.scope === "LOCAL" && (
+                      <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
+                      Only this customer
+                    </p>
+                    <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
+                      Apply this percentage only to this transaction. Global prices and percentages
+                      for other customers will not change.
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
+                    pendingPercentageChange.scope === "GLOBAL"
+                      ? "border-sky-500 bg-sky-50 shadow-md scale-[1.01]"
+                      : "border-slate-300 bg-white hover:border-sky-400 hover:bg-sky-50/70"
+                  }`}
+                  onClick={() =>
+                    setPendingPercentageChange((prev) =>
+                      prev ? { ...prev, scope: "GLOBAL" } : prev
+                    )
+                  }
+                >
+                  <div
+                    className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
+                      pendingPercentageChange.scope === "GLOBAL"
+                        ? "border-sky-500 bg-sky-500"
+                        : "border-slate-400"
+                    }`}
+                  >
+                    {pendingPercentageChange.scope === "GLOBAL" && (
+                      <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
+                      For everyone
+                    </p>
+                    <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
+                      Update today&apos;s global {transaction.type.toLowerCase()} percentage for this metal
+                      across all devices and future transactions.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="px-3 font-extrabold"
+                  onClick={() => {
+                    resetPendingPercentageToOriginal()
+                    setIsPercentageScopeDialogOpen(false)
+                    setPendingPercentageChange(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="px-4 font-extrabold"
+                  disabled={!pendingPercentageChange.scope}
+                  onClick={() => void applyPercentageChangeScope()}
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sticky bottom-2 sm:bottom-4 bg-background p-2 sm:p-3 md:p-4 border rounded-lg shadow-lg z-50 mx-2 sm:mx-0">
         {customBottom !== undefined ? (
@@ -1412,7 +1594,7 @@ export function PricingTable({
         ) : (
           <div className="flex-1" />
         )}
-        <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={readOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
+        <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={isReadOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
           <span className="text-center">Start New <span className="text-red-600 font-semibold">{transaction.type}</span> Transaction</span>
         </Button>
           </>

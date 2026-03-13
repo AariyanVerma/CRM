@@ -57,6 +57,7 @@ export function ScanPageClient({
   userRole,
   userId,
   cardLocked = false,
+  initialPercentages,
 }: {
   customer: Customer
   scrapTransaction: Transaction
@@ -64,6 +65,14 @@ export function ScanPageClient({
   userRole: "ADMIN" | "STAFF"
   userId: string
   cardLocked?: boolean
+  initialPercentages: {
+    scrapGold: number
+    scrapSilver: number
+    scrapPlatinum: number
+    meltGold: number
+    meltSilver: number
+    meltPlatinum: number
+  }
 }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -86,6 +95,7 @@ export function ScanPageClient({
   const [approvedWasEdited, setApprovedWasEdited] = useState(false)
   const [deniedModalFor, setDeniedModalFor] = useState<"SCRAP" | "MELT" | null>(null)
   const [sentForApprovalBanner, setSentForApprovalBanner] = useState<{ show: boolean; adminName: string; sendBoth: boolean }>({ show: false, adminName: "", sendBoth: false })
+  const [printedModal, setPrintedModal] = useState<{ byName: string; which: "SCRAP" | "MELT" | "BOTH" } | null>(null)
 
   const fetchApprovalStatus = useCallback(async (transactionId: string) => {
     try {
@@ -126,7 +136,8 @@ export function ScanPageClient({
         if (data.status === "APPROVED") {
           setApprovedWasEdited(data.edited === true)
           setApprovedModalFor("SCRAP")
-          if (data.edited && scrapTx.id) {
+          
+          if (scrapTx.id) {
             fetch(`/api/transactions/${scrapTx.id}/line-items`, { credentials: "include" })
               .then((r) => r.ok ? r.json() : null)
               .then((json) => { if (json?.lineItems) setScrapLineItems(json.lineItems) })
@@ -139,7 +150,8 @@ export function ScanPageClient({
         if (data.status === "APPROVED") {
           setApprovedWasEdited(data.edited === true)
           setApprovedModalFor("MELT")
-          if (data.edited && meltTx.id) {
+          
+          if (meltTx.id) {
             fetch(`/api/transactions/${meltTx.id}/line-items`, { credentials: "include" })
               .then((r) => r.ok ? r.json() : null)
               .then((json) => { if (json?.lineItems) setMeltLineItems(json.lineItems) })
@@ -150,8 +162,22 @@ export function ScanPageClient({
       }
     }
     socket.on("approval_status", onApproval)
+    const onPrinted = (data: { transactionId?: string; printedByName?: string }) => {
+      if (!data?.transactionId) return
+      const matchesScrap = scrapTx.id && data.transactionId === scrapTx.id
+      const matchesMelt = meltTx.id && data.transactionId === meltTx.id
+      if (!matchesScrap && !matchesMelt) return
+
+      const adminName = data.printedByName || "admin"
+      setPrintedModal({
+        byName: adminName,
+        which: matchesScrap && matchesMelt ? "BOTH" : matchesScrap ? "SCRAP" : "MELT",
+      })
+    }
+    socket.on("transaction_printed", onPrinted)
     return () => {
       socket.off("approval_status", onApproval)
+      socket.off("transaction_printed", onPrinted)
     }
   }, [userRole, userId, scrapTx.id, meltTx.id])
 
@@ -233,6 +259,8 @@ export function ScanPageClient({
           metalType: item.metalType,
           purityLabel: item.purityLabel,
           dwt: item.dwt,
+          pricePerOz: item.pricePerOz,
+          lineTotal: item.lineTotal,
         }))
         const res = await fetch("/api/transactions/send-for-approval", {
           method: "POST",
@@ -265,6 +293,8 @@ export function ScanPageClient({
           purityLabel: item.purityLabel,
           dwt: item.dwt,
           ...(item.purityPercentage != null ? { purityPercentage: item.purityPercentage } : {}),
+          pricePerOz: item.pricePerOz,
+          lineTotal: item.lineTotal,
         }))
         const res = await fetch("/api/transactions/send-for-approval", {
           method: "POST",
@@ -303,7 +333,61 @@ export function ScanPageClient({
   }
 
   async function handlePrint(type: "SCRAP" | "MELT") {
-    const transaction = type === "SCRAP" ? scrapTx : meltTx
+    let transaction = type === "SCRAP" ? scrapTx : meltTx
+
+    
+    
+    
+    if (!transaction.id && userRole === "ADMIN") {
+      const draftItems = (type === "SCRAP" ? scrapLineItems : meltLineItems)
+      if (draftItems.length === 0) {
+        toast({
+          title: "Nothing to print",
+          description: `Add DWT values for ${type} before printing.`,
+        })
+        return
+      }
+      try {
+        const res = await fetch("/api/transactions/create-from-draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            customerId: customer.id,
+            type,
+            lineItems: draftItems.map((item) => ({
+              metalType: item.metalType,
+              purityLabel: item.purityLabel,
+              dwt: item.dwt,
+              pricePerOz: item.pricePerOz,
+              lineTotal: item.lineTotal,
+              purityPercentage: item.purityPercentage ?? null,
+            })),
+          }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error((err as { message?: string }).message || "Failed to create transaction")
+        }
+        const data = await res.json() as { transaction: Transaction }
+        transaction = data.transaction
+        if (type === "SCRAP") {
+          setScrapTx(data.transaction)
+          setScrapLineItems(data.transaction.lineItems)
+        } else {
+          setMeltTx(data.transaction)
+          setMeltLineItems(data.transaction.lineItems)
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to create transaction before printing",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     if (!transaction.id) return
     try {
       const res = await fetch(`/api/transactions/${transaction.id}/print`, {
@@ -516,6 +600,7 @@ export function ScanPageClient({
                 approvalStatus={scrapApproval.status}
                 onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("SCRAP") : undefined}
                 pendingAdminName={scrapApproval.pendingAdminName}
+                initialPercentages={initialPercentages}
               />
             </div>
           </div>
@@ -567,6 +652,7 @@ export function ScanPageClient({
                 approvalStatus={meltApproval.status}
                 onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("MELT") : undefined}
                 pendingAdminName={meltApproval.pendingAdminName}
+                initialPercentages={initialPercentages}
               />
             </div>
           </div>
@@ -668,6 +754,52 @@ export function ScanPageClient({
             <p className="text-2xl font-bold text-red-700 dark:text-red-400">Denied</p>
             <p className="text-sm text-muted-foreground">Transaction denied by admin.</p>
             <Button variant="outline" onClick={() => setDeniedModalFor(null)}>OK</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!printedModal}
+        onOpenChange={(open) => {
+          if (!open) setPrintedModal(null)
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-sm text-center overflow-hidden border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-emerald-500/10 to-primary/5 shadow-2xl"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogTitle className="sr-only">Transaction printed</DialogTitle>
+          <div className="py-6 flex flex-col items-center gap-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl opacity-60 animate-pulse" />
+              <div className="relative rounded-full bg-primary/20 p-4 ring-4 ring-primary/30">
+                <Printer className="h-16 w-16 text-primary" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-primary drop-shadow-sm">
+              {printedModal?.which === "BOTH"
+                ? "Scrap & Melt printed"
+                : printedModal?.which === "SCRAP"
+                ? "Scrap printed"
+                : printedModal?.which === "MELT"
+                ? "Melt printed"
+                : "Transaction printed"}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              {printedModal?.byName
+                ? `Transaction was printed and closed by ${printedModal.byName}.`
+                : "Transaction was printed and closed."}
+            </p>
+            <Button
+              className="mt-1 px-6"
+              onClick={() => {
+                setPrintedModal(null)
+                sessionStorage.setItem("scanBlockReentry", "1")
+                window.location.replace("/dashboard")
+              }}
+            >
+              Back to dashboard
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

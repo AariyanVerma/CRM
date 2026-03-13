@@ -158,6 +158,14 @@ export default async function ScanPage({
           userRole={session.role}
           userId={session.id}
           cardLocked={isLocked}
+          initialPercentages={{
+            scrapGold: todayPrice.scrapGoldPercentage ?? 95,
+            scrapSilver: todayPrice.scrapSilverPercentage ?? 95,
+            scrapPlatinum: todayPrice.scrapPlatinumPercentage ?? 95,
+            meltGold: todayPrice.meltGoldPercentage ?? 95,
+            meltSilver: todayPrice.meltSilverPercentage ?? 95,
+            meltPlatinum: todayPrice.meltPlatinumPercentage ?? 95,
+          }}
         />
       </main>
     </div>

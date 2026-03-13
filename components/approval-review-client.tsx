@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PricingTable } from "@/components/pricing-table"
-import { Building2, User, Sparkles, Flame, TrendingUp, Coins, Scale, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react"
+import { Building2, User, Sparkles, Flame, TrendingUp, Coins, Scale, CheckCircle2, XCircle, Loader2, AlertTriangle, Printer } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Carousel } from "@/components/carousel"
 import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
+import { getSocket } from "@/lib/socketClient"
 import { formatDecimal, getCustomerDisplayName } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -63,6 +64,8 @@ export function ApprovalReviewClient({
   requestId,
   scrapRequestId,
   meltRequestId,
+  scrapRequestApproved = false,
+  meltRequestApproved = false,
   customer,
   scrapTransaction,
   meltTransaction,
@@ -71,6 +74,8 @@ export function ApprovalReviewClient({
   requestId: string
   scrapRequestId: string | null
   meltRequestId: string | null
+  scrapRequestApproved?: boolean
+  meltRequestApproved?: boolean
   customer: Customer
   scrapTransaction: Transaction
   meltTransaction: Transaction
@@ -83,9 +88,13 @@ export function ApprovalReviewClient({
   const [hasEdited, setHasEdited] = useState(false)
   const [acting, setActing] = useState<"approve-scrap" | "approve-melt" | "deny-scrap" | "deny-melt" | null>(null)
   const [warningFor, setWarningFor] = useState<"SCRAP" | "MELT" | null>(null)
+  const [printedModal, setPrintedModal] = useState<{ byName: string } | null>(null)
+  const [approvedModalFor, setApprovedModalFor] = useState<"SCRAP" | "MELT" | null>(null)
 
   const hasScrapRequest = !!scrapRequestId && scrapTransaction.id !== "dummy-scrap"
   const hasMeltRequest = !!meltRequestId && meltTransaction.id !== "dummy-melt"
+  const hasScrapToShow = (hasScrapRequest || scrapRequestApproved) && scrapTransaction.id !== "dummy-scrap"
+  const hasMeltToShow = (hasMeltRequest || meltRequestApproved) && meltTransaction.id !== "dummy-melt"
   const isPair = hasScrapRequest && hasMeltRequest
   const scrapHasLines = scrapLineItems.length > 0
   const meltHasLines = meltLineItems.length > 0
@@ -108,26 +117,59 @@ export function ApprovalReviewClient({
     if (lineItemsDiffer(items, meltTransaction.lineItems)) setHasEdited(true)
   }
 
+  
+  useEffect(() => {
+    const socket = getSocket()
+    const onPrinted = (data?: { transactionId?: string; printedByName?: string }) => {
+      if (!data?.transactionId) return
+      const matchesScrap = scrapTransaction.id && data.transactionId === scrapTransaction.id
+      const matchesMelt = meltTransaction.id && data.transactionId === meltTransaction.id
+      if (!matchesScrap && !matchesMelt) return
+
+      const name = data.printedByName || "staff"
+      setPrintedModal({ byName: name })
+    }
+    socket.on("transaction_printed", onPrinted)
+    return () => {
+      socket.off("transaction_printed", onPrinted)
+    }
+  }, [scrapTransaction.id, meltTransaction.id, toast, router])
+
   async function handleApproveScrap() {
     if (!scrapRequestId) return
+    const editedNow = lineItemsDiffer(scrapLineItems, scrapTransaction.lineItems)
     setActing("approve-scrap")
     try {
+      if (editedNow && scrapTransaction.id && scrapTransaction.id !== "dummy-scrap") {
+        const putRes = await fetch(`/api/transactions/${scrapTransaction.id}/line-items`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lineItems: scrapLineItems.map((item) => ({
+              metalType: item.metalType,
+              purityLabel: item.purityLabel,
+              dwt: item.dwt,
+              pricePerOz: item.pricePerOz,
+              lineTotal: item.lineTotal,
+            })),
+          }),
+          credentials: "include",
+        })
+        if (!putRes.ok) throw new Error("Failed to save changes")
+      }
       const res = await fetch(`/api/transactions/approval-requests/${scrapRequestId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edited: hasEdited }),
+        body: JSON.stringify({ edited: editedNow }),
         credentials: "include",
       })
       if (!res.ok) throw new Error("Failed")
-      toast({ title: "Scrap approved", description: hasEdited ? "Changes saved and approved." : "Scrap approved." })
+      setApprovedModalFor("SCRAP")
       if (isPair) {
         setWarningFor("MELT")
-        setActing(null)
-        router.refresh()
-      } else {
-        router.push("/dashboard/approvals")
-        router.refresh()
       }
+      setActing(null)
+      router.refresh()
     } catch {
       toast({ title: "Error", description: "Failed to approve", variant: "destructive" })
       setActing(null)
@@ -136,24 +178,40 @@ export function ApprovalReviewClient({
 
   async function handleApproveMelt() {
     if (!meltRequestId) return
+    const editedNow = lineItemsDiffer(meltLineItems, meltTransaction.lineItems)
     setActing("approve-melt")
     try {
+      if (editedNow && meltTransaction.id && meltTransaction.id !== "dummy-melt") {
+        const putRes = await fetch(`/api/transactions/${meltTransaction.id}/line-items`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lineItems: meltLineItems.map((item) => ({
+              metalType: item.metalType,
+              purityLabel: item.purityLabel,
+              dwt: item.dwt,
+              pricePerOz: item.pricePerOz,
+              lineTotal: item.lineTotal,
+              ...(item.purityPercentage != null ? { purityPercentage: item.purityPercentage } : {}),
+            })),
+          }),
+          credentials: "include",
+        })
+        if (!putRes.ok) throw new Error("Failed to save changes")
+      }
       const res = await fetch(`/api/transactions/approval-requests/${meltRequestId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edited: hasEdited }),
+        body: JSON.stringify({ edited: editedNow }),
         credentials: "include",
       })
       if (!res.ok) throw new Error("Failed")
-      toast({ title: "Melt approved", description: hasEdited ? "Changes saved and approved." : "Melt approved." })
+      setApprovedModalFor("MELT")
       if (isPair) {
         setWarningFor("SCRAP")
-        setActing(null)
-        router.refresh()
-      } else {
-        router.push("/dashboard/approvals")
-        router.refresh()
       }
+      setActing(null)
+      router.refresh()
     } catch {
       toast({ title: "Error", description: "Failed to approve", variant: "destructive" })
       setActing(null)
@@ -199,28 +257,41 @@ export function ApprovalReviewClient({
   const scrapBar = (
     <>
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-        Request from {staffName} {isPair && "· Scrap page"}
+        {scrapRequestApproved ? "Approved · You can print below" : `Request from ${staffName}${isPair ? " · Scrap page" : ""}`}
       </div>
-      {hasScrapRequest && (
+      {hasScrapToShow && (
         <>
+          {!scrapRequestApproved && (
+            <>
+              <Button
+                variant="destructive"
+                size="lg"
+                disabled={!!acting}
+                onClick={handleDenyScrap}
+                className="w-full sm:w-auto"
+              >
+                {acting === "deny-scrap" ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="mr-2 h-5 w-5" />}
+                Deny Scrap
+              </Button>
+              <Button
+                size="lg"
+                disabled={!!acting}
+                onClick={handleApproveScrap}
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+              >
+                {acting === "approve-scrap" ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+                Approve Scrap
+              </Button>
+            </>
+          )}
           <Button
-            variant="destructive"
+            variant="outline"
             size="lg"
-            disabled={!!acting}
-            onClick={handleDenyScrap}
             className="w-full sm:w-auto"
+            onClick={() => router.push(`/print/${scrapTransaction.id}`)}
           >
-            {acting === "deny-scrap" ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="mr-2 h-5 w-5" />}
-            Deny Scrap
-          </Button>
-          <Button
-            size="lg"
-            disabled={!!acting}
-            onClick={handleApproveScrap}
-            className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-          >
-            {acting === "approve-scrap" ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-            Approve Scrap
+            <Printer className="mr-2 h-5 w-5" />
+            Print Scrap
           </Button>
         </>
       )}
@@ -230,28 +301,41 @@ export function ApprovalReviewClient({
   const meltBar = (
     <>
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-        Request from {staffName} {isPair && "· Melt page"}
+        {meltRequestApproved ? "Approved · You can print below" : `Request from ${staffName}${isPair ? " · Melt page" : ""}`}
       </div>
-      {hasMeltRequest && (
+      {hasMeltToShow && (
         <>
+          {!meltRequestApproved && (
+            <>
+              <Button
+                variant="destructive"
+                size="lg"
+                disabled={!!acting}
+                onClick={handleDenyMelt}
+                className="w-full sm:w-auto"
+              >
+                {acting === "deny-melt" ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="mr-2 h-5 w-5" />}
+                Deny Melt
+              </Button>
+              <Button
+                size="lg"
+                disabled={!!acting}
+                onClick={handleApproveMelt}
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+              >
+                {acting === "approve-melt" ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+                Approve Melt
+              </Button>
+            </>
+          )}
           <Button
-            variant="destructive"
+            variant="outline"
             size="lg"
-            disabled={!!acting}
-            onClick={handleDenyMelt}
             className="w-full sm:w-auto"
+            onClick={() => router.push(`/print/${meltTransaction.id}`)}
           >
-            {acting === "deny-melt" ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="mr-2 h-5 w-5" />}
-            Deny Melt
-          </Button>
-          <Button
-            size="lg"
-            disabled={!!acting}
-            onClick={handleApproveMelt}
-            className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-          >
-            {acting === "approve-melt" ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-            Approve Melt
+            <Printer className="mr-2 h-5 w-5" />
+            Print Melt
           </Button>
         </>
       )}
@@ -323,7 +407,7 @@ export function ApprovalReviewClient({
                 onNewTransaction={noop}
                 userRole="ADMIN"
                 onLineItemsUpdate={markScrapEdited}
-                readOnly={false}
+                readOnly={scrapRequestApproved}
                 customBottom={scrapBar}
               />
             </div>
@@ -364,7 +448,7 @@ export function ApprovalReviewClient({
                 onNewTransaction={noop}
                 userRole="ADMIN"
                 onLineItemsUpdate={markMeltEdited}
-                readOnly={false}
+                readOnly={meltRequestApproved}
                 customBottom={meltBar}
               />
             </div>
@@ -418,6 +502,92 @@ export function ApprovalReviewClient({
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={approvedModalFor !== null}
+        onOpenChange={(open) => {
+          if (!open) setApprovedModalFor(null)
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-sm text-center overflow-hidden border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-primary/5 to-emerald-500/10 shadow-2xl"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>Approved</DialogTitle>
+          </DialogHeader>
+          <div className="py-6 flex flex-col items-center gap-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/40 blur-xl opacity-70 animate-pulse" />
+              <div className="relative rounded-full bg-emerald-500/20 p-4 ring-4 ring-emerald-500/40">
+                <CheckCircle2 className="h-16 w-16 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300 drop-shadow-sm">
+              {approvedModalFor === "SCRAP"
+                ? "Scrap approved"
+                : approvedModalFor === "MELT"
+                ? "Melt approved"
+                : "Approved"}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              {approvedModalFor === "SCRAP"
+                ? "Changes are saved. Staff can now print the SCRAP transaction with these totals."
+                : approvedModalFor === "MELT"
+                ? "Changes are saved. Staff can now print the MELT transaction with these totals."
+                : "Changes are saved and staff can now print this transaction."}
+            </p>
+            <Button
+              className="mt-1 px-6"
+              onClick={() => setApprovedModalFor(null)}
+            >
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!printedModal}
+        onOpenChange={(open) => {
+          if (!open) setPrintedModal(null)
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-sm text-center overflow-hidden border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-emerald-500/10 to-primary/5 shadow-2xl"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>Transaction printed</DialogTitle>
+          </DialogHeader>
+          <div className="py-6 flex flex-col items-center gap-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl opacity-60 animate-pulse" />
+              <div className="relative rounded-full bg-primary/20 p-4 ring-4 ring-primary/30">
+                <Printer className="h-16 w-16 text-primary" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-primary drop-shadow-sm">
+              Transaction printed
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              {printedModal?.byName
+                ? `Transaction was printed and closed by ${printedModal.byName}.`
+                : "Transaction was printed and closed."}
+            </p>
+            <Button
+              className="mt-1 px-6"
+              onClick={() => {
+                setPrintedModal(null)
+                router.push("/dashboard/approvals")
+                router.refresh()
+              }}
+            >
+              Back to approvals
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
