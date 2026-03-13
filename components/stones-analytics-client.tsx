@@ -13,9 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BarChart3, TableIcon, ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react"
 import { GOLD_PURITIES, SILVER_PURITIES, PLATINUM_PURITIES } from "@/lib/pricing"
 
-type StonesSave = { id: string; createdAt: string; rows: { id: string; date: string; metal: string; purity: string; dwt: number; pricePaid: number }[] }
-type StonesRow = { id: string; date: string; metal: string; purity: string; dwt: number; pricePaid: number; stonesSave: { id: string; createdAt: string } }
-type RowSnapshot = { date: string; metal: string; purity: string; dwt: number; pricePaid: number }
+type StonesSave = { id: string; createdAt: string; rows: { id: string; date: string; metal: string; purity: string; dwt: number; spotPrice: number | null; pricePaid: number }[] }
+type StonesRow = { id: string; date: string; metal: string; purity: string; dwt: number; spotPrice: number | null; pricePaid: number; stonesSave: { id: string; createdAt: string } }
+type RowSnapshot = { date: string; metal: string; purity: string; dwt: number; spotPrice?: number | null; pricePaid: number }
 type StonesReport = { id: string; createdAt: string; periodType: string; periodStart: string; periodEnd: string; totalPaid: number; grandTotal: number; profit: number; selectedRowIds?: string | null; selectedRowsData?: RowSnapshot[] | null }
 
 const PERIODS = [
@@ -247,7 +247,7 @@ export function StonesAnalyticsClient() {
           totalPaid,
           grandTotal: grandNum,
           selectedRowIds: Array.from(selectedIds),
-          selectedRowsData: rows.filter((r) => selectedIds.has(r.id)).map((r) => ({ date: r.date, metal: r.metal, purity: r.purity, dwt: r.dwt, pricePaid: r.pricePaid })),
+          selectedRowsData: rows.filter((r) => selectedIds.has(r.id)).map((r) => ({ date: r.date, metal: r.metal, purity: r.purity, dwt: r.dwt, spotPrice: r.spotPrice, pricePaid: r.pricePaid })),
         }),
         credentials: "include",
       })
@@ -301,6 +301,7 @@ export function StonesAnalyticsClient() {
                             <TableHead className="font-black text-red-600">Metal</TableHead>
                             <TableHead className="font-black text-red-600">Purity</TableHead>
                             <TableHead className="text-right font-black text-red-600">DWT</TableHead>
+                            <TableHead className="text-right font-black text-red-600">Spot price</TableHead>
                             <TableHead className="text-right font-black text-red-600">$ Paid</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -311,6 +312,7 @@ export function StonesAnalyticsClient() {
                               <TableCell className="font-black">{row.metal}</TableCell>
                               <TableCell className="font-black">{row.purity}</TableCell>
                               <TableCell className="text-right font-black">{row.dwt.toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-black">{row.spotPrice != null ? row.spotPrice.toFixed(2) : "—"}</TableCell>
                               <TableCell className="text-right font-black">${row.pricePaid.toFixed(2)}</TableCell>
                             </TableRow>
                           ))}
@@ -321,6 +323,7 @@ export function StonesAnalyticsClient() {
                             <TableCell className="text-right font-black text-red-600">
                               {save.rows.reduce((s, r) => s + r.dwt, 0).toFixed(2)}
                             </TableCell>
+                            <TableCell className="text-right font-black text-red-600" />
                             <TableCell className="text-right font-black text-red-600">
                               ${save.rows.reduce((s, r) => s + r.pricePaid, 0).toFixed(2)}
                             </TableCell>
@@ -417,6 +420,7 @@ export function StonesAnalyticsClient() {
                         <TableHead className="font-black text-red-600">Metal</TableHead>
                         <TableHead className="font-black text-red-600">Purity</TableHead>
                         <TableHead className="text-right font-black text-red-600">DWT</TableHead>
+                        <TableHead className="text-right font-black text-red-600">Spot price</TableHead>
                         <TableHead className="text-right font-black text-red-600">$ Paid</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -437,6 +441,7 @@ export function StonesAnalyticsClient() {
                           <TableCell className="font-black">{row.metal}</TableCell>
                           <TableCell className="font-black">{row.purity}</TableCell>
                           <TableCell className="text-right font-black">{row.dwt.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-black">{row.spotPrice != null ? row.spotPrice.toFixed(2) : "—"}</TableCell>
                           <TableCell className="text-right font-black">${row.pricePaid.toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
@@ -449,6 +454,7 @@ export function StonesAnalyticsClient() {
                           <TableCell className="font-black text-red-600" />
                           <TableCell className="font-black text-red-600" />
                           <TableCell className="text-right font-black text-red-600">{rows.reduce((s, r) => s + r.dwt, 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-black text-red-600" />
                           <TableCell className="text-right font-black text-red-600">${rows.reduce((s, r) => s + r.pricePaid, 0).toFixed(2)}</TableCell>
                         </TableRow>
                       </TableFooter>
@@ -642,6 +648,7 @@ export function StonesAnalyticsClient() {
                                     <TableHead className="font-black text-red-600">Metal</TableHead>
                                     <TableHead className="font-black text-red-600">Purity</TableHead>
                                     <TableHead className="text-right font-black text-red-600">DWT</TableHead>
+                                    <TableHead className="text-right font-black text-red-600">Spot price</TableHead>
                                     <TableHead className="text-right font-black text-red-600">$ Paid</TableHead>
                                   </TableRow>
                                 </TableHeader>
@@ -652,6 +659,7 @@ export function StonesAnalyticsClient() {
                                       <TableCell className="font-black">{row.metal}</TableCell>
                                       <TableCell className="font-black">{row.purity}</TableCell>
                                       <TableCell className="text-right font-black">{row.dwt.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-black">{row.spotPrice != null ? Number(row.spotPrice).toFixed(2) : "—"}</TableCell>
                                       <TableCell className="text-right font-black">${row.pricePaid.toFixed(2)}</TableCell>
                                     </TableRow>
                                   ))}

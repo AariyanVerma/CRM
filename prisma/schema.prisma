@@ -288,6 +288,7 @@ model StonesSaveRow {
   purity       String
   dwt          Float
   pricePaid    Float
+  spotPrice    Float?
   stonesSave   StonesSave @relation(fields: [stonesSaveId], references: [id], onDelete: Cascade)
 
   @@index([stonesSaveId])

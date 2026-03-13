@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAuth()
     const body = await request.json()
-    const rows = body.rows as Array<{ date: string; metal: string; purity: string; dwt: number; pricePaid: number }>
+    const rows = body.rows as Array<{ date: string; metal: string; purity: string; dwt: number; pricePaid: number; spotPrice?: number }>
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ message: "At least one row required" }, { status: 400 })
     }
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
             purity: String(r.purity),
             dwt: Number(r.dwt) || 0,
             pricePaid: Number(r.pricePaid) || 0,
+            spotPrice: r.spotPrice != null ? Number(r.spotPrice) || 0 : null,
           })),
         },
       },
