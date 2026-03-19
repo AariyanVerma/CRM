@@ -86,12 +86,14 @@ export function PowerBIDashboard() {
     if (from) params.set("from", from)
     if (to) params.set("to", to)
     if (customerId) params.set("customerId", customerId)
+    if (filters.typeFilter && filters.typeFilter !== "ALL") params.set("type", filters.typeFilter)
+    if (filters.statusFilter && filters.statusFilter !== "ALL") params.set("status", filters.statusFilter)
     fetch(`/api/reports?${params}`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed"))))
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [period, from, to, customerId])
+  }, [period, from, to, customerId, filters])
 
   useEffect(() => {
     if (from && to) loadReport()

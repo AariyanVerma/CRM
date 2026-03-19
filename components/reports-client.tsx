@@ -47,6 +47,12 @@ type ReportData = {
     customer: { id?: string; fullName: string; isBusiness?: boolean; businessName?: string | null }
     total: number
     lineItems: Array<{ metalType: string; lineTotal: number; purityLabel?: string; dwt?: number }>
+    scrapGoldPercentage?: number | null
+    scrapSilverPercentage?: number | null
+    scrapPlatinumPercentage?: number | null
+    meltGoldPercentage?: number | null
+    meltSilverPercentage?: number | null
+    meltPlatinumPercentage?: number | null
   }>
 }
 
@@ -87,7 +93,7 @@ export function ReportsClient() {
   const [customers, setCustomers] = useState<Array<{ id: string; fullName: string }>>([])
   const [customersLoading, setCustomersLoading] = useState(false)
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
-  const [statusFilter, setStatusFilter] = useState<string>("ALL")
+  const [statusFilter, setStatusFilter] = useState<string>("PRINTED")
   const [metalFilter, setMetalFilter] = useState<string>("ALL")
   const [minAmount, setMinAmount] = useState("")
   const [maxAmount, setMaxAmount] = useState("")
@@ -444,10 +450,7 @@ export function ReportsClient() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="ALL">All statuses</SelectItem>
-                <SelectItem value="OPEN">Approved</SelectItem>
-                <SelectItem value="PRINTED">PRINTED</SelectItem>
-                <SelectItem value="VOID">VOID</SelectItem>
+                <SelectItem value="PRINTED">Printed only</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -710,20 +713,12 @@ export function ReportsClient() {
             {data.summary.byStatus && (
             <Card className="border-0 shadow-lg bg-gradient-to-br from-background to-muted/30 overflow-hidden md:col-span-2">
               <CardHeader className="pb-2">
-                <CardDescription className="text-xs uppercase tracking-wider">By status</CardDescription>
+                <CardDescription className="text-xs uppercase tracking-wider">Status (printed only)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
-                  <span className="font-medium">Approved</span>
-                  <span className="tabular-nums">{data.summary.byStatus.OPEN.count} trans · {formatCurrency(data.summary.byStatus.OPEN.total)}</span>
-                </div>
-                <div className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
                   <span className="font-medium">PRINTED</span>
                   <span className="tabular-nums">{data.summary.byStatus.PRINTED.count} trans · {formatCurrency(data.summary.byStatus.PRINTED.total)}</span>
-                </div>
-                <div className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
-                  <span className="font-medium">VOID</span>
-                  <span className="tabular-nums">{data.summary.byStatus.VOID.count} trans · {formatCurrency(data.summary.byStatus.VOID.total)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -1186,8 +1181,8 @@ export function ReportsClient() {
                   <div className="space-y-3 text-sm">
                     <p><span className="text-muted-foreground">Date:</span> {formatDate(t.createdAt)}</p>
                     <p><span className="text-muted-foreground">Customer:</span> {getCustomerDisplayName(t.customer)}</p>
-                    <p><span className="text-muted-foreground">Type:</span> <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge></p>
-                    <p><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge></p>
+                    <div><span className="text-muted-foreground">Type:</span> <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge></div>
+                    <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge></div>
                     <p><span className="text-muted-foreground">Total:</span> <strong>{formatCurrency(t.total)}</strong></p>
                     {t.lineItems?.length > 0 && (
                       <div>
@@ -1225,7 +1220,7 @@ export function ReportsClient() {
           <p className="mb-2">Grand total: {formatCurrency(data.summary.grandTotal)}</p>
           {data.summary.avgTransaction != null && <p className="mb-2">Avg transaction: {formatCurrency(data.summary.avgTransaction)}</p>}
           {data.summary.byStatus && (
-            <p className="mb-6 text-sm">By status: Approved {data.summary.byStatus.OPEN.count} · PRINTED {data.summary.byStatus.PRINTED.count} · VOID {data.summary.byStatus.VOID.count}</p>
+            <p className="mb-6 text-sm">All transactions in this report are PRINTED · {data.summary.byStatus.PRINTED.count} total</p>
           )}
           {!data.summary.byStatus && <p className="mb-6" />}
           <table className="w-full text-sm border-collapse table-fixed">

@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const [customerCount, cardCount, openTransactions, todayStats] = await Promise.all([
     prisma.customer.count(),
     prisma.membershipCard.count({ where: { status: 'ACTIVE' } }),
-    prisma.transaction.count({ where: { status: { in: ['OPEN', 'PENDING_APPROVAL'] } } }),
+    prisma.transaction.count({ where: { status: { in: ['OPEN', 'PENDING_APPROVAL', 'APPROVED'] } } }),
     prisma.transaction.findMany({
       where: { createdAt: { gte: todayStart, lt: todayEnd } },
       include: { lineItems: { select: { lineTotal: true } } },

@@ -23,6 +23,7 @@ export type ReportData = {
 
 export type FilterState = {
   typeFilter: "ALL" | "SCRAP" | "MELT"
+  
   statusFilter: "ALL" | "OPEN" | "PRINTED" | "VOID"
 }
 

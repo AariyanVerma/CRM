@@ -100,7 +100,15 @@ export default async function ScanPage({
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const [, todayPrice] = await Promise.all([
+  type CustomerOverrides = {
+    scrapGoldPercentageOverride?: number | null
+    scrapSilverPercentageOverride?: number | null
+    scrapPlatinumPercentageOverride?: number | null
+    meltGoldPercentageOverride?: number | null
+    meltSilverPercentageOverride?: number | null
+    meltPlatinumPercentageOverride?: number | null
+  }
+  const [_, todayPrice, customerWithOverridesRaw] = await Promise.all([
     prisma.membershipCard.update({
       where: { id: card.id },
       data: { lastScannedAt: new Date() },
@@ -109,7 +117,20 @@ export default async function ScanPage({
       where: { date: { lte: today } },
       orderBy: { date: "desc" },
     }),
+    prisma.customer.findUnique({
+      where: { id: card.customer.id },
+      select: {
+        
+        scrapGoldPercentageOverride: true,
+        scrapSilverPercentageOverride: true,
+        scrapPlatinumPercentageOverride: true,
+        meltGoldPercentageOverride: true,
+        meltSilverPercentageOverride: true,
+        meltPlatinumPercentageOverride: true,
+      } as Record<string, boolean>,
+    }) as Promise<CustomerOverrides | null>,
   ])
+  const customerWithOverrides = customerWithOverridesRaw as CustomerOverrides | null
 
   if (!todayPrice) {
     return (
@@ -159,12 +180,12 @@ export default async function ScanPage({
           userId={session.id}
           cardLocked={isLocked}
           initialPercentages={{
-            scrapGold: todayPrice.scrapGoldPercentage ?? 95,
-            scrapSilver: todayPrice.scrapSilverPercentage ?? 95,
-            scrapPlatinum: todayPrice.scrapPlatinumPercentage ?? 95,
-            meltGold: todayPrice.meltGoldPercentage ?? 95,
-            meltSilver: todayPrice.meltSilverPercentage ?? 95,
-            meltPlatinum: todayPrice.meltPlatinumPercentage ?? 95,
+            scrapGold: customerWithOverrides?.scrapGoldPercentageOverride ?? todayPrice.scrapGoldPercentage ?? 95,
+            scrapSilver: customerWithOverrides?.scrapSilverPercentageOverride ?? todayPrice.scrapSilverPercentage ?? 95,
+            scrapPlatinum: customerWithOverrides?.scrapPlatinumPercentageOverride ?? todayPrice.scrapPlatinumPercentage ?? 95,
+            meltGold: customerWithOverrides?.meltGoldPercentageOverride ?? todayPrice.meltGoldPercentage ?? 95,
+            meltSilver: customerWithOverrides?.meltSilverPercentageOverride ?? todayPrice.meltSilverPercentage ?? 95,
+            meltPlatinum: customerWithOverrides?.meltPlatinumPercentageOverride ?? todayPrice.meltPlatinumPercentage ?? 95,
           }}
         />
       </main>

@@ -14,11 +14,22 @@ export async function GET(request: NextRequest) {
     const customerIdsParam = searchParams.get("customerIds") || undefined
     const typeFilter = searchParams.get("type") || undefined
     const statusFilter = searchParams.get("status") || undefined
+    const includeApprovedImpact = searchParams.get("includeApprovedImpact") === "true"
     const metalFilter = searchParams.get("metal") || undefined
     const minTotal = searchParams.get("minTotal") ? Number(searchParams.get("minTotal")) : undefined
     const maxTotal = searchParams.get("maxTotal") ? Number(searchParams.get("maxTotal")) : undefined
 
-    const fromDate = from ? new Date(from) : (() => {
+    
+    
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/
+    const fromDate = from ? (dateOnly.test(from)
+      ? new Date(from + "T00:00:00.000Z")
+      : (() => {
+          const d = new Date(from)
+          d.setHours(0, 0, 0, 0)
+          return d
+        })()
+    ) : (() => {
       const d = new Date()
       d.setHours(0, 0, 0, 0)
       if (period === "week") d.setDate(d.getDate() - 7)
@@ -33,23 +44,50 @@ export async function GET(request: NextRequest) {
       }
       return d
     })()
-    const toDate = to ? new Date(to) : new Date()
-    toDate.setHours(23, 59, 59, 999)
+    const toDate = to ? (dateOnly.test(to)
+      ? new Date(to + "T23:59:59.999Z")
+      : (() => {
+          const d = new Date(to)
+          d.setHours(23, 59, 59, 999)
+          return d
+        })()
+    ) : (() => {
+      const d = new Date()
+      d.setHours(23, 59, 59, 999)
+      return d
+    })()
 
     const customerIds = customerIdsParam ? customerIdsParam.split(",").filter(Boolean) : []
-    const where: Prisma.TransactionWhereInput = {
+
+    const baseWhere: Prisma.TransactionWhereInput = {
       createdAt: { gte: fromDate, lte: toDate },
     }
-    if (customerIds.length > 0) where.customerId = { in: customerIds }
-    else if (customerId) where.customerId = customerId
-    if (typeFilter === "SCRAP" || typeFilter === "MELT") where.type = typeFilter as TransactionType
-    if (statusFilter === "OPEN" || statusFilter === "PENDING_APPROVAL" || statusFilter === "APPROVED" || statusFilter === "PRINTED" || statusFilter === "VOID") where.status = statusFilter as TransactionStatus
+    if (customerIds.length > 0) baseWhere.customerId = { in: customerIds }
+    else if (customerId) baseWhere.customerId = customerId
+    if (typeFilter === "SCRAP" || typeFilter === "MELT") baseWhere.type = typeFilter as TransactionType
     if (metalFilter === "GOLD" || metalFilter === "SILVER" || metalFilter === "PLATINUM") {
-      where.lineItems = { some: { metalType: metalFilter } }
+      baseWhere.lineItems = { some: { metalType: metalFilter } }
+    }
+
+    
+    
+    
+    if (statusFilter === "OPEN") {
+      
+      baseWhere.status = { in: ["OPEN", "APPROVED"] as TransactionStatus[] }
+    } else if (
+      statusFilter === "PENDING_APPROVAL" ||
+      statusFilter === "APPROVED" ||
+      statusFilter === "PRINTED" ||
+      statusFilter === "VOID"
+    ) {
+      baseWhere.status = statusFilter as TransactionStatus
+    } else {
+      baseWhere.status = "PRINTED"
     }
 
     const transactions = await prisma.transaction.findMany({
-      where,
+      where: baseWhere,
       include: {
         customer: { select: { id: true, fullName: true, isBusiness: true, businessName: true } },
         lineItems: true,
@@ -91,6 +129,73 @@ export async function GET(request: NextRequest) {
     const grandTotal = withTotal.reduce((s, t) => s + t.total, 0)
     const count = withTotal.length
 
+    let approvedWithTotal: typeof withTotal | null = null
+    let approvedSummary:
+      | {
+          transactionCount: number
+          grandTotal: number
+          avgTransaction: number
+          minTotal: number
+          maxTotal: number
+          byType: typeof byType
+          byStatus: typeof byStatus
+          byMetal: typeof byMetal
+        }
+      | null = null
+
+    if (includeApprovedImpact) {
+      const approvedTransactions = await prisma.transaction.findMany({
+        where: {
+          ...baseWhere,
+          status: { in: ["OPEN", "APPROVED"] as TransactionStatus[] },
+        },
+        include: {
+          customer: { select: { id: true, fullName: true, isBusiness: true, businessName: true } },
+          lineItems: true,
+        },
+        orderBy: { createdAt: "desc" },
+      })
+
+      approvedWithTotal = approvedTransactions.map((t) => ({
+        ...t,
+        total: t.lineItems.reduce((s, i) => s + i.lineTotal, 0),
+      }))
+
+      const approvedByType = { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
+      const approvedByStatus: Record<TransactionStatus, { count: number; total: number }> = {
+        OPEN: { count: 0, total: 0 },
+        PENDING_APPROVAL: { count: 0, total: 0 },
+        APPROVED: { count: 0, total: 0 },
+        PRINTED: { count: 0, total: 0 },
+        VOID: { count: 0, total: 0 },
+      }
+      const approvedByMetal = { GOLD: 0, SILVER: 0, PLATINUM: 0 }
+
+      approvedWithTotal.forEach((t) => {
+        approvedByType[t.type].count += 1
+        approvedByType[t.type].total += t.total
+        approvedByStatus[t.status].count += 1
+        approvedByStatus[t.status].total += t.total
+        t.lineItems.forEach((i) => {
+          approvedByMetal[i.metalType] = (approvedByMetal[i.metalType] || 0) + i.lineTotal
+        })
+      })
+
+      const approvedGrandTotal = approvedWithTotal.reduce((s, t) => s + t.total, 0)
+      const approvedCount = approvedWithTotal.length
+
+      approvedSummary = {
+        transactionCount: approvedCount,
+        grandTotal: approvedGrandTotal,
+        avgTransaction: approvedCount > 0 ? approvedGrandTotal / approvedCount : 0,
+        minTotal: approvedCount > 0 ? Math.min(...approvedWithTotal.map((t) => t.total)) : 0,
+        maxTotal: approvedCount > 0 ? Math.max(...approvedWithTotal.map((t) => t.total)) : 0,
+        byType: approvedByType,
+        byStatus: approvedByStatus,
+        byMetal: approvedByMetal,
+      }
+    }
+
     return NextResponse.json({
       from: fromDate.toISOString(),
       to: toDate.toISOString(),
@@ -106,6 +211,8 @@ export async function GET(request: NextRequest) {
         byMetal,
       },
       transactions: withTotal,
+      approvedSummary,
+      approvedTransactions: approvedWithTotal,
     })
   } catch (error) {
     console.error("Error fetching report:", error)

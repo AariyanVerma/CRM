@@ -60,6 +60,6 @@ export default async function PrintPage({
     )
   }
 
-  return <PrintView transaction={transaction} layout={layout === "a4" ? "a4" : "label"} />
+  return <PrintView transaction={transaction} layout={layout === "a4" ? "a4" : "label"} showPercentages={session.role === "ADMIN"} />
 }
 

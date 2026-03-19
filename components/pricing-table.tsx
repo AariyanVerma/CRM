@@ -118,6 +118,8 @@ export function PricingTable({
   pendingAdminName,
   customBottom,
   initialPercentages,
+  onPercentagesChange,
+  customerId,
 }: {
   transaction: Transaction
   onPrint: () => void
@@ -132,6 +134,8 @@ export function PricingTable({
   pendingAdminName?: string | null
   customBottom?: React.ReactNode
   initialPercentages?: Record<string, number | string>
+  onPercentagesChange?: (percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT") => void
+  customerId?: string
 }) {
   const { toast } = useToast()
   const [dwtValues, setDwtValues] = useState<Record<string, number>>({})
@@ -161,6 +165,7 @@ export function PricingTable({
   const purityPercentagesRef = useRef(purityPercentages)
   purityPercentagesRef.current = purityPercentages
   const originalPercentagesRef = useRef<Record<string, number | string | undefined>>({})
+  const localOverrideKeysRef = useRef<Set<string>>(new Set())
 
   const isDraft = !transaction.id
   const isStaffLocked = userRole === "STAFF" && approvalStatus !== null
@@ -207,8 +212,7 @@ export function PricingTable({
       
       if (!isTypingAnyPercentage) {
         setPercentages(prev => {
-
-          const newPercentages = {
+          const newPercentages: Record<string, number | string> = {
             scrapGold: prices.scrapGoldPercentage,
             scrapSilver: prices.scrapSilverPercentage,
             scrapPlatinum: prices.scrapPlatinumPercentage,
@@ -216,21 +220,30 @@ export function PricingTable({
             meltSilver: prices.meltSilverPercentage,
             meltPlatinum: prices.meltPlatinumPercentage,
           }
+          localOverrideKeysRef.current.forEach((key) => {
+            if (prev[key] !== undefined && prev[key] !== "") {
+              newPercentages[key] = prev[key]
+            }
+          })
 
-          const hasChanges = 
+          const hasChanges =
             prev.scrapGold !== newPercentages.scrapGold ||
             prev.scrapSilver !== newPercentages.scrapSilver ||
             prev.scrapPlatinum !== newPercentages.scrapPlatinum ||
             prev.meltGold !== newPercentages.meltGold ||
             prev.meltSilver !== newPercentages.meltSilver ||
             prev.meltPlatinum !== newPercentages.meltPlatinum
-            
+
           return hasChanges ? newPercentages : prev
         })
       }
     }, []),
     { enabled: true }
   )
+
+  useEffect(() => {
+    onPercentagesChange?.(percentages, transaction.type)
+  }, [percentages, onPercentagesChange, transaction.type])
 
   useSocketTransaction(
     transaction.id ?? "",
@@ -643,8 +656,7 @@ export function PricingTable({
         }
         await res.json()
 
-        
-        
+        localOverrideKeysRef.current.delete(stateKey)
         setPercentages(prev => ({
           ...prev,
           [stateKey]: percentageValue,
@@ -676,6 +688,43 @@ export function PricingTable({
         })
       }
     } else {
+      const transactionTypeLower = transaction.type.toLowerCase()
+      const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+      const stateKey = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}` as keyof typeof percentagesRef.current
+      localOverrideKeysRef.current.add(stateKey)
+      setPercentages((prev) => ({ ...prev, [stateKey]: percentageValue }))
+      percentagesRef.current = { ...percentagesRef.current, [stateKey]: percentageValue }
+      if (customerId && userRole === "ADMIN") {
+        const apiKey = `${stateKey}Percentage` as "scrapGoldPercentage" | "scrapSilverPercentage" | "scrapPlatinumPercentage" | "meltGoldPercentage" | "meltSilverPercentage" | "meltPlatinumPercentage"
+        const numValue = typeof percentageValue === "number" ? percentageValue : parseFloat(String(percentageValue))
+        if (!Number.isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+          fetch(`/api/customers/${customerId}/percentage-override`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ [apiKey]: numValue }),
+          })
+            .then((res) => {
+              if (!res.ok) {
+                return res.json().then((err) => { throw new Error((err as { message?: string }).message || "Failed to save") })
+              }
+              toast({
+                title: "Saved for this customer",
+                description: transaction.id
+                  ? `This transaction and future ones for this customer will use ${numValue}%.`
+                  : `New transactions will use ${numValue}%.`,
+                variant: "success",
+              })
+            })
+            .catch((err) => {
+              toast({
+                title: "Override not saved",
+                description: err instanceof Error ? err.message : "Customer-specific percentage could not be saved.",
+                variant: "destructive",
+              })
+            })
+        }
+      }
       try {
         if (onLineItemsUpdate) {
           const items = buildDraftLineItems(
@@ -687,17 +736,43 @@ export function PricingTable({
           )
           onLineItemsUpdate(items)
         }
-        toast({
-          title: "Percentage updated",
-          description: `${metalType} ${transaction.type.toLowerCase()} percentage updated only for this customer`,
-          variant: "success",
-        })
+        if (!customerId || userRole !== "ADMIN") {
+          toast({
+            title: "Percentage updated",
+            description: `${metalType} ${transaction.type.toLowerCase()} percentage updated only for this customer (this session)`,
+            variant: "success",
+          })
+        }
       } catch (error) {
         toast({
           title: "Error",
           description: error instanceof Error ? error.message : "Failed to apply customer-only percentage",
           variant: "destructive",
         })
+      }
+    }
+
+    if (transaction.id && userRole === "ADMIN") {
+      const rec = percentagesRef.current
+      const n = (v: number | string | undefined) =>
+        typeof v === "number" && !Number.isNaN(v) ? v : typeof v === "string" && v !== "" ? parseFloat(String(v)) : undefined
+      const percentages = {
+        scrapGoldPercentage: n(rec.scrapGold),
+        scrapSilverPercentage: n(rec.scrapSilver),
+        scrapPlatinumPercentage: n(rec.scrapPlatinum),
+        meltGoldPercentage: n(rec.meltGold),
+        meltSilverPercentage: n(rec.meltSilver),
+        meltPlatinumPercentage: n(rec.meltPlatinum),
+      }
+      const payload: Record<string, number> = {}
+      Object.entries(percentages).forEach(([k, v]) => { if (v != null && v >= 0 && v <= 100) payload[k] = v })
+      if (Object.keys(payload).length > 0) {
+        fetch(`/api/transactions/${transaction.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ percentages: payload }),
+        }).catch(() => {})
       }
     }
 

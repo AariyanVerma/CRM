@@ -34,6 +34,12 @@ interface Transaction {
   goldSpot: number
   silverSpot: number
   platinumSpot: number
+  scrapGoldPercentage?: number | null
+  scrapSilverPercentage?: number | null
+  scrapPlatinumPercentage?: number | null
+  meltGoldPercentage?: number | null
+  meltSilverPercentage?: number | null
+  meltPlatinumPercentage?: number | null
   createdAt: Date
   completedAt: Date | null
   customer: Customer
@@ -52,7 +58,7 @@ interface Transaction {
   lineItems: LineItem[]
 }
 
-export function PrintView({ transaction, layout = "label", hidePrintButton }: { transaction: Transaction; layout?: "label" | "a4"; hidePrintButton?: boolean }) {
+export function PrintView({ transaction, layout = "label", hidePrintButton, showPercentages = true }: { transaction: Transaction; layout?: "label" | "a4"; hidePrintButton?: boolean; showPercentages?: boolean }) {
   const router = useRouter()
   const { toast } = useToast()
   const [printing, setPrinting] = useState(false)
@@ -204,10 +210,16 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
             scrollbar-width: none;
             -ms-overflow-style: none;
           }
-          .no-print {
+          .no-print,
+          .screen-only-no-receipt {
             display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
           }
-          
 
           .print-content {
             page-break-inside: avoid;
@@ -300,6 +312,27 @@ export function PrintView({ transaction, layout = "label", hidePrintButton }: { 
             <span>Platinum: ${formatDecimal(transaction.platinumSpot)}</span>
           </div>
         </div>
+
+        {showPercentages && (
+          <div className="no-print screen-only-no-receipt mb-4 pb-2 border-b border-gray-700 text-xs text-black">
+            <p className="font-semibold mb-1">Metal percentages used for this sale:</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {transaction.type === "SCRAP" ? (
+                <>
+                  <span>Scrap Gold: {formatDecimal(transaction.scrapGoldPercentage ?? 95)}%</span>
+                  <span>Scrap Silver: {formatDecimal(transaction.scrapSilverPercentage ?? 95)}%</span>
+                  <span>Scrap Platinum: {formatDecimal(transaction.scrapPlatinumPercentage ?? 95)}%</span>
+                </>
+              ) : (
+                <>
+                  <span>Melt Gold: {formatDecimal(transaction.meltGoldPercentage ?? 95)}%</span>
+                  <span>Melt Silver: {formatDecimal(transaction.meltSilverPercentage ?? 95)}%</span>
+                  <span>Melt Platinum: {formatDecimal(transaction.meltPlatinumPercentage ?? 95)}%</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mb-4">
           <table className="w-full text-sm border-collapse text-black">

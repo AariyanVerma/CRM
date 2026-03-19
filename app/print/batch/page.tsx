@@ -49,5 +49,5 @@ export default async function BatchPrintPage({
     )
   }
 
-  return <BatchPrintClient transactions={transactions} />
+  return <BatchPrintClient transactions={transactions} showPercentages={session.role === "ADMIN"} />
 }

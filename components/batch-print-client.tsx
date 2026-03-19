@@ -4,7 +4,7 @@ import { PrintView } from "@/components/print-view"
 
 type Transaction = React.ComponentProps<typeof PrintView>["transaction"]
 
-export function BatchPrintClient({ transactions }: { transactions: Transaction[] }) {
+export function BatchPrintClient({ transactions, showPercentages = true }: { transactions: Transaction[]; showPercentages?: boolean }) {
   return (
     <div className="batch-print">
       <style jsx global>{`
@@ -22,7 +22,7 @@ export function BatchPrintClient({ transactions }: { transactions: Transaction[]
       </div>
       {transactions.map((tx) => (
         <div key={tx.id} className="print-label-wrapper">
-          <PrintView transaction={tx} hidePrintButton />
+          <PrintView transaction={tx} hidePrintButton showPercentages={showPercentages} />
         </div>
       ))}
     </div>

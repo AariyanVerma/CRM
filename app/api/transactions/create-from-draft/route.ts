@@ -22,8 +22,16 @@ export async function POST(request: NextRequest) {
       customerId?: string
       type?: "SCRAP" | "MELT"
       lineItems?: LineItemInput[]
+      percentages?: {
+        scrapGoldPercentage?: number
+        scrapSilverPercentage?: number
+        scrapPlatinumPercentage?: number
+        meltGoldPercentage?: number
+        meltSilverPercentage?: number
+        meltPlatinumPercentage?: number
+      }
     }
-    const { customerId, type, lineItems } = body
+    const { customerId, type, lineItems, percentages: bodyPercentages } = body
 
     if (!customerId || !type || !Array.isArray(lineItems) || lineItems.length === 0) {
       return NextResponse.json(
@@ -42,6 +50,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No prices set for today" }, { status: 400 })
     }
 
+    let customer: { scrapGoldPercentageOverride?: number | null; scrapSilverPercentageOverride?: number | null; scrapPlatinumPercentageOverride?: number | null; meltGoldPercentageOverride?: number | null; meltSilverPercentageOverride?: number | null; meltPlatinumPercentageOverride?: number | null } | null = null
+    try {
+      customer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        select: {
+          scrapGoldPercentageOverride: true,
+          scrapSilverPercentageOverride: true,
+          scrapPlatinumPercentageOverride: true,
+          meltGoldPercentageOverride: true,
+          meltSilverPercentageOverride: true,
+          meltPlatinumPercentageOverride: true,
+        },
+      })
+    } catch (e) {
+      console.error("[create-from-draft] Failed to fetch customer overrides (run migration?):", e)
+    }
+
+    
+    const scrapGoldPct =
+      customer?.scrapGoldPercentageOverride ??
+      bodyPercentages?.scrapGoldPercentage ??
+      todayPrice.scrapGoldPercentage ??
+      95
+    const scrapSilverPct =
+      customer?.scrapSilverPercentageOverride ??
+      bodyPercentages?.scrapSilverPercentage ??
+      todayPrice.scrapSilverPercentage ??
+      95
+    const scrapPlatinumPct =
+      customer?.scrapPlatinumPercentageOverride ??
+      bodyPercentages?.scrapPlatinumPercentage ??
+      todayPrice.scrapPlatinumPercentage ??
+      95
+    const meltGoldPct =
+      customer?.meltGoldPercentageOverride ??
+      bodyPercentages?.meltGoldPercentage ??
+      todayPrice.meltGoldPercentage ??
+      95
+    const meltSilverPct =
+      customer?.meltSilverPercentageOverride ??
+      bodyPercentages?.meltSilverPercentage ??
+      todayPrice.meltSilverPercentage ??
+      95
+    const meltPlatinumPct =
+      customer?.meltPlatinumPercentageOverride ??
+      bodyPercentages?.meltPlatinumPercentage ??
+      todayPrice.meltPlatinumPercentage ??
+      95
+
     const transaction = await prisma.transaction.create({
       data: {
         customerId,
@@ -51,6 +108,12 @@ export async function POST(request: NextRequest) {
         goldSpot: todayPrice.gold,
         silverSpot: todayPrice.silver,
         platinumSpot: todayPrice.platinum,
+        scrapGoldPercentage: scrapGoldPct,
+        scrapSilverPercentage: scrapSilverPct,
+        scrapPlatinumPercentage: scrapPlatinumPct,
+        meltGoldPercentage: meltGoldPct,
+        meltSilverPercentage: meltSilverPct,
+        meltPlatinumPercentage: meltPlatinumPct,
       },
     })
 

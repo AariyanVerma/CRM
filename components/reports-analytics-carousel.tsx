@@ -163,11 +163,11 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {["OPEN", "PRINTED", "VOID"].map((status) => {
+            {["PRINTED"].map((status) => {
               const s = derived.byStatus[status] || { count: 0, total: 0 }
               return (
                 <div key={status} className="flex justify-between items-center rounded-lg bg-muted/50 px-4 py-3">
-                  <span className="font-medium">{status === "OPEN" ? "Approved" : status}</span>
+                  <span className="font-medium">PRINTED</span>
                   <span className="tabular-nums text-sm">{s.count} trans · {formatCurrency(s.total)}</span>
                 </div>
               )
@@ -279,14 +279,14 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {(["SCRAP", "MELT"] as const).flatMap((type) =>
-              (["OPEN", "PRINTED", "VOID"] as const).map((status) => {
+              (["PRINTED"] as const).map((status) => {
                 const count = data.transactions.filter((t) => t.type === type && t.status === status).length
                 const total = data.transactions
                   .filter((t) => t.type === type && t.status === status)
                   .reduce((s, t) => s + t.total, 0)
                 return (
                   <div key={`${type}-${status}`} className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
-                    <span className="font-medium">{type} · {status === "OPEN" ? "Approved" : status}</span>
+                    <span className="font-medium">{type} · PRINTED</span>
                     <span className="tabular-nums">{count} · {formatCurrency(total)}</span>
                   </div>
                 )

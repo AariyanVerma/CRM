@@ -9,7 +9,7 @@ export async function POST(
   try {
     const session = await requireAuth()
 
-    const { id } = await params
+    const { id } = await params
     const existing = await prisma.transaction.findUnique({
       where: { id },
     })
@@ -19,7 +19,7 @@ export async function POST(
         { message: "Transaction not found" },
         { status: 404 }
       )
-    }
+    }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -35,7 +35,7 @@ export async function POST(
         { message: "No prices set for today" },
         { status: 400 }
       )
-    }
+    }
     await prisma.transaction.update({
       where: { id },
       data: { 
@@ -43,7 +43,7 @@ export async function POST(
         completedByUserId: session.id,
         completedAt: new Date(),
       },
-    })
+    })
     const newTransaction = await prisma.transaction.create({
       data: {
         customerId: existing.customerId,
@@ -53,6 +53,12 @@ export async function POST(
         goldSpot: todayPrice.gold,
         silverSpot: todayPrice.silver,
         platinumSpot: todayPrice.platinum,
+        scrapGoldPercentage: existing.scrapGoldPercentage ?? todayPrice.scrapGoldPercentage ?? 95,
+        scrapSilverPercentage: existing.scrapSilverPercentage ?? todayPrice.scrapSilverPercentage ?? 95,
+        scrapPlatinumPercentage: existing.scrapPlatinumPercentage ?? todayPrice.scrapPlatinumPercentage ?? 95,
+        meltGoldPercentage: existing.meltGoldPercentage ?? todayPrice.meltGoldPercentage ?? 95,
+        meltSilverPercentage: existing.meltSilverPercentage ?? todayPrice.meltSilverPercentage ?? 95,
+        meltPlatinumPercentage: existing.meltPlatinumPercentage ?? todayPrice.meltPlatinumPercentage ?? 95,
       },
     })
 

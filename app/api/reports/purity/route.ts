@@ -51,7 +51,15 @@ export async function GET(request: NextRequest) {
     const purityMin = searchParams.get("purityMin") ? Number(searchParams.get("purityMin")) : undefined
     const purityMax = searchParams.get("purityMax") ? Number(searchParams.get("purityMax")) : undefined
 
-    const fromDate = from ? new Date(from) : (() => {
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/
+    const fromDate = from ? (dateOnly.test(from)
+      ? new Date(from + "T00:00:00.000Z")
+      : (() => {
+          const d = new Date(from)
+          d.setHours(0, 0, 0, 0)
+          return d
+        })()
+    ) : (() => {
       const d = new Date()
       d.setHours(0, 0, 0, 0)
       if (period === "day") return d
@@ -61,8 +69,18 @@ export async function GET(request: NextRequest) {
       d.setHours(0, 0, 0, 0)
       return d
     })()
-    const toDate = to ? new Date(to) : new Date()
-    toDate.setHours(23, 59, 59, 999)
+    const toDate = to ? (dateOnly.test(to)
+      ? new Date(to + "T23:59:59.999Z")
+      : (() => {
+          const d = new Date(to)
+          d.setHours(23, 59, 59, 999)
+          return d
+        })()
+    ) : (() => {
+      const d = new Date()
+      d.setHours(23, 59, 59, 999)
+      return d
+    })()
 
     const lineItemsFilter =
       metalFilter && ["GOLD", "SILVER", "PLATINUM"].includes(metalFilter)
@@ -73,6 +91,7 @@ export async function GET(request: NextRequest) {
       where: {
         createdAt: { gte: fromDate, lte: toDate },
         type: typeFilter === "MELT" ? "MELT" : "SCRAP",
+        status: "PRINTED",
         ...(customerId ? { customerId } : {}),
         ...(lineItemsFilter ? { lineItems: lineItemsFilter } : {}),
       },

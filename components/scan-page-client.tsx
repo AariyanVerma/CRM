@@ -96,6 +96,34 @@ export function ScanPageClient({
   const [deniedModalFor, setDeniedModalFor] = useState<"SCRAP" | "MELT" | null>(null)
   const [sentForApprovalBanner, setSentForApprovalBanner] = useState<{ show: boolean; adminName: string; sendBoth: boolean }>({ show: false, adminName: "", sendBoth: false })
   const [printedModal, setPrintedModal] = useState<{ byName: string; which: "SCRAP" | "MELT" | "BOTH" } | null>(null)
+  const [currentPercentages, setCurrentPercentages] = useState<Record<string, number | string>>(() => ({ ...initialPercentages }))
+  const currentPercentagesRef = useRef<Record<string, number | string>>({ ...initialPercentages })
+
+  const handlePercentagesChange = useCallback((percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT") => {
+    const keysToMerge = transactionType === "SCRAP"
+      ? (["scrapGold", "scrapSilver", "scrapPlatinum"] as const)
+      : (["meltGold", "meltSilver", "meltPlatinum"] as const)
+    const slice: Record<string, number | string> = {}
+    for (const k of keysToMerge) {
+      if (percentages[k] !== undefined && percentages[k] !== "") slice[k] = percentages[k]
+    }
+    const next = { ...currentPercentagesRef.current, ...slice }
+    currentPercentagesRef.current = next
+    setCurrentPercentages(next)
+  }, [])
+
+  function toApiPercentages(rec: Record<string, number | string>) {
+    const n = (v: number | string | undefined) =>
+      typeof v === "number" && !Number.isNaN(v) ? v : typeof v === "string" && v !== "" ? parseFloat(String(v)) : 95
+    return {
+      scrapGoldPercentage: n(rec.scrapGold),
+      scrapSilverPercentage: n(rec.scrapSilver),
+      scrapPlatinumPercentage: n(rec.scrapPlatinum),
+      meltGoldPercentage: n(rec.meltGold),
+      meltSilverPercentage: n(rec.meltSilver),
+      meltPlatinumPercentage: n(rec.meltPlatinum),
+    }
+  }
 
   const fetchApprovalStatus = useCallback(async (transactionId: string) => {
     try {
@@ -271,6 +299,7 @@ export function ScanPageClient({
             lineItems: payload,
             requestedToUserId: adminId,
             approvalGroupId: groupId,
+            percentages: toApiPercentages(currentPercentagesRef.current),
           }),
           credentials: "include",
         })
@@ -305,6 +334,7 @@ export function ScanPageClient({
             lineItems: payload,
             requestedToUserId: adminId,
             approvalGroupId: groupId,
+            percentages: toApiPercentages(currentPercentagesRef.current),
           }),
           credentials: "include",
         })
@@ -363,6 +393,7 @@ export function ScanPageClient({
               lineTotal: item.lineTotal,
               purityPercentage: item.purityPercentage ?? null,
             })),
+            percentages: toApiPercentages(currentPercentagesRef.current),
           }),
         })
         if (!res.ok) {
@@ -601,6 +632,8 @@ export function ScanPageClient({
                 onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("SCRAP") : undefined}
                 pendingAdminName={scrapApproval.pendingAdminName}
                 initialPercentages={initialPercentages}
+                onPercentagesChange={handlePercentagesChange}
+                customerId={customer.id}
               />
             </div>
           </div>
@@ -653,6 +686,8 @@ export function ScanPageClient({
                 onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("MELT") : undefined}
                 pendingAdminName={meltApproval.pendingAdminName}
                 initialPercentages={initialPercentages}
+                onPercentagesChange={handlePercentagesChange}
+                customerId={customer.id}
               />
             </div>
           </div>

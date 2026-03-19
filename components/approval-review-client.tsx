@@ -57,6 +57,12 @@ interface Transaction {
   goldSpot: number
   silverSpot: number
   platinumSpot: number
+  scrapGoldPercentage?: number | null
+  scrapSilverPercentage?: number | null
+  scrapPlatinumPercentage?: number | null
+  meltGoldPercentage?: number | null
+  meltSilverPercentage?: number | null
+  meltPlatinumPercentage?: number | null
   lineItems: LineItem[]
 }
 
@@ -409,6 +415,15 @@ export function ApprovalReviewClient({
                 onLineItemsUpdate={markScrapEdited}
                 readOnly={scrapRequestApproved}
                 customBottom={scrapBar}
+                customerId={customer.id}
+                initialPercentages={{
+                  scrapGold: scrapTransaction.scrapGoldPercentage ?? 95,
+                  scrapSilver: scrapTransaction.scrapSilverPercentage ?? 95,
+                  scrapPlatinum: scrapTransaction.scrapPlatinumPercentage ?? 95,
+                  meltGold: meltTransaction.meltGoldPercentage ?? 95,
+                  meltSilver: meltTransaction.meltSilverPercentage ?? 95,
+                  meltPlatinum: meltTransaction.meltPlatinumPercentage ?? 95,
+                }}
               />
             </div>
           </div>
@@ -450,6 +465,15 @@ export function ApprovalReviewClient({
                 onLineItemsUpdate={markMeltEdited}
                 readOnly={meltRequestApproved}
                 customBottom={meltBar}
+                customerId={customer.id}
+                initialPercentages={{
+                  scrapGold: scrapTransaction.scrapGoldPercentage ?? 95,
+                  scrapSilver: scrapTransaction.scrapSilverPercentage ?? 95,
+                  scrapPlatinum: scrapTransaction.scrapPlatinumPercentage ?? 95,
+                  meltGold: meltTransaction.meltGoldPercentage ?? 95,
+                  meltSilver: meltTransaction.meltSilverPercentage ?? 95,
+                  meltPlatinum: meltTransaction.meltPlatinumPercentage ?? 95,
+                }}
               />
             </div>
           </div>

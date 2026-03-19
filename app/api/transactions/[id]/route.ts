@@ -54,12 +54,32 @@ export async function PATCH(
   try {
     const session = await requireAdmin()
     const { id } = await params
-    const body = await request.json()
-    const { status } = body
-    const updateData: any = {}
-    
+    const body = await request.json().catch(() => ({})) as {
+      status?: string
+      percentages?: {
+        scrapGoldPercentage?: number
+        scrapSilverPercentage?: number
+        scrapPlatinumPercentage?: number
+        meltGoldPercentage?: number
+        meltSilverPercentage?: number
+        meltPlatinumPercentage?: number
+      }
+    }
+    const { status, percentages: bodyPercentages } = body
+    const updateData: Record<string, unknown> = {}
+
     if (status && ["OPEN", "PRINTED", "VOID", "APPROVED"].includes(status)) {
       updateData.status = status
+    }
+
+    if (bodyPercentages && typeof bodyPercentages === "object") {
+      const n = (v: number | undefined) => (typeof v === "number" && !Number.isNaN(v) && v >= 0 && v <= 100 ? v : undefined)
+      if (n(bodyPercentages.scrapGoldPercentage) !== undefined) updateData.scrapGoldPercentage = n(bodyPercentages.scrapGoldPercentage)
+      if (n(bodyPercentages.scrapSilverPercentage) !== undefined) updateData.scrapSilverPercentage = n(bodyPercentages.scrapSilverPercentage)
+      if (n(bodyPercentages.scrapPlatinumPercentage) !== undefined) updateData.scrapPlatinumPercentage = n(bodyPercentages.scrapPlatinumPercentage)
+      if (n(bodyPercentages.meltGoldPercentage) !== undefined) updateData.meltGoldPercentage = n(bodyPercentages.meltGoldPercentage)
+      if (n(bodyPercentages.meltSilverPercentage) !== undefined) updateData.meltSilverPercentage = n(bodyPercentages.meltSilverPercentage)
+      if (n(bodyPercentages.meltPlatinumPercentage) !== undefined) updateData.meltPlatinumPercentage = n(bodyPercentages.meltPlatinumPercentage)
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -74,7 +94,9 @@ export async function PATCH(
       where: { id },
       data: updateData,
     })
-    await logTransactionAudit(id, session.id, "STATUS_CHANGE", { status: before?.status }, { status: transaction.status })
+    if (updateData.status) {
+      await logTransactionAudit(id, session.id, "STATUS_CHANGE", { status: before?.status }, { status: transaction.status })
+    }
     try {
       const io = getIO()
       io.to(`tx:${id}`).emit("transaction_changed", { transactionId: id })

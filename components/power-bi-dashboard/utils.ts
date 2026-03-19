@@ -17,7 +17,14 @@ export function filterTransactions(
 ): ReportTransaction[] {
   return transactions.filter((t) => {
     if (filters.typeFilter !== "ALL" && t.type !== filters.typeFilter) return false
-    if (filters.statusFilter !== "ALL" && t.status !== filters.statusFilter) return false
+    if (filters.statusFilter !== "ALL") {
+      if (filters.statusFilter === "OPEN") {
+        
+        if (t.status !== "OPEN" && t.status !== "APPROVED") return false
+      } else if (t.status !== filters.statusFilter) {
+        return false
+      }
+    }
     return true
   })
 }

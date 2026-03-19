@@ -101,6 +101,12 @@ model Customer {
   businessVerificationNotes String?
   identityVerified          Boolean            @default(false)
   identityVerificationNotes String?
+  scrapGoldPercentageOverride     Float?
+  scrapSilverPercentageOverride   Float?
+  scrapPlatinumPercentageOverride Float?
+  meltGoldPercentageOverride      Float?
+  meltSilverPercentageOverride    Float?
+  meltPlatinumPercentageOverride  Float?
   createdAt                 DateTime           @default(now())
   updatedAt                 DateTime           @updatedAt
   cards                     MembershipCard[]
@@ -153,6 +159,12 @@ model Transaction {
   goldSpot          Float
   silverSpot        Float
   platinumSpot      Float
+  scrapGoldPercentage     Float?   @default(95)
+  scrapSilverPercentage   Float?   @default(95)
+  scrapPlatinumPercentage Float?   @default(95)
+  meltGoldPercentage      Float?   @default(95)
+  meltSilverPercentage     Float?   @default(95)
+  meltPlatinumPercentage   Float?   @default(95)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   completedAt       DateTime?
@@ -314,4 +326,30 @@ model StonesReport {
   profit            Float
   selectedRowIds    String?
   selectedRowsData  Json?
+}
+
+model InventoryAdjustment {
+  id          String          @id @default(cuid())
+  // Groups multiple metal rows created from a single Quick payout calculator action.
+  refineryBatchId        String?
+  type        TransactionType
+  metalType   MetalType
+  purityLabel String?
+  dwt         Float
+  totalPaid   Float
+  // Admin-entered amount received from refinery for this metal row.
+  refinerReceivedAmount Float?
+  // Settlement state for this refinery batch (used for UI badge).
+  refinerySettlementStatus RefinerySettlementStatus?
+  refineryClosedAt       DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([type, metalType])
+  @@index([type, metalType, purityLabel])
+  @@index([refineryBatchId])
+}
+
+enum RefinerySettlementStatus {
+  OPENED
+  CLOSED
 }

@@ -202,6 +202,35 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
           delay={300}
         />
       )}
+
+      {isAdmin && (
+        <ActionCard
+          title="Inventory"
+          description="Track accumulated scrap and melt inventory by metal, purity and weight"
+          icon={<DollarSign className="h-7 w-7" />}
+          gradient="from-emerald-500/20 via-green-500/10 to-transparent"
+          actions={[
+            {
+              label: "Scrap inventory",
+              href: "/dashboard/inventory/scrap",
+              icon: <ArrowRight className="h-4 w-4" />,
+            },
+            {
+              label: "Melt inventory",
+              href: "/dashboard/inventory/melt",
+              variant: "outline",
+              icon: <ArrowRight className="h-4 w-4" />,
+            },
+            {
+              label: "Refinery Settlement",
+              href: "/dashboard/inventory/refinery-settlement",
+              variant: "outline",
+              icon: <ArrowRight className="h-4 w-4" />,
+            },
+          ]}
+          delay={400}
+        />
+      )}
     </div>
   )
 }
