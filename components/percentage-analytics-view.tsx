@@ -338,7 +338,7 @@ export function PercentageAnalyticsView() {
                     <LineChart data={mergedTrendByDay} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} width={36} domain={[0, 100]} />
-                      <Tooltip formatter={(v: number) => [`${Number(v).toFixed(2)}%`, ""]} contentStyle={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [`${Number(v ?? 0).toFixed(2)}%`, ""]} contentStyle={{ fontSize: 12 }} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {[...printedPercentageData.rows, ...(approvedPercentageData?.rows ?? [])].map((r, i) => (
                         <Line
@@ -373,7 +373,7 @@ export function PercentageAnalyticsView() {
                     >
                       <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} width={36} domain={[0, 100]} />
-                      <Tooltip formatter={(v: number) => [`${Number(v).toFixed(2)}%`, "Average"]} contentStyle={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [`${Number(v ?? 0).toFixed(2)}%`, "Average"]} contentStyle={{ fontSize: 12 }} />
                       <Bar dataKey="avg" radius={[4, 4, 0, 0]}>
                         {printedPercentageData.rows.map((_, i) => (
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -404,7 +404,7 @@ export function PercentageAnalyticsView() {
                     >
                       <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} width={36} domain={[0, 100]} />
-                      <Tooltip formatter={(v: number) => [`${Number(v).toFixed(2)}%`, ""]} contentStyle={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [`${Number(v ?? 0).toFixed(2)}%`, ""]} contentStyle={{ fontSize: 12 }} />
                       <Legend />
                       <Bar dataKey="Lowest %" fill="#94a3b8" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Average %" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -432,7 +432,7 @@ export function PercentageAnalyticsView() {
                     >
                       <XAxis dataKey="label" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} width={36} domain={[0, 100]} />
-                      <Tooltip formatter={(v: number) => [`${Number(v).toFixed(2)}%`, ""]} contentStyle={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [`${Number(v ?? 0).toFixed(2)}%`, ""]} contentStyle={{ fontSize: 12 }} />
                       <Bar dataKey="value" name="Percentage" radius={[4, 4, 0, 0]}>
                         {printedPercentageData.rows.flatMap((r, i) => [
                           <Cell key={`${r.key}-most`} fill={CHART_COLORS[i % CHART_COLORS.length]} />,
@@ -459,7 +459,7 @@ export function PercentageAnalyticsView() {
                     >
                       <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} width={40} />
-                      <Tooltip formatter={(v: number) => [v, "Transactions"]} contentStyle={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [Number(v ?? 0), "Transactions"]} contentStyle={{ fontSize: 12 }} />
                       <Bar dataKey="count" name="Transaction count" radius={[4, 4, 0, 0]}>
                         {printedPercentageData.rows.map((_, i) => (
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />

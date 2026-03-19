@@ -65,11 +65,12 @@ export function RefinerySettlementClient() {
   }, [loadSettlement])
 
   useEffect(() => {
-    
     const socket = getSocket()
     const onAnyPrint = () => loadSettlement({ showSpinner: false })
     socket.on("transaction_printed", onAnyPrint)
-    return () => socket.off("transaction_printed", onAnyPrint)
+    return () => {
+      socket.off("transaction_printed", onAnyPrint)
+    }
   }, [loadSettlement])
 
   useEffect(() => {
