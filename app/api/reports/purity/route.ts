@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { comparePurityAsc } from "@/lib/purity"
 
 function matchesPurityFilter(
   metalType: string,
@@ -164,7 +165,7 @@ export async function GET(request: NextRequest) {
     })
 
     const breakdown = Array.from(breakdownMap.values()).sort(
-      (a, b) => a.metalType.localeCompare(b.metalType) || a.purityLabel.localeCompare(b.purityLabel)
+      (a, b) => a.metalType.localeCompare(b.metalType) || comparePurityAsc(a.purityLabel, b.purityLabel)
     )
 
     const totalDwt = allItems.reduce((sum, i) => sum + i.dwt, 0)

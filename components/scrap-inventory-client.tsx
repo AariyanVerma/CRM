@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Loader2, Scale, Coins, Droplets, Gem, CircleDollarSign, Plus, Trash2 } from "lucide-react"
 import { getSocket } from "@/lib/socketClient"
+import { sortPuritiesAsc } from "@/lib/purity"
 
 type InventoryRow = {
   metal: string
@@ -131,7 +132,7 @@ export function ScrapInventoryClient() {
         data.rows.filter((r) => r.metal === metalKey).map((r) => r.purityLabel),
       ),
     )
-    return labels.sort()
+    return sortPuritiesAsc(labels)
   }
 
   const getAveragePricePerDwt = (metalKey: MetalKey, purityLabel: string | "ALL") => {

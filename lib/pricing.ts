@@ -1,3 +1,4 @@
+import { sortPuritiesAsc } from "@/lib/purity"
 
 
 
@@ -8,9 +9,9 @@ export type GoldPurity = '24K' | '22K' | '21K' | '18K' | '16K' | '14K' | '13K' |
 export type SilverPurity = '925' | '900' | '800'
 export type PlatinumPurity = '950' | '900'
 
-export const GOLD_PURITIES: GoldPurity[] = ['24K', '22K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K']
-export const SILVER_PURITIES: SilverPurity[] = ['925', '900', '800']
-export const PLATINUM_PURITIES: PlatinumPurity[] = ['950', '900']
+export const GOLD_PURITIES: GoldPurity[] = sortPuritiesAsc<GoldPurity>(['24K', '22K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K'])
+export const SILVER_PURITIES: SilverPurity[] = sortPuritiesAsc<SilverPurity>(['925', '900', '800'])
+export const PLATINUM_PURITIES: PlatinumPurity[] = sortPuritiesAsc<PlatinumPurity>(['950', '900'])
 
 
 
@@ -159,7 +160,7 @@ export function getMeltPricingRows(
   currentDwtValues: Record<string, number> = {},
   currentPurityPercentages: Record<string, number> = {},
   percentage: number = 95
-) {
+) {
   const meltKey = metalType
   const dwt = currentDwtValues[meltKey] || 0
   const purityPercentage = currentPurityPercentages[meltKey] || 0
@@ -175,8 +176,8 @@ export function getMeltPricingRows(
     case 'PLATINUM':
       pricePerDWT = calculateMeltPlatinumPricePerDWT(spotPrice, purityPercentage, dwt, percentage)
       break
-  }
-  const lineTotal = pricePerDWT
+  }
+  const lineTotal = pricePerDWT
   return [{
     purity: meltKey,
     pricePerDWT,
@@ -184,7 +185,7 @@ export function getMeltPricingRows(
     purityPercentage,
     lineTotal,
   }]
-}
+}
 export function getPricingRows(
   metalType: MetalType,
   spotPrice: number,
@@ -192,7 +193,7 @@ export function getPricingRows(
   percentage: number = 95
 ) {
   return getScrapPricingRows(metalType, spotPrice, currentDwtValues, percentage)
-}
+}
 export function calculateGoldPricePerOz(
   purity: GoldPurity,
   goldSpotPrice: number,
@@ -204,7 +205,7 @@ export function calculateGoldPricePerOz(
 export function calculateSilverPricePerOz(
   purity: SilverPurity,
   silverSpotPrice: number
-): number {
+): number {
   const multipliers: Record<SilverPurity, number> = {
     '925': 823.5,
     '900': 821.25,
@@ -217,7 +218,7 @@ export function calculatePlatinumPricePerOz(
   purity: PlatinumPurity,
   platinumSpotPrice: number,
   dwt: number
-): number {
+): number {
   if (dwt === 0) return 0
   const purityValue = purityToValue(purity) / 1000
   const result = (platinumSpotPrice * purityValue) * ((85 / dwt) / 100)

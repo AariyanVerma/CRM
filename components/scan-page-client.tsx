@@ -362,14 +362,90 @@ export function ScanPageClient({
     }
   }
 
+  async function createTransactionFromDraft(type: "SCRAP" | "MELT", draftItems: LineItem[]): Promise<Transaction> {
+    const res = await fetch("/api/transactions/create-from-draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        customerId: customer.id,
+        type,
+        lineItems: draftItems.map((item) => ({
+          metalType: item.metalType,
+          purityLabel: item.purityLabel,
+          dwt: item.dwt,
+          pricePerOz: item.pricePerOz,
+          lineTotal: item.lineTotal,
+          purityPercentage: item.purityPercentage ?? null,
+        })),
+        percentages: toApiPercentages(currentPercentagesRef.current),
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error((err as { message?: string }).message || "Failed to create transaction")
+    }
+    const data = (await res.json()) as { transaction: Transaction }
+    return data.transaction
+  }
+
+  async function postPrintIfNeeded(tx: Transaction) {
+    if (!tx.id) return
+    if (tx.status === "PRINTED") return
+    const res = await fetch(`/api/transactions/${tx.id}/print`, {
+      method: "POST",
+      credentials: "include",
+    })
+    if (!res.ok) {
+      throw new Error("Failed to mark transaction as printed")
+    }
+  }
+
   async function handlePrint(type: "SCRAP" | "MELT") {
+    const scrapHasRows = scrapLineItems.length > 0
+    const meltHasRows = meltLineItems.length > 0
+    const adminBothForms =
+      userRole === "ADMIN" && scrapHasRows && meltHasRows
+
+    if (adminBothForms) {
+      try {
+        let scrap = scrapTx
+        let melt = meltTx
+
+        if (!scrap.id) {
+          scrap = await createTransactionFromDraft("SCRAP", scrapLineItems)
+          setScrapTx(scrap)
+          setScrapLineItems(scrap.lineItems)
+        }
+        if (!melt.id) {
+          melt = await createTransactionFromDraft("MELT", meltLineItems)
+          setMeltTx(melt)
+          setMeltLineItems(melt.lineItems)
+        }
+        if (!scrap.id || !melt.id) {
+          toast({ title: "Error", description: "Could not prepare both transactions for printing.", variant: "destructive" })
+          return
+        }
+
+        await postPrintIfNeeded(scrap)
+        await postPrintIfNeeded(melt)
+
+        sessionStorage.setItem("scanRedirectToPrint", `batch:${scrap.id},${melt.id}`)
+        history.go(-1)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to print transactions",
+          variant: "destructive",
+        })
+      }
+      return
+    }
+
     let transaction = type === "SCRAP" ? scrapTx : meltTx
 
-    
-    
-    
     if (!transaction.id && userRole === "ADMIN") {
-      const draftItems = (type === "SCRAP" ? scrapLineItems : meltLineItems)
+      const draftItems = type === "SCRAP" ? scrapLineItems : meltLineItems
       if (draftItems.length === 0) {
         toast({
           title: "Nothing to print",
@@ -378,36 +454,13 @@ export function ScanPageClient({
         return
       }
       try {
-        const res = await fetch("/api/transactions/create-from-draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            customerId: customer.id,
-            type,
-            lineItems: draftItems.map((item) => ({
-              metalType: item.metalType,
-              purityLabel: item.purityLabel,
-              dwt: item.dwt,
-              pricePerOz: item.pricePerOz,
-              lineTotal: item.lineTotal,
-              purityPercentage: item.purityPercentage ?? null,
-            })),
-            percentages: toApiPercentages(currentPercentagesRef.current),
-          }),
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          throw new Error((err as { message?: string }).message || "Failed to create transaction")
-        }
-        const data = await res.json() as { transaction: Transaction }
-        transaction = data.transaction
+        transaction = await createTransactionFromDraft(type, draftItems)
         if (type === "SCRAP") {
-          setScrapTx(data.transaction)
-          setScrapLineItems(data.transaction.lineItems)
+          setScrapTx(transaction)
+          setScrapLineItems(transaction.lineItems)
         } else {
-          setMeltTx(data.transaction)
-          setMeltLineItems(data.transaction.lineItems)
+          setMeltTx(transaction)
+          setMeltLineItems(transaction.lineItems)
         }
       } catch (error) {
         toast({
@@ -421,13 +474,7 @@ export function ScanPageClient({
 
     if (!transaction.id) return
     try {
-      const res = await fetch(`/api/transactions/${transaction.id}/print`, {
-        method: "POST",
-        credentials: "include",
-      })
-      if (!res.ok) {
-        throw new Error("Failed to mark transaction as printed")
-      }
+      await postPrintIfNeeded(transaction)
       sessionStorage.setItem("scanRedirectToPrint", transaction.id)
       history.go(-1)
     } catch (error) {
@@ -488,7 +535,12 @@ export function ScanPageClient({
       const printId = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("scanRedirectToPrint") : null
       if (printId) {
         sessionStorage.removeItem("scanRedirectToPrint")
-        window.location.replace(`/print/${printId}`)
+        if (printId.startsWith("batch:")) {
+          const ids = printId.slice("batch:".length)
+          window.location.replace(`/print/batch?ids=${ids}`)
+        } else {
+          window.location.replace(`/print/${printId}`)
+        }
       } else {
         window.location.replace("/dashboard")
       }

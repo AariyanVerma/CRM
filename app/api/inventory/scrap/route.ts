@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { comparePurityAsc } from "@/lib/purity"
 
 export async function GET(_request: NextRequest) {
   try {
@@ -79,7 +80,7 @@ export async function GET(_request: NextRequest) {
     }
 
     rows.sort((a, b) => {
-      if (a.metal === b.metal) return a.purityLabel.localeCompare(b.purityLabel)
+      if (a.metal === b.metal) return comparePurityAsc(a.purityLabel, b.purityLabel)
       return a.metal.localeCompare(b.metal)
     })
 

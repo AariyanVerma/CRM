@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { MetalType } from "@prisma/client"
+import { getIO } from "@/lib/ioServer"
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,21 +25,52 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ message: "At least one row required" }, { status: 400 })
     }
-    const save = await prisma.stonesSave.create({
-      data: {
-        rows: {
-          create: rows.map((r) => ({
-            date: new Date(r.date),
-            metal: r.metal as MetalType,
-            purity: String(r.purity),
-            dwt: Number(r.dwt) || 0,
-            pricePaid: Number(r.pricePaid) || 0,
-            spotPrice: r.spotPrice != null ? Number(r.spotPrice) || 0 : null,
-          })),
+    const sanitizedRows = rows
+      .map((r) => ({
+        date: new Date(r.date),
+        metal: r.metal as MetalType,
+        purity: String(r.purity),
+        dwt: Number(r.dwt) || 0,
+        pricePaid: Number(r.pricePaid) || 0,
+        spotPrice: r.spotPrice != null ? Number(r.spotPrice) || 0 : null,
+      }))
+      .filter((r) => r.dwt > 0 && r.purity && r.purity !== "ALL")
+
+    if (sanitizedRows.length === 0) {
+      return NextResponse.json({ message: "At least one valid row required" }, { status: 400 })
+    }
+
+    const save = await prisma.$transaction(async (tx) => {
+      const created = await tx.stonesSave.create({
+        data: {
+          rows: {
+            create: sanitizedRows,
+          },
         },
-      },
-      include: { rows: true },
+        include: { rows: true },
+      })
+
+      await tx.inventoryAdjustment.createMany({
+        data: sanitizedRows.map((r) => ({
+          type: "SCRAP",
+          metalType: r.metal,
+          purityLabel: r.purity,
+          dwt: r.dwt,
+          totalPaid: r.pricePaid,
+        })),
+      })
+
+      return created
     })
+
+    try {
+      const io = getIO()
+      io.emit("transaction_printed", {
+        source: "stones_save",
+        stonesSaveId: save.id,
+      })
+    } catch {}
+
     return NextResponse.json(save)
   } catch (e) {
     console.error(e)

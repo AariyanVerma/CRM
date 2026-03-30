@@ -1,12 +1,11 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
 import { Logo } from "@/components/logo"
 import { formatDecimal, getDisplayName, getCustomerDisplayName } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { GOLD_PURITIES, SILVER_PURITIES, PLATINUM_PURITIES } from "@/lib/pricing"
-import { Home, Printer } from "lucide-react"
+import { ArrowLeft, Home, Printer } from "lucide-react"
 import { setSessionActive } from "@/components/session-guard"
 
 interface Customer {
@@ -59,7 +58,6 @@ interface Transaction {
 }
 
 export function PrintView({ transaction, layout = "label", hidePrintButton, showPercentages = true }: { transaction: Transaction; layout?: "label" | "a4"; hidePrintButton?: boolean; showPercentages?: boolean }) {
-  const router = useRouter()
   const { toast } = useToast()
   const [printing, setPrinting] = useState(false)
   const hasMarkedAsPrinted = useRef(false)
@@ -172,12 +170,12 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
   )
 
   return (
-    <div className={`min-h-screen bg-white p-4 print:p-0 print:m-0 ${isA4 ? "print-a4" : ""}`}>
+    <div className={`min-h-screen bg-white p-4 print:min-h-0 print:box-border print:p-0 print:m-0 ${isA4 ? "print-a4" : ""}`}>
       <style jsx global>{`
         @media print {
           @page {
-            size: ${isA4 ? "A4" : "4in auto"};
-            margin: ${isA4 ? "0.5in" : "0"};
+            size: ${isA4 ? "A4" : "letter"};
+            margin: ${isA4 ? "12mm" : "10mm"};
           }
           * {
             -webkit-print-color-adjust: exact;
@@ -185,23 +183,15 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             color-adjust: exact;
           }
           html, body {
-            margin: 0;
-            padding: 0;
-            background: white;
-            width: 100%;
-            height: auto;
-            min-height: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
             border: none;
             outline: none;
-          }
-          .print-content {
-            margin: 0;
-            padding: 0.2in;
-            border: none;
-            outline: none;
-          }
-          body {
-            page-break-inside: avoid;
           }
           ::-webkit-scrollbar {
             display: none;
@@ -221,13 +211,42 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             border: none !important;
           }
 
-          .print-content {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            width: ${isA4 ? "100%" : "4in"} !important;
-            max-width: ${isA4 ? "100%" : "4in"} !important;
+          .print-root {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
           }
-          .print-a4 .print-content { font-size: 1rem; }
+          .print-content {
+            box-sizing: border-box !important;
+            page-break-inside: auto;
+            break-inside: auto;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding: 0.15in 0.12in !important;
+            overflow: visible !important;
+            width: ${isA4 ? "100%" : "100%"} !important;
+            max-width: ${isA4 ? "100%" : "4.25in"} !important;
+          }
+          .print-a4 .print-content {
+            max-width: 100% !important;
+            font-size: 1rem;
+            padding: 0.2in !important;
+          }
+          .print-content table {
+            width: 100% !important;
+            table-layout: auto !important;
+            border-collapse: collapse !important;
+          }
+          .print-content table th,
+          .print-content table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+          }
           table {
             page-break-inside: auto;
           }
@@ -253,7 +272,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
         }
       `}</style>
 
-      <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : ""}`} style={{ width: 'auto', maxWidth: '100%' }}>
+      <div className="print-root w-full max-w-4xl mx-auto">
+      <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : ""}`}>
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="mb-2 flex justify-center">
             <Logo size="lg" showText={false} className="print:max-h-16" />
@@ -272,8 +292,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
 
         <div className="mb-4 pb-3 border-b border-gray-700">
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex flex-wrap justify-between items-start gap-2 gap-y-2">
+              <div className="min-w-0 flex-1">
                 <p className="text-lg font-bold text-black">
                   Type: <span className="text-red-600 font-bold">{transaction.type}</span>
                 </p>
@@ -286,7 +306,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
                   </p>
                 )}
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <p className="text-xs text-gray-900">Transaction ID</p>
                 <p className="text-sm font-mono text-black">{transaction.id.slice(0, 8)}</p>
               </div>
@@ -306,7 +326,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
 
         <div className="mb-4 pb-2 border-b border-gray-700 text-xs text-black">
           <p className="font-semibold mb-1">Price Snapshot:</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
             <span>Gold: ${formatDecimal(transaction.goldSpot)}</span>
             <span>Silver: ${formatDecimal(transaction.silverSpot)}</span>
             <span>Platinum: ${formatDecimal(transaction.platinumSpot)}</span>
@@ -381,11 +401,11 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
         </div>
 
         <div className="mt-4 pt-3 border-t-2 border-black font-black text-red-600">
-          <div className="flex justify-between items-center">
-            <div>
+          <div className="flex flex-wrap justify-between items-end gap-3">
+            <div className="min-w-0">
               <p className="text-sm">Total DWT: {formatDecimal(totalDwt)}</p>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="text-xs">Grand Total</p>
               <p className="text-2xl">${formatDecimal(grandTotal)}</p>
             </div>
@@ -395,37 +415,52 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
         <div className="mt-4 pt-2 border-t border-gray-700 text-xs text-center text-black">
           <p>Thank you for your business</p>
         </div>
-      </div>
 
-      {!hidePrintButton && (
-        <div className="no-print mt-8 flex flex-wrap items-center justify-center gap-3">
-          <a
-            href="/dashboard"
-            onClick={(e) => {
-              e.preventDefault()
-              setSessionActive()
-              window.location.replace("/dashboard")
-            }}
-            className="inline-flex items-center gap-2 px-5 py-3 border border-input bg-background rounded-md font-medium hover:bg-accent hover:text-accent-foreground no-underline text-foreground cursor-pointer"
-          >
-            <Home className="h-4 w-4" />
-            Go home
-          </a>
-          {transaction.status === "PENDING_APPROVAL" ? (
-            <p className="text-muted-foreground text-sm">This transaction is pending approval. Use Review from the customer or approvals page to approve before printing.</p>
-          ) : (
+        {!hidePrintButton && (
+          <div className="no-print mt-8 flex flex-wrap items-center justify-center gap-3 border-t border-border pt-8 pb-6">
             <button
               type="button"
-              onClick={handlePrint}
-              disabled={printing || !["OPEN", "APPROVED", "PRINTED"].includes(transaction.status)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => {
+                setSessionActive()
+                if (window.history.length > 1) window.history.back()
+                else window.location.replace("/dashboard")
+              }}
+              className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-5 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
-              <Printer className="h-4 w-4" />
-              {printing ? "Updating..." : "Print"}
+              <ArrowLeft className="h-4 w-4" />
+              Back
             </button>
-          )}
-        </div>
-      )}
+            <a
+              href="/dashboard"
+              onClick={(e) => {
+                e.preventDefault()
+                setSessionActive()
+                window.location.replace("/dashboard")
+              }}
+              className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-5 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground no-underline text-foreground"
+            >
+              <Home className="h-4 w-4" />
+              Go home
+            </a>
+            {transaction.status === "PENDING_APPROVAL" ? (
+              <p className="text-muted-foreground text-sm text-center max-w-md">
+                This transaction is pending approval. Use Review from the customer or approvals page to approve before printing.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePrint}
+                disabled={printing || !["OPEN", "APPROVED", "PRINTED"].includes(transaction.status)}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Printer className="h-4 w-4" />
+                {printing ? "Updating…" : "Print"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      </div>
     </div>
   )
 }
