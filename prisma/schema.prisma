@@ -330,16 +330,13 @@ model StonesReport {
 
 model InventoryAdjustment {
   id          String          @id @default(cuid())
-  // Groups multiple metal rows created from a single Quick payout calculator action.
   refineryBatchId        String?
   type        TransactionType
   metalType   MetalType
   purityLabel String?
   dwt         Float
   totalPaid   Float
-  // Admin-entered amount received from refinery for this metal row.
   refinerReceivedAmount Float?
-  // Settlement state for this refinery batch (used for UI badge).
   refinerySettlementStatus RefinerySettlementStatus?
   refineryClosedAt       DateTime?
   createdAt   DateTime        @default(now())

@@ -959,10 +959,10 @@ export function PricingTable({
       const getNumericValue = (purity: string): number => {
         if (purity.endsWith('K')) {
 
-          return parseInt(purity.replace('K', ''))
+          return parseFloat(purity.replace('K', ''))
         } else {
 
-          return parseInt(purity)
+          return parseFloat(purity)
         }
       }
       return getNumericValue(a) - getNumericValue(b)

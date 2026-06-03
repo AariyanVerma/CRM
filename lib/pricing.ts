@@ -5,11 +5,11 @@ import { sortPuritiesAsc } from "@/lib/purity"
 export type MetalType = 'GOLD' | 'SILVER' | 'PLATINUM'
 export type TransactionType = 'SCRAP' | 'MELT'
 
-export type GoldPurity = '24K' | '22K' | '21K' | '18K' | '16K' | '14K' | '13K' | '12K' | '11K' | '10K' | '9K'
+export type GoldPurity = '24K' | '22K' | '21.6K' | '21K' | '18K' | '16K' | '14K' | '13K' | '12K' | '11K' | '10K' | '9K'
 export type SilverPurity = '925' | '900' | '800'
 export type PlatinumPurity = '950' | '900'
 
-export const GOLD_PURITIES: GoldPurity[] = sortPuritiesAsc<GoldPurity>(['24K', '22K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K'])
+export const GOLD_PURITIES: GoldPurity[] = sortPuritiesAsc<GoldPurity>(['24K', '22K', '21.6K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K'])
 export const SILVER_PURITIES: SilverPurity[] = sortPuritiesAsc<SilverPurity>(['925', '900', '800'])
 export const PLATINUM_PURITIES: PlatinumPurity[] = sortPuritiesAsc<PlatinumPurity>(['950', '900'])
 
@@ -17,7 +17,7 @@ export const PLATINUM_PURITIES: PlatinumPurity[] = sortPuritiesAsc<PlatinumPurit
 
 function purityToValue(purity: string): number {
   if (purity.endsWith('K')) {
-    const k = parseInt(purity.replace('K', ''))
+    const k = parseFloat(purity.replace('K', ''))
     return (k / 24) * 1000
   }
   return parseFloat(purity)
@@ -30,7 +30,7 @@ export function calculateScrapGoldPricePerDWT(
   goldSpotPrice: number,
   percentage: number = 95
 ): number {
-  const karatValue = parseInt(purity.replace('K', ''))
+  const karatValue = parseFloat(purity.replace('K', ''))
   const result = ((goldSpotPrice * (karatValue - 0.5)) / 24) * ((percentage / 20) / 100)
   return Math.max(0, result)
 }

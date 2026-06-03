@@ -18,7 +18,7 @@ import { GOLD_PURITIES, SILVER_PURITIES, PLATINUM_PURITIES } from "@/lib/pricing
 import Link from "next/link"
 
 const SCRAP_PURITY_OPTIONS: Record<string, Array<{ label: string; percent: number }>> = {
-  GOLD: GOLD_PURITIES.map((p) => ({ label: p, percent: Math.round((parseInt(p.replace("K", ""), 10) / 24) * 1000) / 10 })),
+  GOLD: GOLD_PURITIES.map((p) => ({ label: p, percent: Math.round((parseFloat(p.replace("K", "")) / 24) * 1000) / 10 })),
   SILVER: SILVER_PURITIES.map((p) => ({ label: p, percent: parseFloat(p) / 10 })),
   PLATINUM: PLATINUM_PURITIES.map((p) => ({ label: p, percent: parseFloat(p) / 10 })),
 }
