@@ -63,6 +63,9 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
   const hasMarkedAsPrinted = useRef(false)
   const hasPushedHistoryRef = useRef(false)
   const isA4 = layout === "a4"
+  const rollWidth = "103mm"
+  const rollPreviewWidth = "calc(103mm + 32px)"
+  const thermalLogoSrc = "/logo-thermal.png"
 
   useEffect(() => {
     setSessionActive()
@@ -170,12 +173,12 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
   )
 
   return (
-    <div className={`min-h-screen bg-white p-4 print:min-h-0 print:box-border print:p-0 print:m-0 ${isA4 ? "print-a4" : ""}`}>
+    <div className={`min-h-screen bg-white p-4 print:min-h-0 print:box-border print:p-0 print:m-0 ${isA4 ? "print-a4" : "print-roll"}`}>
       <style jsx global>{`
         @media print {
           @page {
-            size: ${isA4 ? "A4" : "letter"};
-            margin: ${isA4 ? "12mm" : "10mm"};
+            size: ${isA4 ? "A4" : "103mm 164mm"};
+            margin: ${isA4 ? "12mm" : "0"};
           }
           * {
             -webkit-print-color-adjust: exact;
@@ -186,7 +189,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
-            width: 100% !important;
+            width: ${isA4 ? "100%" : rollWidth} !important;
             height: auto !important;
             min-height: 0 !important;
             overflow: visible !important;
@@ -212,8 +215,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           }
 
           .print-root {
-            width: 100% !important;
-            max-width: 100% !important;
+            width: ${isA4 ? "100%" : rollWidth} !important;
+            max-width: ${isA4 ? "100%" : rollWidth} !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow: visible !important;
@@ -227,10 +230,82 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             margin-right: auto !important;
             margin-top: 0 !important;
             margin-bottom: 0 !important;
-            padding: 0.15in 0.12in !important;
+            padding: ${isA4 ? "0.2in" : "2mm 2mm 0 2mm"} !important;
             overflow: visible !important;
-            width: ${isA4 ? "100%" : "100%"} !important;
-            max-width: ${isA4 ? "100%" : "4.25in"} !important;
+            width: ${isA4 ? "100%" : rollWidth} !important;
+            max-width: ${isA4 ? "100%" : rollWidth} !important;
+            color: #000 !important;
+            background: #fff !important;
+            font-weight: 700 !important;
+            text-rendering: geometricPrecision;
+            -webkit-font-smoothing: none;
+          }
+          .print-content,
+          .print-content * {
+            color: #000 !important;
+            border-color: #000 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+          .print-content p,
+          .print-content span,
+          .print-content td,
+          .print-content th,
+          .print-content strong {
+            font-weight: 800 !important;
+          }
+          .print-content h1,
+          .print-content .thermal-bold {
+            font-weight: 900 !important;
+            letter-spacing: 0 !important;
+          }
+          .print-content img {
+            filter: grayscale(1) contrast(1.9) brightness(1.08) !important;
+            opacity: 1 !important;
+          }
+          .receipt-logo {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            margin: 0 auto 2mm auto !important;
+            padding: 0 !important;
+            background: #fff !important;
+            position: static !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          .screen-receipt-logo {
+            display: none !important;
+          }
+          .thermal-receipt-logo {
+            display: flex !important;
+          }
+          .receipt-logo a {
+            width: 80% !important;
+            height: auto !important;
+            max-width: 80% !important;
+            max-height: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .receipt-logo a > div {
+            width: 100% !important;
+            height: auto !important;
+            max-width: 100% !important;
+            max-height: none !important;
+          }
+          .receipt-logo img {
+            display: block !important;
+            width: 80% !important;
+            height: auto !important;
+            max-width: 80% !important;
+            max-height: none !important;
+            object-fit: contain !important;
+            filter: none !important;
+            image-rendering: auto !important;
+            opacity: 1 !important;
           }
           .print-a4 .print-content {
             max-width: 100% !important;
@@ -241,6 +316,24 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             width: 100% !important;
             table-layout: auto !important;
             border-collapse: collapse !important;
+          }
+          .print-roll .print-content {
+            font-size: 11px !important;
+            line-height: 1.2 !important;
+          }
+          .print-roll .print-content h1 {
+            font-size: 18px !important;
+            line-height: 1.15 !important;
+            clear: both !important;
+          }
+          .print-roll .print-content table {
+            font-size: 10px !important;
+          }
+          .print-roll .print-content th,
+          .print-roll .print-content td {
+            padding-left: 1mm !important;
+            padding-right: 1mm !important;
+            font-weight: 800 !important;
           }
           .print-content table th,
           .print-content table td {
@@ -265,18 +358,57 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           body {
             background: #f5f5f5;
           }
+          .print-roll .print-root {
+            width: ${rollPreviewWidth};
+            max-width: 100%;
+          }
           .print-content {
             width: 100% !important;
             max-width: 100% !important;
+          }
+          .thermal-receipt-logo {
+            display: none;
+          }
+          .screen-receipt-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin: 0 auto 2mm auto;
+          }
+          .screen-receipt-logo a {
+            width: 80%;
+            max-width: 80%;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .screen-receipt-logo a > div {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+          }
+          .screen-receipt-logo img {
+            width: 100% !important;
+            height: auto !important;
+            max-width: 100% !important;
+            object-fit: contain !important;
           }
         }
       `}</style>
 
       <div className="print-root w-full max-w-4xl mx-auto">
-      <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : ""}`}>
+      <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : "text-[11px] leading-tight"}`}>
         <div className="mb-4 pb-3 border-b-2 border-black">
-          <div className="mb-2 flex justify-center">
-            <Logo size="lg" showText={false} className="print:max-h-16" />
+          <div className="receipt-logo screen-receipt-logo mb-2 flex justify-center">
+            <Logo size="lg" showText={false} />
+          </div>
+          <div className="receipt-logo thermal-receipt-logo mb-2 flex justify-center">
+            <img
+              src={thermalLogoSrc}
+              alt="New York Gold Market"
+            />
           </div>
           <h1 className="text-2xl font-bold mb-1 text-black">NEW YORK GOLD MARKET</h1>
           <p className="text-sm font-semibold mb-2 text-black">Precious Metals Transaction</p>
