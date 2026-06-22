@@ -31,8 +31,9 @@ export async function POST(request: NextRequest) {
         meltSilverPercentage?: number
         meltPlatinumPercentage?: number
       }
+      salePremiumPerOz?: number
     }
-    const { customerId, type: rawType, lineItems, percentages: bodyPercentages } = body
+    const { customerId, type: rawType, lineItems, percentages: bodyPercentages, salePremiumPerOz: bodySalePremium } = body
 
     const type = rawType ? toPrismaTransactionType(rawType) : null
 
@@ -53,7 +54,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No prices set for today" }, { status: 400 })
     }
 
-    let customer: { scrapGoldPercentageOverride?: number | null; scrapSilverPercentageOverride?: number | null; scrapPlatinumPercentageOverride?: number | null; meltGoldPercentageOverride?: number | null; meltSilverPercentageOverride?: number | null; meltPlatinumPercentageOverride?: number | null } | null = null
+    let customer: {
+      scrapGoldPercentageOverride?: number | null
+      scrapSilverPercentageOverride?: number | null
+      scrapPlatinumPercentageOverride?: number | null
+      meltGoldPercentageOverride?: number | null
+      meltSilverPercentageOverride?: number | null
+      meltPlatinumPercentageOverride?: number | null
+      salePremiumPerOzOverride?: number | null
+    } | null = null
     try {
       customer = await prisma.customer.findUnique({
         where: { id: customerId },
@@ -64,6 +73,7 @@ export async function POST(request: NextRequest) {
           meltGoldPercentageOverride: true,
           meltSilverPercentageOverride: true,
           meltPlatinumPercentageOverride: true,
+          salePremiumPerOzOverride: true,
         },
       })
     } catch (e) {
@@ -100,6 +110,10 @@ export async function POST(request: NextRequest) {
       bodyPercentages?.meltPlatinumPercentage ??
       todayPrice.meltPlatinumPercentage ??
       95
+    const salePremiumPerOz =
+      type === "SALE"
+        ? (bodySalePremium ?? customer?.salePremiumPerOzOverride ?? 0)
+        : undefined
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -116,6 +130,7 @@ export async function POST(request: NextRequest) {
         meltGoldPercentage: meltGoldPct,
         meltSilverPercentage: meltSilverPct,
         meltPlatinumPercentage: meltPlatinumPct,
+        ...(salePremiumPerOz !== undefined ? { salePremiumPerOz } : {}),
       },
     })
 

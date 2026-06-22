@@ -107,6 +107,7 @@ model Customer {
   meltGoldPercentageOverride      Float?
   meltSilverPercentageOverride    Float?
   meltPlatinumPercentageOverride  Float?
+  salePremiumPerOzOverride        Float?
   createdAt                 DateTime           @default(now())
   updatedAt                 DateTime           @updatedAt
   cards                     MembershipCard[]
@@ -165,6 +166,7 @@ model Transaction {
   meltGoldPercentage      Float?   @default(95)
   meltSilverPercentage     Float?   @default(95)
   meltPlatinumPercentage   Float?   @default(95)
+  salePremiumPerOz         Float?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   completedAt       DateTime?

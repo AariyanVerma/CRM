@@ -64,6 +64,7 @@ export async function PATCH(
         meltSilverPercentage?: number
         meltPlatinumPercentage?: number
       }
+      salePremiumPerOz?: number
     }
     const { status, percentages: bodyPercentages } = body
     const updateData: Record<string, unknown> = {}
@@ -80,6 +81,10 @@ export async function PATCH(
       if (n(bodyPercentages.meltGoldPercentage) !== undefined) updateData.meltGoldPercentage = n(bodyPercentages.meltGoldPercentage)
       if (n(bodyPercentages.meltSilverPercentage) !== undefined) updateData.meltSilverPercentage = n(bodyPercentages.meltSilverPercentage)
       if (n(bodyPercentages.meltPlatinumPercentage) !== undefined) updateData.meltPlatinumPercentage = n(bodyPercentages.meltPlatinumPercentage)
+    }
+
+    if (typeof body.salePremiumPerOz === "number" && !Number.isNaN(body.salePremiumPerOz) && body.salePremiumPerOz >= 0) {
+      updateData.salePremiumPerOz = body.salePremiumPerOz
     }
 
     if (Object.keys(updateData).length === 0) {

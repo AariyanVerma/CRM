@@ -1,4 +1,7 @@
 import { sortPuritiesAsc } from "@/lib/purity"
+import { GRAMS_PER_DWT, toDwt, type WeightUnit } from "@/lib/weight-units"
+
+const TROY_OZ_DWT = 20
 
 
 
@@ -104,6 +107,57 @@ export function calculateMeltPlatinumPricePerDWT(
 
 export function calculateLineTotal(pricePerDWT: number, dwt: number): number {
   return pricePerDWT * dwt
+}
+
+function goldKaratFraction(purity: GoldPurity): number {
+  return parseFloat(purity.replace("K", "")) / 24
+}
+
+export function calculateSaleGoldPricePerDWT(goldSpotPrice: number, purity: GoldPurity): number {
+  if (goldSpotPrice <= 0) return 0
+  return (goldSpotPrice * goldKaratFraction(purity)) / TROY_OZ_DWT
+}
+
+export function calculateSaleGoldPricePerGram(goldSpotPrice: number, purity: GoldPurity): number {
+  if (goldSpotPrice <= 0) return 0
+  return (goldSpotPrice * goldKaratFraction(purity)) / (TROY_OZ_DWT * GRAMS_PER_DWT)
+}
+
+export function calculateSalePremiumAmount(
+  premiumPerOz: number,
+  weight: number,
+  unit: WeightUnit
+): number {
+  const dwt = toDwt(weight, unit)
+  if (dwt <= 0 || premiumPerOz <= 0) return 0
+  return premiumPerOz * (dwt / TROY_OZ_DWT)
+}
+
+export type SaleRowCalc = {
+  dwt: number
+  pricePerUnit: number
+  metalValue: number
+  premiumAmount: number
+  lineTotal: number
+  pricePerDWT: number
+}
+
+export function calculateSaleRowValue(
+  goldSpotPrice: number,
+  purity: GoldPurity,
+  weight: number | string,
+  unit: WeightUnit,
+  premiumPerOz: number
+): SaleRowCalc {
+  const w = typeof weight === "number" ? weight : parseFloat(String(weight)) || 0
+  const dwt = toDwt(w, unit)
+  const pricePerDWT = calculateSaleGoldPricePerDWT(goldSpotPrice, purity)
+  const pricePerGram = calculateSaleGoldPricePerGram(goldSpotPrice, purity)
+  const pricePerUnit = unit === "DWT" ? pricePerDWT : pricePerGram
+  const metalValue = w > 0 ? pricePerUnit * w : 0
+  const premiumAmount = calculateSalePremiumAmount(premiumPerOz, w, unit)
+  const lineTotal = metalValue + premiumAmount
+  return { dwt, pricePerUnit, metalValue, premiumAmount, lineTotal, pricePerDWT }
 }
 
 

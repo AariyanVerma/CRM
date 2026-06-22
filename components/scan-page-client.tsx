@@ -49,6 +49,7 @@ interface Transaction {
   goldSpot: number
   silverSpot: number
   platinumSpot: number
+  salePremiumPerOz?: number | null
   lineItems: LineItem[]
 }
 
@@ -61,6 +62,7 @@ export function ScanPageClient({
   userId,
   cardLocked = false,
   initialPercentages,
+  initialSalePremium = 0,
 }: {
   customer: Customer
   scrapTransaction: Transaction
@@ -77,6 +79,7 @@ export function ScanPageClient({
     meltSilver: number
     meltPlatinum: number
   }
+  initialSalePremium?: number
 }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -105,6 +108,11 @@ export function ScanPageClient({
   const [printedModal, setPrintedModal] = useState<{ byName: string; which: ScanTxType | "BOTH" | "ALL" } | null>(null)
   const [currentPercentages, setCurrentPercentages] = useState<Record<string, number | string>>(() => ({ ...initialPercentages }))
   const currentPercentagesRef = useRef<Record<string, number | string>>({ ...initialPercentages })
+  const salePremiumRef = useRef<number>(initialSalePremium)
+
+  const handleSalePremiumChange = useCallback((premium: number) => {
+    salePremiumRef.current = premium
+  }, [])
 
   const handlePercentagesChange = useCallback((percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT" | "SALE") => {
     const keysToMerge = transactionType === "MELT"
@@ -267,6 +275,7 @@ export function ScanPageClient({
         requestedToUserId: adminId,
         approvalGroupId: groupId,
         percentages: toApiPercentages(currentPercentagesRef.current),
+        salePremiumPerOz: salePremiumRef.current,
       }),
       credentials: "include",
     })
@@ -470,6 +479,7 @@ export function ScanPageClient({
           purityPercentage: item.purityPercentage ?? null,
         })),
         percentages: toApiPercentages(currentPercentagesRef.current),
+        salePremiumPerOz: salePremiumRef.current,
       }),
     })
     if (!res.ok) {
@@ -845,6 +855,8 @@ export function ScanPageClient({
                 pendingAdminName={saleApproval.pendingAdminName}
                 initialPercentages={initialPercentages}
                 onPercentagesChange={handlePercentagesChange}
+                initialSalePremium={initialSalePremium}
+                onSalePremiumChange={handleSalePremiumChange}
                 customerId={customer.id}
               />
             </div>

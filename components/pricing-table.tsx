@@ -22,6 +22,7 @@ import {
   getMeltPricingRows,
   calculateScrapGoldPricePerDWT,
   calculateLineTotal,
+  calculateSaleRowValue,
   SALE_GOLD_PURITIES,
   type MetalType,
   type GoldPurity,
@@ -48,6 +49,7 @@ interface Transaction {
   goldSpot: number
   silverSpot: number
   platinumSpot: number
+  salePremiumPerOz?: number | null
   lineItems: LineItem[]
 }
 
@@ -106,7 +108,8 @@ function buildDraftLineItems(
   purityPercentages: Record<string, number | string>,
   spotPrices: { gold: number | ""; silver: number | ""; platinum: number | "" },
   percentages: Record<string, number | string>,
-  saleRows: SaleRow[] = []
+  saleRows: SaleRow[] = [],
+  salePremiumPerOz: number = 0
 ): LineItem[] {
   const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
   const silver = typeof spotPrices.silver === "number" ? spotPrices.silver : parseFloat(String(spotPrices.silver)) || 0
@@ -118,24 +121,17 @@ function buildDraftLineItems(
   const items: LineItem[] = []
   let id = 0
   if (type === "SALE") {
-    const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
-    const pct = (key: string) => {
-      const v = percentages[key]
-      return typeof v === "number" ? v : parseFloat(String(v)) || 95
-    }
-    const percentage = pct("scrapGold")
+    const goldSpot = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
     for (const row of saleRows) {
-      const weight = parseFloat(row.weight)
-      const dwt = toDwt(weight, row.weightUnit)
-      if (!Number.isFinite(dwt) || dwt <= 0) continue
-      const pricePerDWT = calculateScrapGoldPricePerDWT(row.purity, gold, percentage)
+      const calc = calculateSaleRowValue(goldSpot, row.purity, row.weight, row.weightUnit, salePremiumPerOz)
+      if (!Number.isFinite(calc.dwt) || calc.dwt <= 0) continue
       items.push({
         id: row.id,
         metalType: "GOLD",
         purityLabel: row.purity,
-        dwt,
-        pricePerOz: pricePerDWT,
-        lineTotal: calculateLineTotal(pricePerDWT, dwt),
+        dwt: calc.dwt,
+        pricePerOz: calc.pricePerDWT,
+        lineTotal: calc.lineTotal,
       })
     }
     return items
@@ -204,6 +200,8 @@ export function PricingTable({
   customBottom,
   initialPercentages,
   onPercentagesChange,
+  initialSalePremium = 0,
+  onSalePremiumChange,
   customerId,
 }: {
   transaction: Transaction
@@ -220,6 +218,8 @@ export function PricingTable({
   customBottom?: React.ReactNode
   initialPercentages?: Record<string, number | string>
   onPercentagesChange?: (percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT" | "SALE") => void
+  initialSalePremium?: number
+  onSalePremiumChange?: (premium: number) => void
   customerId?: string
 }) {
   const { toast } = useToast()
@@ -237,6 +237,11 @@ export function PricingTable({
 
   const [purityPercentages, setPurityPercentages] = useState<Record<string, number | string>>({})
   const [saleRows, setSaleRows] = useState<SaleRow[]>([createSaleRow()])
+  const [salePremiumPerOz, setSalePremiumPerOz] = useState<number | string>(() => {
+    const fromTx = transaction.salePremiumPerOz
+    if (fromTx != null && !Number.isNaN(fromTx)) return fromTx
+    return initialSalePremium > 0 ? initialSalePremium : ""
+  })
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const lastEditTimeRef = useRef<Record<string, number>>({})
   const isTypingRef = useRef<Record<string, boolean>>({})
@@ -252,6 +257,9 @@ export function PricingTable({
   purityPercentagesRef.current = purityPercentages
   const saleRowsRef = useRef(saleRows)
   saleRowsRef.current = saleRows
+  const salePremiumRef = useRef(salePremiumPerOz)
+  salePremiumRef.current = salePremiumPerOz
+  const originalSalePremiumRef = useRef<number | string>(salePremiumPerOz)
   const loadedSaleTransactionIdRef = useRef<string | null>(null)
   const lastPushedSaleItemsRef = useRef<string>("")
   const originalPercentagesRef = useRef<Record<string, number | string | undefined>>({})
@@ -338,13 +346,18 @@ export function PricingTable({
   const pushSaleLineItems = useCallback(
     (rows: SaleRow[]) => {
       if (transaction.type !== "SALE" || !onLineItemsUpdate) return
+      const premium =
+        typeof salePremiumRef.current === "number"
+          ? salePremiumRef.current
+          : parseFloat(String(salePremiumRef.current)) || 0
       const items = buildDraftLineItems(
         "SALE",
         dwtValuesRef.current,
         purityPercentagesRef.current,
         spotPricesRef.current,
         percentagesRef.current,
-        rows
+        rows,
+        premium
       )
       const serialized = JSON.stringify(items)
       if (serialized === lastPushedSaleItemsRef.current) return
@@ -357,7 +370,7 @@ export function PricingTable({
   useEffect(() => {
     if (transaction.type !== "SALE" || !onLineItemsUpdate) return
     pushSaleLineItems(saleRowsRef.current)
-  }, [transaction.type, spotPrices, percentages, pushSaleLineItems, onLineItemsUpdate])
+  }, [transaction.type, spotPrices, salePremiumPerOz, pushSaleLineItems, onLineItemsUpdate])
 
   useEffect(() => {
     if (transaction.type !== "SALE") return
@@ -1159,26 +1172,111 @@ export function PricingTable({
     }
   }
 
-  function getSalePercentage(): number {
-    const val = percentages.scrapGold
-    return typeof val === "number" ? val : parseFloat(String(val)) || 95
+  function getSalePremiumValue(): number {
+    const val = salePremiumRef.current
+    return typeof val === "number" ? val : parseFloat(String(val)) || 0
   }
 
   function getSaleRowCalc(row: SaleRow, existingItem?: LineItem) {
     const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
-    const percentage = getSalePercentage()
     if ((isStaffLocked || readOnly) && existingItem) {
       return {
         dwt: existingItem.dwt,
+        pricePerUnit: existingItem.pricePerOz,
         pricePerDWT: existingItem.pricePerOz,
         lineTotal: existingItem.lineTotal,
+        premiumAmount: 0,
       }
     }
-    const weight = parseFloat(row.weight)
-    const dwt = toDwt(weight, row.weightUnit)
-    const pricePerDWT = calculateScrapGoldPricePerDWT(row.purity, gold, percentage)
-    const lineTotal = dwt > 0 ? calculateLineTotal(pricePerDWT, dwt) : 0
-    return { dwt, pricePerDWT, lineTotal }
+    const calc = calculateSaleRowValue(gold, row.purity, row.weight, row.weightUnit, getSalePremiumValue())
+    return {
+      dwt: calc.dwt,
+      pricePerUnit: calc.pricePerUnit,
+      pricePerDWT: calc.pricePerDWT,
+      lineTotal: calc.lineTotal,
+      premiumAmount: calc.premiumAmount,
+    }
+  }
+
+  function handleSalePremiumFocus() {
+    originalSalePremiumRef.current = salePremiumRef.current
+    isTypingRef.current["sale-premium"] = true
+    setSalePremiumPerOz("")
+  }
+
+  function handleSalePremiumBlur(e: React.FocusEvent<HTMLInputElement>) {
+    isTypingRef.current["sale-premium"] = false
+    const raw = e.target.value
+    if (raw === "" || raw === null || raw === undefined) {
+      const fallback = originalSalePremiumRef.current
+      const restored = typeof fallback === "number" ? fallback : parseFloat(String(fallback)) || 0
+      setSalePremiumPerOz(restored > 0 ? restored : "")
+      salePremiumRef.current = restored > 0 ? restored : ""
+      onSalePremiumChange?.(restored)
+      return
+    }
+    const premiumValue = parseFloat(raw)
+    if (isNaN(premiumValue) || premiumValue < 0) return
+
+    setSalePremiumPerOz(premiumValue)
+    salePremiumRef.current = premiumValue
+    onSalePremiumChange?.(premiumValue)
+    pushSaleLineItems(saleRowsRef.current)
+
+    if (userRole === "ADMIN" && customerId) {
+      fetch(`/api/customers/${customerId}/percentage-override`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ salePremiumPerOz: premiumValue }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            return res.json().then((err) => {
+              throw new Error((err as { message?: string }).message || "Failed to save premium")
+            })
+          }
+          toast({
+            title: "Premium saved for this customer",
+            description: `Sale premium set to $${formatDecimal(premiumValue)} per oz.`,
+            variant: "success",
+          })
+        })
+        .catch((err) => {
+          toast({
+            title: "Premium not saved",
+            description: err instanceof Error ? err.message : "Customer premium could not be saved.",
+            variant: "destructive",
+          })
+        })
+    }
+
+    if (transaction.id && userRole === "ADMIN") {
+      fetch(`/api/transactions/${transaction.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ salePremiumPerOz: premiumValue }),
+      }).catch(() => {})
+    }
+  }
+
+  function handleSalePremiumChange(value: string) {
+    if (isReadOnly) return
+    isTypingRef.current["sale-premium"] = true
+    if (value === "" || value === null || value === undefined) {
+      setSalePremiumPerOz("")
+      salePremiumRef.current = ""
+      return
+    }
+    if (value.match(/^[0-9]*\.?[0-9]*$/)) {
+      setSalePremiumPerOz(value)
+      const numValue = parseFloat(value)
+      if (!isNaN(numValue) && numValue >= 0) {
+        salePremiumRef.current = numValue
+        onSalePremiumChange?.(numValue)
+      }
+    }
   }
 
   function updateSaleRow(id: string, patch: Partial<SaleRow>) {
@@ -1238,7 +1336,7 @@ export function PricingTable({
                   <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
                     <div className="flex items-center justify-center gap-2">
                       <DollarSign className="h-4 w-4 text-red-600 drop-shadow-lg" />
-                      <span className="drop-shadow-md">Price/DWT</span>
+                      <span className="drop-shadow-md">Unit Price</span>
                     </div>
                   </th>
                   <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
@@ -1283,7 +1381,10 @@ export function PricingTable({
                       </Select>
                     </td>
                     <td className="p-2 sm:p-3 md:p-4 text-center font-semibold text-base sm:text-lg text-muted-foreground">
-                      ${formatDecimal(calc.pricePerDWT)}
+                      <div>${formatDecimal(calc.pricePerUnit)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        /{row.weightUnit === "DWT" ? "DWT" : "g"}
+                      </div>
                     </td>
                     <td className="p-2 sm:p-3 md:p-4 text-center">
                       <div className="flex justify-center items-center gap-2">
@@ -1598,25 +1699,19 @@ export function PricingTable({
                     placeholder="0.00"
                   />
                 </div>
-                <label className="text-base sm:text-lg md:text-xl font-black text-foreground">%</label>
+                <label className="text-base sm:text-lg md:text-xl font-bold text-foreground">Premium (per oz):</label>
                 <div className="flex items-center gap-3">
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
-                    max="100"
-                    value={(() => {
-                      const key = getPercentageStateKey("SALE", "GOLD")
-                      const val = percentages[key]
-                      if (val === "" || val === null || val === undefined) return ""
-                      return String(val)
-                    })()}
-                    onFocus={() => handlePercentageFocus("GOLD")}
-                    onBlur={(e) => handlePercentageBlur("GOLD", e)}
-                    onChange={(e) => handlePercentageChange("GOLD", e.target.value)}
+                    value={salePremiumPerOz === "" ? "" : String(salePremiumPerOz)}
+                    onFocus={handleSalePremiumFocus}
+                    onBlur={handleSalePremiumBlur}
+                    onChange={(e) => handleSalePremiumChange(e.target.value)}
                     disabled={isReadOnly}
                     className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    placeholder="95.00"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
@@ -1624,121 +1719,6 @@ export function PricingTable({
           </CardHeader>
           <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderSaleTable()}</CardContent>
         </Card>
-
-        {userRole === "ADMIN" && pendingPercentageChange && (
-          <Dialog
-            open={isPercentageScopeDialogOpen}
-            onOpenChange={(open) => {
-              if (!open) {
-                resetPendingPercentageToOriginal()
-                setIsPercentageScopeDialogOpen(false)
-                setPendingPercentageChange(null)
-              }
-            }}
-          >
-            <DialogContent className="sm:max-w-lg border border-primary/40 bg-gradient-to-br from-white via-slate-50 to-primary/10 text-slate-900 shadow-2xl shadow-primary/20 rounded-2xl animate-in fade-in-0 zoom-in-95 duration-200">
-              <DialogHeader className="space-y-2 pb-2 border-b border-primary/20">
-                <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl font-extrabold tracking-tight">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/40 flex items-center justify-center shadow-inner shadow-primary/20">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="bg-gradient-to-r from-red-600 via-amber-500 to-primary bg-clip-text text-transparent">
-                    Apply Percentage Change
-                  </span>
-                </DialogTitle>
-                <p className="text-xs sm:text-sm font-semibold text-slate-600">
-                  Decide whether this new scrap % should be used just for this customer or across all transactions.
-                </p>
-              </DialogHeader>
-              <div className="mt-3 space-y-4">
-                <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-amber-100 px-4 py-3 text-xs sm:text-sm font-extrabold text-slate-900 shadow-sm">
-                  {pendingPercentageChange.metalType} scrap percentage →{" "}
-                  <span className="text-red-600">{formatDecimal(pendingPercentageChange.value)}%</span>
-                </div>
-                <div className="space-y-3">
-                  <div
-                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
-                      pendingPercentageChange.scope === "LOCAL"
-                        ? "border-emerald-500 bg-emerald-50 shadow-md scale-[1.01]"
-                        : "border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/70"
-                    }`}
-                    onClick={() =>
-                      setPendingPercentageChange((prev) => (prev ? { ...prev, scope: "LOCAL" } : prev))
-                    }
-                  >
-                    <div
-                      className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
-                        pendingPercentageChange.scope === "LOCAL"
-                          ? "border-emerald-500 bg-emerald-500"
-                          : "border-slate-400"
-                      }`}
-                    >
-                      {pendingPercentageChange.scope === "LOCAL" && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">For this customer only</p>
-                      <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
-                        Override the global scrap percentage for this customer on this device only.
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
-                      pendingPercentageChange.scope === "GLOBAL"
-                        ? "border-sky-500 bg-sky-50 shadow-md scale-[1.01]"
-                        : "border-slate-300 bg-white hover:border-sky-400 hover:bg-sky-50/70"
-                    }`}
-                    onClick={() =>
-                      setPendingPercentageChange((prev) => (prev ? { ...prev, scope: "GLOBAL" } : prev))
-                    }
-                  >
-                    <div
-                      className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
-                        pendingPercentageChange.scope === "GLOBAL"
-                          ? "border-sky-500 bg-sky-500"
-                          : "border-slate-400"
-                      }`}
-                    >
-                      {pendingPercentageChange.scope === "GLOBAL" && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">For everyone</p>
-                      <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
-                        Update today&apos;s global scrap percentage across all devices and future transactions.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-3 font-extrabold"
-                    onClick={() => {
-                      resetPendingPercentageToOriginal()
-                      setIsPercentageScopeDialogOpen(false)
-                      setPendingPercentageChange(null)
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="px-4 font-extrabold"
-                    disabled={!pendingPercentageChange.scope}
-                    onClick={() => void applyPercentageChangeScope()}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
 
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sticky bottom-2 sm:bottom-4 bg-background p-2 sm:p-3 md:p-4 border rounded-lg shadow-lg z-50 mx-2 sm:mx-0">
           {customBottom !== undefined ? (

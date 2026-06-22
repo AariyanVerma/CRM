@@ -23,6 +23,7 @@ export async function PATCH(
       meltGoldPercentage?: number
       meltSilverPercentage?: number
       meltPlatinumPercentage?: number
+      salePremiumPerOz?: number
     }
 
     const updateData: Record<string, number | null> = {}
@@ -33,6 +34,7 @@ export async function PATCH(
       "meltGoldPercentageOverride",
       "meltSilverPercentageOverride",
       "meltPlatinumPercentageOverride",
+      "salePremiumPerOzOverride",
     ] as const
     const bodyKeys = [
       "scrapGoldPercentage",
@@ -41,9 +43,16 @@ export async function PATCH(
       "meltGoldPercentage",
       "meltSilverPercentage",
       "meltPlatinumPercentage",
+      "salePremiumPerOz",
     ] as const
     for (let i = 0; i < keys.length; i++) {
       const v = body[bodyKeys[i]]
+      if (bodyKeys[i] === "salePremiumPerOz") {
+        if (v !== undefined && typeof v === "number" && !Number.isNaN(v) && v >= 0) {
+          updateData[keys[i]] = v
+        }
+        continue
+      }
       if (v !== undefined && typeof v === "number" && !Number.isNaN(v) && v >= 0 && v <= 100) {
         updateData[keys[i]] = v
       }

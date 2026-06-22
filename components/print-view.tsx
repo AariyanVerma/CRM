@@ -39,6 +39,7 @@ interface Transaction {
   meltGoldPercentage?: number | null
   meltSilverPercentage?: number | null
   meltPlatinumPercentage?: number | null
+  salePremiumPerOz?: number | null
   createdAt: Date
   completedAt: Date | null
   customer: Customer
@@ -486,7 +487,14 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           </div>
         </div>
 
-        {showPercentages && (
+        {showPercentages && transaction.type === "SALE" && transaction.salePremiumPerOz != null && transaction.salePremiumPerOz > 0 && (
+          <div className="no-print screen-only-no-receipt mb-4 pb-2 border-b border-gray-700 text-xs text-black">
+            <p className="font-semibold mb-1">Sale premium:</p>
+            <span>${formatDecimal(transaction.salePremiumPerOz)} per oz</span>
+          </div>
+        )}
+
+        {showPercentages && transaction.type !== "SALE" && (
           <div className="no-print screen-only-no-receipt mb-4 pb-2 border-b border-gray-700 text-xs text-black">
             <p className="font-semibold mb-1">Metal percentages used for this sale:</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1">

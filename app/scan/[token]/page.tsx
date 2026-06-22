@@ -107,6 +107,7 @@ export default async function ScanPage({
     meltGoldPercentageOverride?: number | null
     meltSilverPercentageOverride?: number | null
     meltPlatinumPercentageOverride?: number | null
+    salePremiumPerOzOverride?: number | null
   }
   const [_, todayPrice, customerWithOverridesRaw] = await Promise.all([
     prisma.membershipCard.update({
@@ -127,6 +128,7 @@ export default async function ScanPage({
         meltGoldPercentageOverride: true,
         meltSilverPercentageOverride: true,
         meltPlatinumPercentageOverride: true,
+        salePremiumPerOzOverride: true,
       } as Record<string, boolean>,
     }) as Promise<CustomerOverrides | null>,
   ])
@@ -197,6 +199,7 @@ export default async function ScanPage({
             meltSilver: customerWithOverrides?.meltSilverPercentageOverride ?? todayPrice.meltSilverPercentage ?? 95,
             meltPlatinum: customerWithOverrides?.meltPlatinumPercentageOverride ?? todayPrice.meltPlatinumPercentage ?? 95,
           }}
+          initialSalePremium={customerWithOverrides?.salePremiumPerOzOverride ?? 0}
         />
       </main>
     </div>
