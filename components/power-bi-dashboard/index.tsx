@@ -190,7 +190,7 @@ export function PowerBIDashboard() {
                 <TypeStatusMatrix derived={derived} />
               </div>
               <div className="min-h-0 h-full flex flex-col md:col-span-2">
-                <ChartCard title="SCRAP vs MELT over time" icon={<Layers className="h-4 w-4" />} fullScreenContent={<ScrapVsMeltOverTimeChart derived={derived} height={FULL_SCREEN_HEIGHT} hideTitle />}>
+                <ChartCard title="By type over time" icon={<Layers className="h-4 w-4" />} fullScreenContent={<ScrapVsMeltOverTimeChart derived={derived} height={FULL_SCREEN_HEIGHT} hideTitle />}>
                   <ScrapVsMeltOverTimeChart derived={derived} />
                 </ChartCard>
               </div>

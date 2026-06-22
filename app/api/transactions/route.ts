@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { summarizeTransactions, summarizeTransactionsByDay } from "@/lib/transaction-totals"
 import type { Prisma } from "@prisma/client"
 
 export async function GET(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (customerId) where.customerId = customerId
     if (status && ["OPEN", "PRINTED", "VOID", "PENDING_APPROVAL", "APPROVED"].includes(status)) where.status = status as "OPEN" | "PRINTED" | "VOID" | "PENDING_APPROVAL" | "APPROVED"
-    if (type && ["SCRAP", "MELT"].includes(type)) where.type = type as "SCRAP" | "MELT"
+    if (type && ["SCRAP", "MELT", "SALE"].includes(type)) where.type = type as "SCRAP" | "MELT" | "SALE"
     if (from || to) {
       where.createdAt = {}
       if (from) where.createdAt.gte = new Date(from)
@@ -38,7 +39,23 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const [transactions, total] = await Promise.all([
+    const summaryWhere: Prisma.TransactionWhereInput = {
+      ...where,
+      status: where.status ?? { not: "VOID" },
+    }
+
+    const grandTotalWhere: Prisma.TransactionWhereInput = {
+      status: { not: "VOID" },
+      ...(customerId ? { customerId } : {}),
+    }
+
+    const summarySelect = {
+      type: true,
+      createdAt: true,
+      lineItems: { select: { lineTotal: true } },
+    } as const
+
+    const [transactions, total, summaryTransactions, grandTotalTransactions] = await Promise.all([
       prisma.transaction.findMany({
         where,
         include: {
@@ -56,6 +73,15 @@ export async function GET(request: NextRequest) {
         skip: offset,
       }),
       prisma.transaction.count({ where }),
+      prisma.transaction.findMany({
+        where: summaryWhere,
+        select: summarySelect,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.transaction.findMany({
+        where: grandTotalWhere,
+        select: summarySelect,
+      }),
     ])
 
     const withTotal = transactions.map((t) => {
@@ -67,7 +93,15 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ transactions: withTotal, total })
+    return NextResponse.json({
+      transactions: withTotal,
+      total,
+      summary: {
+        dailyTotals: summarizeTransactionsByDay(summaryTransactions),
+        filteredTotals: summarizeTransactions(summaryTransactions),
+        grandTotalAllTime: summarizeTransactions(grandTotalTransactions),
+      },
+    })
   } catch (error) {
     console.error("Error listing transactions:", error)
     return NextResponse.json(

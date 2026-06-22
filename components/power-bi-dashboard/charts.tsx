@@ -26,6 +26,7 @@ import type { DerivedData } from "./types"
 const COLORS = ["hsl(var(--primary))", "#22c55e", "#a855f7", "#94a3b8", "#cbd5e1"]
 const TYPE_COLORS: Record<string, string> = {
   SCRAP: "hsl(var(--primary))",
+  SALE: "#8b5cf6",
   MELT: "hsl(var(--destructive))",
 }
 const CHART_MARGIN = { top: 16, right: 24, bottom: 40, left: 24 }
@@ -91,7 +92,7 @@ function ResponsiveChartContainer({ children, minHeight = 200 }: { children: Rea
 }
 
 type Summary = {
-  byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+  byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
   byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
   transactionCount: number
   grandTotal: number
@@ -100,6 +101,7 @@ type Summary = {
 export function ByTypePieChart({ summary, height, hideTitle, onTitleClick }: { summary: Summary; height?: number; hideTitle?: boolean; onTitleClick?: () => void }) {
   const data = [
     { name: "SCRAP", value: summary.byType.SCRAP.total, count: summary.byType.SCRAP.count },
+    { name: "SALE", value: summary.byType.SALE.total, count: summary.byType.SALE.count },
     { name: "MELT", value: summary.byType.MELT.total, count: summary.byType.MELT.count },
   ].filter((d) => d.value > 0)
   const effectiveHeight = height ?? CHART_HEIGHT
@@ -166,7 +168,7 @@ export function ByTypePieChart({ summary, height, hideTitle, onTitleClick }: { s
         ) : (
           <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>
         )}
-        <ChartColorKey items={[{ color: TYPE_COLORS.SCRAP, label: "SCRAP (blue)" }, { color: TYPE_COLORS.MELT, label: "MELT (red)" }]} />
+        <ChartColorKey items={[{ color: TYPE_COLORS.SCRAP, label: "SCRAP (blue)" }, { color: TYPE_COLORS.SALE, label: "SALE (violet)" }, { color: TYPE_COLORS.MELT, label: "MELT (red)" }]} />
       </CardContent>
     </Card>
   )
@@ -430,7 +432,7 @@ export function ScrapVsMeltOverTimeChart({ derived, height, hideTitle, onTitleCl
   if (!data.length) {
     return (
       <Card className="border-0 shadow-lg overflow-visible h-full flex flex-col">
-        {!hideTitle && <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Layers className="h-4 w-4" /> SCRAP vs MELT over time</CardTitle></CardHeader>}
+        {!hideTitle && <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Layers className="h-4 w-4" /> By type over time</CardTitle></CardHeader>}
         <CardContent className="flex-1 flex items-center justify-center text-muted-foreground text-sm min-h-[200px]">No data</CardContent>
       </Card>
     )
@@ -442,6 +444,7 @@ export function ScrapVsMeltOverTimeChart({ derived, height, hideTitle, onTitleCl
       <YAxis tickFormatter={(v) => `$${v}`} tick={{ fontSize: 11 }} width={60} />
       <Tooltip cursor={false} content={<CustomTooltip />} />
       <Area type="monotone" dataKey="scrapTotal" name="SCRAP" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
+      <Area type="monotone" dataKey="saleTotal" name="SALE" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.5} />
       <Area type="monotone" dataKey="meltTotal" name="MELT" stackId="1" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.5} />
     </AreaChart>
   )
@@ -450,13 +453,13 @@ export function ScrapVsMeltOverTimeChart({ derived, height, hideTitle, onTitleCl
       {!hideTitle && (
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2 cursor-pointer hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded" onClick={onTitleClick} onKeyDown={(e) => e.key === "Enter" && onTitleClick?.()} role={onTitleClick ? "button" : undefined} tabIndex={onTitleClick ? 0 : undefined}>
-            <Layers className="h-4 w-4" /> SCRAP vs MELT over time
+            <Layers className="h-4 w-4" /> By type over time
           </CardTitle>
         </CardHeader>
       )}
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {height != null ? <div className="chart-always-black bg-black rounded-b-lg overflow-hidden" style={{ height }}><ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer></div> : <ResponsiveChartContainer minHeight={CHART_HEIGHT}>{chart}</ResponsiveChartContainer>}
-        <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "SCRAP (blue)" }, { color: "hsl(var(--destructive))", label: "MELT (red)" }]} />
+        <ChartColorKey items={[{ color: "hsl(var(--primary))", label: "SCRAP (blue)" }, { color: "#8b5cf6", label: "SALE (violet)" }, { color: "hsl(var(--destructive))", label: "MELT (red)" }]} />
       </CardContent>
     </Card>
   )

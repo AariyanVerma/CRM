@@ -35,7 +35,7 @@ type ReportData = {
     avgTransaction?: number
     minTotal?: number
     maxTotal?: number
-    byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+    byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
     byStatus?: { OPEN: { count: number; total: number }; PRINTED: { count: number; total: number }; VOID: { count: number; total: number } }
     byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
   }
@@ -76,6 +76,12 @@ function getStatusBadgeClassName(status: string) {
 
 function getStatusDisplayLabel(status: string) {
   return status === "OPEN" || status === "APPROVED" ? "Approved" : status === "VOID" ? "Cancelled" : status
+}
+
+function getTypeBadgeClassName(type: string) {
+  if (type === "SALE") return "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-300"
+  if (type === "SCRAP") return ""
+  return ""
 }
 
 type ViewMode = "full" | "simplified" | "summary" | "table" | "byCustomer" | "byDay" | "timeline" | "purity"
@@ -437,6 +443,7 @@ export function ReportsClient() {
               <SelectContent className="rounded-xl">
                 <SelectItem value="ALL">All types</SelectItem>
                 <SelectItem value="SCRAP">SCRAP</SelectItem>
+                <SelectItem value="SALE">SALE</SelectItem>
                 <SelectItem value="MELT">MELT</SelectItem>
               </SelectContent>
             </Select>
@@ -669,6 +676,10 @@ export function ReportsClient() {
                   <span className="font-medium">SCRAP</span>
                   <span className="tabular-nums">{data.summary.byType.SCRAP.count} trans · {formatCurrency(data.summary.byType.SCRAP.total)}</span>
                 </div>
+                <div className="flex justify-between items-center rounded-lg bg-violet-500/10 px-3 py-2 dark:bg-violet-500/20">
+                  <span className="font-medium">SALE</span>
+                  <span className="tabular-nums">{data.summary.byType.SALE.count} trans · {formatCurrency(data.summary.byType.SALE.total)}</span>
+                </div>
                 <div className="flex justify-between items-center rounded-lg bg-muted/50 px-3 py-2">
                   <span className="font-medium">MELT</span>
                   <span className="tabular-nums">{data.summary.byType.MELT.count} trans · {formatCurrency(data.summary.byType.MELT.total)}</span>
@@ -761,6 +772,8 @@ export function ReportsClient() {
                 <span className="mx-2 text-muted-foreground">·</span>
                 SCRAP: {data.summary.byType.SCRAP.count} ({formatCurrency(data.summary.byType.SCRAP.total)})
                 <span className="mx-2 text-muted-foreground">·</span>
+                SALE: {data.summary.byType.SALE.count} ({formatCurrency(data.summary.byType.SALE.total)})
+                <span className="mx-2 text-muted-foreground">·</span>
                 MELT: {data.summary.byType.MELT.count} ({formatCurrency(data.summary.byType.MELT.total)})
               </span>
             </div>
@@ -825,7 +838,7 @@ export function ReportsClient() {
                           <tr key={t.id} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedTransactionId(t.id)}>
                             <td className="py-2.5 px-4 text-center align-middle truncate" title={formatDate(t.createdAt)}>{formatDate(t.createdAt)}</td>
                             <td className="py-2.5 px-4 text-center align-middle">
-                              <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
+                              <Badge variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"} className={getTypeBadgeClassName(t.type)}>{t.type}</Badge>
                             </td>
                             <td className="py-2.5 px-4 text-center align-middle">
                               <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
@@ -879,7 +892,7 @@ export function ReportsClient() {
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-xs text-muted-foreground tabular-nums">{formatDate(t.createdAt)}</span>
                         <div className="flex gap-1">
-                          <Badge variant={t.type === "SCRAP" ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">{t.type}</Badge>
+                          <Badge variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"} className={`text-[10px] px-1.5 py-0 ${getTypeBadgeClassName(t.type)}`}>{t.type}</Badge>
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStatusBadgeClassName(t.status)}`}>{getStatusDisplayLabel(t.status)}</Badge>
                         </div>
                       </div>
@@ -962,7 +975,7 @@ export function ReportsClient() {
                         >
                           <td className={`tabular-nums text-center align-middle truncate ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`} title={formatDate(t.createdAt)}>{formatDate(t.createdAt)}</td>
                           <td className={`text-center align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`}>
-                            <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
+                            <Badge variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"} className={getTypeBadgeClassName(t.type)}>{t.type}</Badge>
                           </td>
                           <td className={`text-center align-middle ${tableDensity === "compact" ? "py-1.5 px-3" : "py-2.5 px-4"}`}>
                             <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
@@ -1033,7 +1046,7 @@ export function ReportsClient() {
                                   <tr key={t.id} className="border-b hover:bg-muted/30 last:border-b-0" onClick={() => setSelectedTransactionId(t.id)}>
                                     <td className="py-2 px-3 text-center tabular-nums align-middle">{formatDate(t.createdAt)}</td>
                                     <td className="py-2 px-3 text-center align-middle">
-                                      <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
+                                      <Badge variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"} className={getTypeBadgeClassName(t.type)}>{t.type}</Badge>
                                     </td>
                                     <td className="py-2 px-3 text-center align-middle">
                                       <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
@@ -1143,7 +1156,7 @@ export function ReportsClient() {
                                 <tr key={t.id} className="border-b hover:bg-muted/50 cursor-pointer last:border-b-0" onClick={() => setSelectedTransactionId(t.id)}>
                                   <td className="py-2.5 px-4 text-center align-middle tabular-nums truncate" title={formatDate(t.createdAt)}>{formatDate(t.createdAt)}</td>
                                   <td className="py-2.5 px-4 text-center align-middle">
-                                    <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge>
+                                    <Badge variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"} className={getTypeBadgeClassName(t.type)}>{t.type}</Badge>
                                   </td>
                                   <td className="py-2.5 px-4 text-center align-middle">
                                     <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge>
@@ -1181,7 +1194,7 @@ export function ReportsClient() {
                   <div className="space-y-3 text-sm">
                     <p><span className="text-muted-foreground">Date:</span> {formatDate(t.createdAt)}</p>
                     <p><span className="text-muted-foreground">Customer:</span> {getCustomerDisplayName(t.customer)}</p>
-                    <div><span className="text-muted-foreground">Type:</span> <Badge variant={t.type === "SCRAP" ? "default" : "destructive"}>{t.type}</Badge></div>
+                    <div><span className="text-muted-foreground">Type:</span> <Badge variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"} className={getTypeBadgeClassName(t.type)}>{t.type}</Badge></div>
                     <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={getStatusBadgeClassName(t.status)}>{getStatusDisplayLabel(t.status)}</Badge></div>
                     <p><span className="text-muted-foreground">Total:</span> <strong>{formatCurrency(t.total)}</strong></p>
                     {t.lineItems?.length > 0 && (

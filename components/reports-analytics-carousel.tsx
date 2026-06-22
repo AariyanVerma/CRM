@@ -12,7 +12,7 @@ type ReportData = {
   summary: {
     transactionCount: number
     grandTotal: number
-    byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+    byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
     byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
   }
   transactions: Array<{
@@ -60,6 +60,9 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
     const scrapPct = data.summary.grandTotal
       ? (data.summary.byType.SCRAP.total / data.summary.grandTotal) * 100
       : 0
+    const salePct = data.summary.grandTotal
+      ? (data.summary.byType.SALE.total / data.summary.grandTotal) * 100
+      : 0
     const meltPct = data.summary.grandTotal ? (data.summary.byType.MELT.total / data.summary.grandTotal) * 100 : 0
     return {
       byStatus,
@@ -68,6 +71,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
       maxTotal,
       avgTx,
       scrapPct,
+      salePct,
       meltPct,
     }
   }, [data])
@@ -113,6 +117,15 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
                 </div>
                 <div className="h-4 rounded-full bg-muted overflow-hidden">
                   <div className="h-full bg-primary rounded-full" style={{ width: `${derived.scrapPct}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium">SALE</span>
+                  <span className="tabular-nums">{data.summary.byType.SALE.count} · {formatCurrency(data.summary.byType.SALE.total)}</span>
+                </div>
+                <div className="h-4 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-violet-500 rounded-full" style={{ width: `${derived.salePct}%` }} />
                 </div>
               </div>
               <div>
@@ -185,6 +198,19 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
             <p className="text-3xl font-bold tabular-nums">{data.summary.byType.SCRAP.count}</p>
             <p className="text-sm text-muted-foreground">Transactions</p>
             <p className="text-2xl font-bold text-primary tabular-nums pt-2">{formatCurrency(data.summary.byType.SCRAP.total)}</p>
+          </CardContent>
+        </Card>
+      </div>,
+
+      <div key="sale-only" className="w-full flex-shrink-0 h-full flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-0 shadow-lg bg-gradient-to-br from-violet-500/10 to-violet-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">SALE only</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-center">
+            <p className="text-3xl font-bold tabular-nums">{data.summary.byType.SALE.count}</p>
+            <p className="text-sm text-muted-foreground">Transactions</p>
+            <p className="text-2xl font-bold text-violet-600 tabular-nums pt-2">{formatCurrency(data.summary.byType.SALE.total)}</p>
           </CardContent>
         </Card>
       </div>,
@@ -278,7 +304,7 @@ export function ReportsAnalyticsCarousel({ data }: { data: ReportData }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {(["SCRAP", "MELT"] as const).flatMap((type) =>
+            {(["SCRAP", "SALE", "MELT"] as const).flatMap((type) =>
               (["PRINTED"] as const).map((status) => {
                 const count = data.transactions.filter((t) => t.type === type && t.status === status).length
                 const total = data.transactions

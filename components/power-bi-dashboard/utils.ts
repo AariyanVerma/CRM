@@ -34,15 +34,17 @@ export function computeSummaryFromTransactions(
 ): {
   transactionCount: number
   grandTotal: number
-  byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+  byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
   byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
 } {
-  const byType = { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
+  const byType = { SCRAP: { count: 0, total: 0 }, SALE: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
   const byMetal = { GOLD: 0, SILVER: 0, PLATINUM: 0 }
   let grandTotal = 0
   for (const t of transactions) {
-    byType[t.type as "SCRAP" | "MELT"].count += 1
-    byType[t.type as "SCRAP" | "MELT"].total += t.total
+    if (t.type === "SCRAP" || t.type === "SALE" || t.type === "MELT") {
+      byType[t.type].count += 1
+      byType[t.type].total += t.total
+    }
     grandTotal += t.total
     for (const item of t.lineItems) {
       byMetal[item.metalType as keyof typeof byMetal] =
@@ -61,7 +63,7 @@ export function computeDerived(transactions: ReportTransaction[]): DerivedData {
   const byStatus: Record<string, { count: number; total: number }> = {}
   const byCustomer: Record<string, { total: number; count: number }> = {}
   const byDate: Record<string, { count: number; total: number }> = {}
-  const byDateType: Record<string, { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }> = {}
+  const byDateType: Record<string, { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }> = {}
   const byDateMetal: Record<string, { GOLD: number; SILVER: number; PLATINUM: number }> = {}
   const byDateStatus: Record<string, { OPEN: number; PRINTED: number; VOID: number }> = {}
   const byDayOfWeek: Record<DayOfWeekKey, number> = DAY_NAMES.reduce((acc, d) => ({ ...acc, [d]: 0 }), {} as Record<DayOfWeekKey, number>)
@@ -87,9 +89,11 @@ export function computeDerived(transactions: ReportTransaction[]): DerivedData {
     byDate[day] = byDate[day] || { count: 0, total: 0 }
     byDate[day].count += 1
     byDate[day].total += t.total
-    if (!byDateType[day]) byDateType[day] = { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
-    byDateType[day][t.type as "SCRAP" | "MELT"].count += 1
-    byDateType[day][t.type as "SCRAP" | "MELT"].total += t.total
+    if (!byDateType[day]) byDateType[day] = { SCRAP: { count: 0, total: 0 }, SALE: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
+    if (t.type === "SCRAP" || t.type === "SALE" || t.type === "MELT") {
+      byDateType[day][t.type].count += 1
+      byDateType[day][t.type].total += t.total
+    }
     if (!byDateMetal[day]) byDateMetal[day] = { GOLD: 0, SILVER: 0, PLATINUM: 0 }
     for (const item of t.lineItems) {
       const k = item.metalType as "GOLD" | "SILVER" | "PLATINUM"
@@ -129,11 +133,13 @@ export function computeDerived(transactions: ReportTransaction[]): DerivedData {
   ) as [string, { count: number; total: number }][]
 
   const dailyByType: DerivedData["dailyByType"] = dailySorted.map(([date, _]) => {
-    const d = byDateType[date] || { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
+    const d = byDateType[date] || { SCRAP: { count: 0, total: 0 }, SALE: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
     return {
       date: new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
       scrapTotal: d.SCRAP.total,
       scrapCount: d.SCRAP.count,
+      saleTotal: d.SALE.total,
+      saleCount: d.SALE.count,
       meltTotal: d.MELT.total,
       meltCount: d.MELT.count,
     }
@@ -175,7 +181,7 @@ export function computeDerived(transactions: ReportTransaction[]): DerivedData {
       ? transactions.reduce((s, t) => s + t.total, 0) / transactions.length
       : 0
 
-  for (const type of ["SCRAP", "MELT"]) {
+  for (const type of ["SCRAP", "SALE", "MELT"]) {
     for (const status of ["OPEN", "PRINTED", "VOID"]) {
       const key = `${type}|${status}`
       const v = typeStatusKey[key] || { count: 0, total: 0 }

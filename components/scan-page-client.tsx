@@ -40,9 +40,11 @@ interface LineItem {
   purityPercentage?: number | null
 }
 
+type ScanTxType = "SCRAP" | "SALE" | "MELT"
+
 interface Transaction {
   id: string | null
-  type: "SCRAP" | "MELT"
+  type: ScanTxType
   status: string
   goldSpot: number
   silverSpot: number
@@ -53,6 +55,7 @@ interface Transaction {
 export function ScanPageClient({
   customer,
   scrapTransaction,
+  saleTransaction,
   meltTransaction,
   userRole,
   userId,
@@ -61,6 +64,7 @@ export function ScanPageClient({
 }: {
   customer: Customer
   scrapTransaction: Transaction
+  saleTransaction: Transaction
   meltTransaction: Transaction
   userRole: "ADMIN" | "STAFF"
   userId: string
@@ -80,29 +84,32 @@ export function ScanPageClient({
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
   const [mounted, setMounted] = useState(false)
   const [scrapTx, setScrapTx] = useState<Transaction>(scrapTransaction)
+  const [saleTx, setSaleTx] = useState<Transaction>(saleTransaction)
   const [meltTx, setMeltTx] = useState<Transaction>(meltTransaction)
   const [scrapLineItems, setScrapLineItems] = useState<LineItem[]>(scrapTransaction.lineItems)
+  const [saleLineItems, setSaleLineItems] = useState<LineItem[]>(saleTransaction.lineItems)
   const [meltLineItems, setMeltLineItems] = useState<LineItem[]>(meltTransaction.lineItems)
 
   type ApprovalStatus = "PENDING" | "APPROVED" | "DENIED" | null
   const [scrapApproval, setScrapApproval] = useState<{ status: ApprovalStatus; pendingAdminName: string | null }>({ status: null, pendingAdminName: null })
+  const [saleApproval, setSaleApproval] = useState<{ status: ApprovalStatus; pendingAdminName: string | null }>({ status: null, pendingAdminName: null })
   const [meltApproval, setMeltApproval] = useState<{ status: ApprovalStatus; pendingAdminName: string | null }>({ status: null, pendingAdminName: null })
-  const [adminPickerFor, setAdminPickerFor] = useState<"SCRAP" | "MELT" | null>(null)
+  const [adminPickerFor, setAdminPickerFor] = useState<ScanTxType | null>(null)
   const [admins, setAdmins] = useState<{ id: string; email: string; firstName: string | null; lastName: string | null }[]>([])
   const [sendingRequest, setSendingRequest] = useState(false)
   const [approvalGroupId, setApprovalGroupId] = useState<string | null>(null)
-  const [approvedModalFor, setApprovedModalFor] = useState<"SCRAP" | "MELT" | null>(null)
+  const [approvedModalFor, setApprovedModalFor] = useState<ScanTxType | null>(null)
   const [approvedWasEdited, setApprovedWasEdited] = useState(false)
-  const [deniedModalFor, setDeniedModalFor] = useState<"SCRAP" | "MELT" | null>(null)
+  const [deniedModalFor, setDeniedModalFor] = useState<ScanTxType | null>(null)
   const [sentForApprovalBanner, setSentForApprovalBanner] = useState<{ show: boolean; adminName: string; sendBoth: boolean }>({ show: false, adminName: "", sendBoth: false })
-  const [printedModal, setPrintedModal] = useState<{ byName: string; which: "SCRAP" | "MELT" | "BOTH" } | null>(null)
+  const [printedModal, setPrintedModal] = useState<{ byName: string; which: ScanTxType | "BOTH" | "ALL" } | null>(null)
   const [currentPercentages, setCurrentPercentages] = useState<Record<string, number | string>>(() => ({ ...initialPercentages }))
   const currentPercentagesRef = useRef<Record<string, number | string>>({ ...initialPercentages })
 
-  const handlePercentagesChange = useCallback((percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT") => {
-    const keysToMerge = transactionType === "SCRAP"
-      ? (["scrapGold", "scrapSilver", "scrapPlatinum"] as const)
-      : (["meltGold", "meltSilver", "meltPlatinum"] as const)
+  const handlePercentagesChange = useCallback((percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT" | "SALE") => {
+    const keysToMerge = transactionType === "MELT"
+      ? (["meltGold", "meltSilver", "meltPlatinum"] as const)
+      : (["scrapGold", "scrapSilver", "scrapPlatinum"] as const)
     const slice: Record<string, number | string> = {}
     for (const k of keysToMerge) {
       if (percentages[k] !== undefined && percentages[k] !== "") slice[k] = percentages[k]
@@ -134,11 +141,13 @@ export function ScanPageClient({
       const pendingAdminName = data.request?.requestedToName ?? null
       if (transactionId === scrapTx.id) {
         setScrapApproval({ status, pendingAdminName })
+      } else if (transactionId === saleTx.id) {
+        setSaleApproval({ status, pendingAdminName })
       } else {
         setMeltApproval({ status, pendingAdminName })
       }
     } catch {}
-  }, [scrapTx.id, meltTx.id])
+  }, [scrapTx.id, saleTx.id, meltTx.id])
 
   useEffect(() => {
     setMounted(true)
@@ -150,8 +159,9 @@ export function ScanPageClient({
   useEffect(() => {
     if (userRole !== "STAFF") return
     if (scrapTx.id) fetchApprovalStatus(scrapTx.id)
+    if (saleTx.id) fetchApprovalStatus(saleTx.id)
     if (meltTx.id) fetchApprovalStatus(meltTx.id)
-  }, [userRole, scrapTx.id, meltTx.id, fetchApprovalStatus])
+  }, [userRole, scrapTx.id, saleTx.id, meltTx.id, fetchApprovalStatus])
 
   useEffect(() => {
     if (userRole !== "STAFF") return
@@ -173,6 +183,19 @@ export function ScanPageClient({
           }
         }
         if (data.status === "DENIED") setDeniedModalFor("SCRAP")
+      } else if (data.transactionId === saleTx.id) {
+        setSaleApproval((prev) => ({ ...prev, status: data.status as ApprovalStatus }))
+        if (data.status === "APPROVED") {
+          setApprovedWasEdited(data.edited === true)
+          setApprovedModalFor("SALE")
+          if (saleTx.id) {
+            fetch(`/api/transactions/${saleTx.id}/line-items`, { credentials: "include" })
+              .then((r) => r.ok ? r.json() : null)
+              .then((json) => { if (json?.lineItems) setSaleLineItems(json.lineItems) })
+              .catch(() => {})
+          }
+        }
+        if (data.status === "DENIED") setDeniedModalFor("SALE")
       } else if (data.transactionId === meltTx.id) {
         setMeltApproval((prev) => ({ ...prev, status: data.status as ApprovalStatus }))
         if (data.status === "APPROVED") {
@@ -193,13 +216,15 @@ export function ScanPageClient({
     const onPrinted = (data: { transactionId?: string; printedByName?: string }) => {
       if (!data?.transactionId) return
       const matchesScrap = scrapTx.id && data.transactionId === scrapTx.id
+      const matchesSale = saleTx.id && data.transactionId === saleTx.id
       const matchesMelt = meltTx.id && data.transactionId === meltTx.id
-      if (!matchesScrap && !matchesMelt) return
+      if (!matchesScrap && !matchesSale && !matchesMelt) return
 
       const adminName = data.printedByName || "admin"
+      const matchCount = [matchesScrap, matchesSale, matchesMelt].filter(Boolean).length
       setPrintedModal({
         byName: adminName,
-        which: matchesScrap && matchesMelt ? "BOTH" : matchesScrap ? "SCRAP" : "MELT",
+        which: matchCount > 1 ? "ALL" : matchesScrap ? "SCRAP" : matchesSale ? "SALE" : "MELT",
       })
     }
     socket.on("transaction_printed", onPrinted)
@@ -207,7 +232,7 @@ export function ScanPageClient({
       socket.off("approval_status", onApproval)
       socket.off("transaction_printed", onPrinted)
     }
-  }, [userRole, userId, scrapTx.id, meltTx.id])
+  }, [userRole, userId, scrapTx.id, saleTx.id, meltTx.id])
 
   useEffect(() => {
     if (!adminPickerFor) return
@@ -223,7 +248,36 @@ export function ScanPageClient({
     return () => clearTimeout(t)
   }, [sentForApprovalBanner.show])
 
-  async function handleSendForApproval(type: "SCRAP" | "MELT", adminId: string) {
+  async function sendDraftForApproval(type: ScanTxType, adminId: string, lineItems: LineItem[], groupId?: string) {
+    const payload = lineItems.map((item) => ({
+      metalType: item.metalType,
+      purityLabel: item.purityLabel,
+      dwt: item.dwt,
+      ...(item.purityPercentage != null ? { purityPercentage: item.purityPercentage } : {}),
+      pricePerOz: item.pricePerOz,
+      lineTotal: item.lineTotal,
+    }))
+    const res = await fetch("/api/transactions/send-for-approval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerId: customer.id,
+        type,
+        lineItems: payload,
+        requestedToUserId: adminId,
+        approvalGroupId: groupId,
+        percentages: toApiPercentages(currentPercentagesRef.current),
+      }),
+      credentials: "include",
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || "Failed to send for approval")
+    }
+    return res.json()
+  }
+
+  async function handleSendForApproval(type: ScanTxType, adminId: string) {
     const sendScrap = !scrapTx.id && scrapLineItems.length > 0
     const sendMelt = !meltTx.id && meltLineItems.length > 0
     const sendBoth = sendScrap && sendMelt
@@ -279,7 +333,33 @@ export function ScanPageClient({
         setSentForApprovalBanner({ show: true, adminName, sendBoth: false })
         return
       }
+      if (saleTx.id && type === "SALE") {
+        const res = await fetch(`/api/transactions/${saleTx.id}/approval-request`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestedToUserId: adminId }),
+          credentials: "include",
+        })
+        const err = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          if (res.status === 400 && (err.message || "").toLowerCase().includes("already pending")) {
+            fetchApprovalStatus(saleTx.id).then(() => {
+              setSaleApproval((prev) => ({ ...prev, status: "PENDING", pendingAdminName: prev.pendingAdminName || "admin" }))
+            })
+            setAdminPickerFor(null)
+            return
+          }
+          throw new Error(err.message || "Failed to send request")
+        }
+        const data = await res.json()
+        const adminName = data.requestedTo ? [data.requestedTo.firstName, data.requestedTo.lastName].filter(Boolean).join(" ") || data.requestedTo.email : "Admin"
+        setSaleApproval({ status: "PENDING", pendingAdminName: adminName })
+        setAdminPickerFor(null)
+        setSentForApprovalBanner({ show: true, adminName, sendBoth: false })
+        return
+      }
 
+      const sendSale = !saleTx.id && saleLineItems.length > 0
       let groupId: string | undefined = approvalGroupId ?? undefined
       let lastAdminName: string | null = null
       if (sendScrap) {
@@ -350,8 +430,19 @@ export function ScanPageClient({
         setMeltTx(data.transaction)
         setMeltLineItems(data.transaction.lineItems)
       }
+      if (sendSale) {
+        const data = await sendDraftForApproval("SALE", adminId, saleLineItems, groupId)
+        groupId = data.approvalGroupId
+        if (groupId) setApprovalGroupId(groupId)
+        lastAdminName = data.approvalRequest?.requestedTo
+          ? [data.approvalRequest.requestedTo.firstName, data.approvalRequest.requestedTo.lastName].filter(Boolean).join(" ") || data.approvalRequest.requestedTo.email
+          : lastAdminName
+        setSaleTx(data.transaction)
+        setSaleLineItems(data.transaction.lineItems)
+      }
       const adminName = lastAdminName || [admins.find((a) => a.id === adminId)?.firstName, admins.find((a) => a.id === adminId)?.lastName].filter(Boolean).join(" ") || admins.find((a) => a.id === adminId)?.email || "Admin"
       setScrapApproval((prev) => (sendScrap ? { ...prev, status: "PENDING", pendingAdminName: adminName } : prev))
+      setSaleApproval((prev) => (sendSale ? { ...prev, status: "PENDING", pendingAdminName: adminName } : prev))
       setMeltApproval((prev) => (sendMelt ? { ...prev, status: "PENDING", pendingAdminName: adminName } : prev))
       setAdminPickerFor(null)
       setSentForApprovalBanner({ show: true, adminName, sendBoth })
@@ -362,7 +453,7 @@ export function ScanPageClient({
     }
   }
 
-  async function createTransactionFromDraft(type: "SCRAP" | "MELT", draftItems: LineItem[]): Promise<Transaction> {
+  async function createTransactionFromDraft(type: ScanTxType, draftItems: LineItem[]): Promise<Transaction> {
     const res = await fetch("/api/transactions/create-from-draft", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -401,8 +492,9 @@ export function ScanPageClient({
     }
   }
 
-  async function handlePrint(type: "SCRAP" | "MELT") {
+  async function handlePrint(type: ScanTxType) {
     const scrapHasRows = scrapLineItems.length > 0
+    const saleHasRows = saleLineItems.length > 0
     const meltHasRows = meltLineItems.length > 0
     const adminBothForms =
       userRole === "ADMIN" && scrapHasRows && meltHasRows
@@ -442,10 +534,10 @@ export function ScanPageClient({
       return
     }
 
-    let transaction = type === "SCRAP" ? scrapTx : meltTx
+    let transaction = type === "SCRAP" ? scrapTx : type === "SALE" ? saleTx : meltTx
 
     if (!transaction.id && userRole === "ADMIN") {
-      const draftItems = type === "SCRAP" ? scrapLineItems : meltLineItems
+      const draftItems = type === "SCRAP" ? scrapLineItems : type === "SALE" ? saleLineItems : meltLineItems
       if (draftItems.length === 0) {
         toast({
           title: "Nothing to print",
@@ -458,6 +550,9 @@ export function ScanPageClient({
         if (type === "SCRAP") {
           setScrapTx(transaction)
           setScrapLineItems(transaction.lineItems)
+        } else if (type === "SALE") {
+          setSaleTx(transaction)
+          setSaleLineItems(transaction.lineItems)
         } else {
           setMeltTx(transaction)
           setMeltLineItems(transaction.lineItems)
@@ -486,8 +581,8 @@ export function ScanPageClient({
     }
   }
 
-  function handleNewTransaction(type: "SCRAP" | "MELT") {
-    const tx = type === "SCRAP" ? scrapTx : meltTx
+  function handleNewTransaction(type: ScanTxType) {
+    const tx = type === "SCRAP" ? scrapTx : type === "SALE" ? saleTx : meltTx
     if (tx.id) {
       toast({ title: "Info", description: "Print this transaction or wait for approval first.", variant: "default" })
       return
@@ -495,6 +590,9 @@ export function ScanPageClient({
     if (type === "SCRAP") {
       setScrapLineItems([])
       toast({ title: "Cleared", description: "SCRAP draft cleared." })
+    } else if (type === "SALE") {
+      setSaleLineItems([])
+      toast({ title: "Cleared", description: "SALE draft cleared." })
     } else {
       setMeltLineItems([])
       toast({ title: "Cleared", description: "MELT draft cleared." })
@@ -509,6 +607,14 @@ export function ScanPageClient({
     scrapLineItems.reduce((sum, item) => sum + item.dwt, 0),
     [scrapLineItems]
   )
+  const saleTotal = useMemo(() =>
+    saleLineItems.reduce((sum, item) => sum + item.lineTotal, 0),
+    [saleLineItems]
+  )
+  const saleDwt = useMemo(() =>
+    saleLineItems.reduce((sum, item) => sum + item.dwt, 0),
+    [saleLineItems]
+  )
   const meltTotal = useMemo(() => 
     meltLineItems.reduce((sum, item) => sum + item.lineTotal, 0),
     [meltLineItems]
@@ -518,8 +624,8 @@ export function ScanPageClient({
     [meltLineItems]
   )
 
-  const grandTotal = useMemo(() => scrapTotal + meltTotal, [scrapTotal, meltTotal])
-  const grandTotalDwt = useMemo(() => scrapDwt + meltDwt, [scrapDwt, meltDwt])
+  const grandTotal = useMemo(() => scrapTotal + saleTotal + meltTotal, [scrapTotal, saleTotal, meltTotal])
+  const grandTotalDwt = useMemo(() => scrapDwt + saleDwt + meltDwt, [scrapDwt, saleDwt, meltDwt])
 
   useEffect(() => {
     if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("scanBlockReentry") === "1") {
@@ -673,7 +779,7 @@ export function ScanPageClient({
             </div>
             <div className="relative z-0">
               <PricingTable
-                transaction={{ ...scrapTx, lineItems: scrapLineItems }}
+                transaction={{ ...scrapTx, type: "SCRAP", lineItems: scrapLineItems }}
                 onPrint={() => handlePrint("SCRAP")}
                 onNewTransaction={() => handleNewTransaction("SCRAP")}
                 userRole={userRole}
@@ -683,6 +789,60 @@ export function ScanPageClient({
                 approvalStatus={scrapApproval.status}
                 onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("SCRAP") : undefined}
                 pendingAdminName={scrapApproval.pendingAdminName}
+                initialPercentages={initialPercentages}
+                onPercentagesChange={handlePercentagesChange}
+                customerId={customer.id}
+              />
+            </div>
+          </div>
+          <div className="space-y-4 w-full">
+            <div className="text-center mb-4 touch-none">
+              <div className="text-center mb-4 touch-none">
+                <div className="inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border-2 border-amber-500/30 shadow-lg backdrop-blur-sm mb-4">
+                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-md">
+                    SALE
+                  </h3>
+                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 drop-shadow-md" />
+                </div>
+              </div>
+              <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-yellow-500/5 shadow-md">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-amber-500/20">
+                        <Scale className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Total DWT</p>
+                        <p className="text-lg font-bold text-amber-700">{formatDecimal(saleDwt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-amber-500/20">
+                        <TrendingUp className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Total Value</p>
+                        <p className="text-lg font-bold text-amber-700">${formatDecimal(saleTotal)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="relative z-0">
+              <PricingTable
+                transaction={{ ...saleTx, type: "SALE", lineItems: saleLineItems }}
+                onPrint={() => handlePrint("SALE")}
+                onNewTransaction={() => handleNewTransaction("SALE")}
+                userRole={userRole}
+                onLineItemsUpdate={setSaleLineItems}
+                readOnly={cardLocked}
+                canPrint={userRole === "ADMIN" || saleApproval.status === "APPROVED"}
+                approvalStatus={saleApproval.status}
+                onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("SALE") : undefined}
+                pendingAdminName={saleApproval.pendingAdminName}
                 initialPercentages={initialPercentages}
                 onPercentagesChange={handlePercentagesChange}
                 customerId={customer.id}
@@ -727,7 +887,7 @@ export function ScanPageClient({
             </div>
             <div className="relative z-0">
               <PricingTable
-                transaction={{ ...meltTx, lineItems: meltLineItems }}
+                transaction={{ ...meltTx, type: "MELT", lineItems: meltLineItems }}
                 onPrint={() => handlePrint("MELT")}
                 onNewTransaction={() => handleNewTransaction("MELT")}
                 userRole={userRole}
@@ -761,14 +921,14 @@ export function ScanPageClient({
             <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
                 <Scale className="h-4 w-4" />
-                Total DWT (SCRAP + MELT)
+                Total DWT (SCRAP + SALE + MELT)
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-red-600">{formatDecimal(grandTotalDwt)}</p>
             </div>
             <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
                 <Coins className="h-4 w-4" />
-                Total Value (SCRAP + MELT)
+                Total Value (SCRAP + SALE + MELT)
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-red-600">${formatDecimal(grandTotal)}</p>
             </div>
@@ -784,7 +944,7 @@ export function ScanPageClient({
           <p className="text-sm text-muted-foreground">
             {scrapLineItems.length > 0 && !scrapTx.id && meltLineItems.length > 0 && !meltTx.id
               ? "Choose an admin to send both SCRAP and MELT for approval together."
-              : `Choose an admin to send this ${adminPickerFor === "SCRAP" ? "SCRAP" : "MELT"} transaction to.`}
+              : `Choose an admin to send this ${adminPickerFor ?? ""} transaction to.`}
           </p>
           <div className="flex flex-col gap-2 max-h-64 overflow-y-auto mt-2">
             {admins.map((admin) => {
@@ -864,10 +1024,14 @@ export function ScanPageClient({
               </div>
             </div>
             <p className="text-2xl font-bold text-primary drop-shadow-sm">
-              {printedModal?.which === "BOTH"
+              {printedModal?.which === "ALL"
+                ? "Transactions printed"
+                : printedModal?.which === "BOTH"
                 ? "Scrap & Melt printed"
                 : printedModal?.which === "SCRAP"
                 ? "Scrap printed"
+                : printedModal?.which === "SALE"
+                ? "Sale printed"
                 : printedModal?.which === "MELT"
                 ? "Melt printed"
                 : "Transaction printed"}

@@ -228,6 +228,7 @@ enum CardStatus {
 
 enum TransactionType {
   SCRAP
+  SALE
   MELT
 }
 

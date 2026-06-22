@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { toPrismaTransactionType } from "@/lib/transaction-type"
 
 type LineItemInput = {
   metalType: "GOLD" | "SILVER" | "PLATINUM"
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({})) as {
       customerId?: string
-      type?: "SCRAP" | "MELT"
+      type?: "SCRAP" | "MELT" | "SALE"
       lineItems?: LineItemInput[]
       percentages?: {
         scrapGoldPercentage?: number
@@ -31,7 +32,9 @@ export async function POST(request: NextRequest) {
         meltPlatinumPercentage?: number
       }
     }
-    const { customerId, type, lineItems, percentages: bodyPercentages } = body
+    const { customerId, type: rawType, lineItems, percentages: bodyPercentages } = body
+
+    const type = rawType ? toPrismaTransactionType(rawType) : null
 
     if (!customerId || !type || !Array.isArray(lineItems) || lineItems.length === 0) {
       return NextResponse.json(
@@ -67,7 +70,6 @@ export async function POST(request: NextRequest) {
       console.error("[create-from-draft] Failed to fetch customer overrides (run migration?):", e)
     }
 
-    
     const scrapGoldPct =
       customer?.scrapGoldPercentageOverride ??
       bodyPercentages?.scrapGoldPercentage ??
@@ -120,7 +122,7 @@ export async function POST(request: NextRequest) {
     const createdItems = await Promise.all(
       lineItems.map(async (item) => {
         const dwt = Number(item.dwt) || 0
-        if (type === "SCRAP" && dwt <= 0) {
+        if ((type === "SCRAP" || type === "SALE") && dwt <= 0) {
           return null
         }
         return prisma.lineItem.create({

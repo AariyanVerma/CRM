@@ -15,19 +15,19 @@ export type ReportData = {
   summary: {
     transactionCount: number
     grandTotal: number
-    byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+    byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
     byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
   }
   transactions: ReportTransaction[]
 }
 
 export type FilterState = {
-  typeFilter: "ALL" | "SCRAP" | "MELT"
+  typeFilter: "ALL" | "SCRAP" | "SALE" | "MELT"
   
   statusFilter: "ALL" | "OPEN" | "PRINTED" | "VOID"
 }
 
-export type DailyByType = { date: string; scrapTotal: number; scrapCount: number; meltTotal: number; meltCount: number }
+export type DailyByType = { date: string; scrapTotal: number; scrapCount: number; saleTotal: number; saleCount: number; meltTotal: number; meltCount: number }
 export type DailyByMetal = { date: string; gold: number; silver: number; platinum: number }
 export type DailyByStatus = { date: string; OPEN: number; PRINTED: number; VOID: number }
 export type DayOfWeekKey = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat"

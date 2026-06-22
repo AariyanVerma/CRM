@@ -7,18 +7,30 @@ import { useSocketTransaction } from "@/hooks/use-socket-transaction"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Star } from "lucide-react"
+import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Star, Plus, Trash2 } from "lucide-react"
 import {
   getScrapPricingRows,
   getMeltPricingRows,
+  calculateScrapGoldPricePerDWT,
+  calculateLineTotal,
+  SALE_GOLD_PURITIES,
   type MetalType,
+  type GoldPurity,
   GOLD_PURITIES,
   SILVER_PURITIES,
   PLATINUM_PURITIES,
 } from "@/lib/pricing"
 import { formatDecimal } from "@/lib/utils"
+import { toDwt, type WeightUnit } from "@/lib/weight-units"
 
 interface LineItem {
   id: string
@@ -32,19 +44,69 @@ interface LineItem {
 
 interface Transaction {
   id: string | null
-  type: "SCRAP" | "MELT"
+  type: "SCRAP" | "MELT" | "SALE"
   goldSpot: number
   silverSpot: number
   platinumSpot: number
   lineItems: LineItem[]
 }
 
+type SaleRow = {
+  id: string
+  purity: GoldPurity
+  weight: string
+  weightUnit: WeightUnit
+}
+
+function createSaleRow(purity: GoldPurity = "24K"): SaleRow {
+  return {
+    id: `sale-${crypto.randomUUID()}`,
+    purity,
+    weight: "",
+    weightUnit: "DWT",
+  }
+}
+
+function saleRowsFromLineItems(lineItems: LineItem[]): SaleRow[] {
+  if (lineItems.length === 0) return [createSaleRow()]
+  return lineItems.map((item) => ({
+    id: item.id,
+    purity: item.purityLabel as GoldPurity,
+    weight: String(item.dwt),
+    weightUnit: "DWT" as WeightUnit,
+  }))
+}
+
+function saleRowsEqual(a: SaleRow[], b: SaleRow[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((row, index) => {
+    const other = b[index]
+    return (
+      row.id === other.id &&
+      row.purity === other.purity &&
+      row.weight === other.weight &&
+      row.weightUnit === other.weightUnit
+    )
+  })
+}
+
+function getPercentageStateKey(transactionType: "SCRAP" | "MELT" | "SALE", metalType: MetalType): string {
+  if (transactionType === "SALE") return "scrapGold"
+  const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
+  return `${transactionType.toLowerCase()}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+}
+
+function getPercentageApiTransactionType(transactionType: "SCRAP" | "MELT" | "SALE"): "SCRAP" | "MELT" {
+  return transactionType === "SALE" ? "SCRAP" : transactionType
+}
+
 function buildDraftLineItems(
-  type: "SCRAP" | "MELT",
+  type: "SCRAP" | "MELT" | "SALE",
   dwtValues: Record<string, number>,
   purityPercentages: Record<string, number | string>,
   spotPrices: { gold: number | ""; silver: number | ""; platinum: number | "" },
-  percentages: Record<string, number | string>
+  percentages: Record<string, number | string>,
+  saleRows: SaleRow[] = []
 ): LineItem[] {
   const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
   const silver = typeof spotPrices.silver === "number" ? spotPrices.silver : parseFloat(String(spotPrices.silver)) || 0
@@ -55,6 +117,29 @@ function buildDraftLineItems(
   }
   const items: LineItem[] = []
   let id = 0
+  if (type === "SALE") {
+    const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
+    const pct = (key: string) => {
+      const v = percentages[key]
+      return typeof v === "number" ? v : parseFloat(String(v)) || 95
+    }
+    const percentage = pct("scrapGold")
+    for (const row of saleRows) {
+      const weight = parseFloat(row.weight)
+      const dwt = toDwt(weight, row.weightUnit)
+      if (!Number.isFinite(dwt) || dwt <= 0) continue
+      const pricePerDWT = calculateScrapGoldPricePerDWT(row.purity, gold, percentage)
+      items.push({
+        id: row.id,
+        metalType: "GOLD",
+        purityLabel: row.purity,
+        dwt,
+        pricePerOz: pricePerDWT,
+        lineTotal: calculateLineTotal(pricePerDWT, dwt),
+      })
+    }
+    return items
+  }
   if (type === "SCRAP") {
     for (const metalType of ["GOLD", "SILVER", "PLATINUM"] as MetalType[]) {
       const purities = metalType === "GOLD" ? GOLD_PURITIES : metalType === "SILVER" ? SILVER_PURITIES : PLATINUM_PURITIES
@@ -134,7 +219,7 @@ export function PricingTable({
   pendingAdminName?: string | null
   customBottom?: React.ReactNode
   initialPercentages?: Record<string, number | string>
-  onPercentagesChange?: (percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT") => void
+  onPercentagesChange?: (percentages: Record<string, number | string>, transactionType: "SCRAP" | "MELT" | "SALE") => void
   customerId?: string
 }) {
   const { toast } = useToast()
@@ -151,6 +236,7 @@ export function PricingTable({
   )
 
   const [purityPercentages, setPurityPercentages] = useState<Record<string, number | string>>({})
+  const [saleRows, setSaleRows] = useState<SaleRow[]>([createSaleRow()])
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const lastEditTimeRef = useRef<Record<string, number>>({})
   const isTypingRef = useRef<Record<string, boolean>>({})
@@ -164,6 +250,10 @@ export function PricingTable({
   dwtValuesRef.current = dwtValues
   const purityPercentagesRef = useRef(purityPercentages)
   purityPercentagesRef.current = purityPercentages
+  const saleRowsRef = useRef(saleRows)
+  saleRowsRef.current = saleRows
+  const loadedSaleTransactionIdRef = useRef<string | null>(null)
+  const lastPushedSaleItemsRef = useRef<string>("")
   const originalPercentagesRef = useRef<Record<string, number | string | undefined>>({})
   const localOverrideKeysRef = useRef<Set<string>>(new Set())
 
@@ -245,12 +335,54 @@ export function PricingTable({
     onPercentagesChange?.(percentages, transaction.type)
   }, [percentages, onPercentagesChange, transaction.type])
 
+  const pushSaleLineItems = useCallback(
+    (rows: SaleRow[]) => {
+      if (transaction.type !== "SALE" || !onLineItemsUpdate) return
+      const items = buildDraftLineItems(
+        "SALE",
+        dwtValuesRef.current,
+        purityPercentagesRef.current,
+        spotPricesRef.current,
+        percentagesRef.current,
+        rows
+      )
+      const serialized = JSON.stringify(items)
+      if (serialized === lastPushedSaleItemsRef.current) return
+      lastPushedSaleItemsRef.current = serialized
+      onLineItemsUpdate(items)
+    },
+    [transaction.type, onLineItemsUpdate]
+  )
+
+  useEffect(() => {
+    if (transaction.type !== "SALE" || !onLineItemsUpdate) return
+    pushSaleLineItems(saleRowsRef.current)
+  }, [transaction.type, spotPrices, percentages, pushSaleLineItems, onLineItemsUpdate])
+
+  useEffect(() => {
+    if (transaction.type !== "SALE") return
+    if (!transaction.id) {
+      loadedSaleTransactionIdRef.current = null
+      return
+    }
+    if (isDraft || loadedSaleTransactionIdRef.current === transaction.id) return
+    loadedSaleTransactionIdRef.current = transaction.id
+    setSaleRows(saleRowsFromLineItems(transaction.lineItems))
+  }, [transaction.id, transaction.type, transaction.lineItems, isDraft])
+
   useSocketTransaction(
     transaction.id ?? "",
     useCallback((lineItems) => {
 
       if (onLineItemsUpdate) {
         onLineItemsUpdate(lineItems)
+      }
+
+      if (transaction.type === "SALE") {
+        const nextRows =
+          lineItems.length > 0 ? saleRowsFromLineItems(lineItems as LineItem[]) : [createSaleRow()]
+        setSaleRows((prev) => (saleRowsEqual(prev, nextRows) ? prev : nextRows))
+        return
       }
 
       const values: Record<string, number> = {}
@@ -379,7 +511,8 @@ export function PricingTable({
               latestDwt,
               latestPurity,
               spotPricesRef.current,
-              percentagesRef.current
+              percentagesRef.current,
+              saleRowsRef.current
             )
             onLineItemsUpdate(items)
           } catch (e) {
@@ -518,8 +651,7 @@ export function PricingTable({
   }
 
   function handlePercentageFocus(metalType: MetalType) {
-    const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-    const key = `${transaction.type.toLowerCase()}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+    const key = getPercentageStateKey(transaction.type, metalType)
     const typingKey = `percentage-${key}`
     originalPercentagesRef.current[key] = percentagesRef.current[key]
     isTypingRef.current[typingKey] = true
@@ -527,9 +659,7 @@ export function PricingTable({
   }
 
   function handlePercentageBlur(metalType: MetalType, e: React.FocusEvent<HTMLInputElement>) {
-    const transactionTypeLower = transaction.type.toLowerCase()
-    const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-    const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+    const key = getPercentageStateKey(transaction.type, metalType)
     const typingKey = `percentage-${key}`
     isTypingRef.current[typingKey] = false
 
@@ -544,13 +674,14 @@ export function PricingTable({
       return
     }
 
-    const percentageKey = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
+    const apiTransactionType = getPercentageApiTransactionType(transaction.type)
+    const percentageKey = `${apiTransactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
     const currentSpotPrice = spotPricesRef.current[metalType.toLowerCase() as keyof typeof spotPricesRef.current]
     const priceNum = Number(currentSpotPrice) || 0
     const requestBody: Record<string, unknown> = {
       metalType: metalType.toLowerCase(),
       price: priceNum,
-      transactionType: transaction.type,
+      transactionType: apiTransactionType,
       [percentageKey]: percentageValue,
     }
 
@@ -570,7 +701,7 @@ export function PricingTable({
       .then(() => {
         toast({
           title: "Percentage updated",
-          description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}%`,
+          description: `${metalType} ${getPercentageApiTransactionType(transaction.type).toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}%`,
           variant: "success",
         })
       })
@@ -585,9 +716,7 @@ export function PricingTable({
 
   function handlePercentageChange(metalType: MetalType, value: string) {
     if (isReadOnly) return
-    const transactionTypeLower = transaction.type.toLowerCase()
-    const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-    const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+    const key = getPercentageStateKey(transaction.type, metalType)
     const typingKey = `percentage-${key}`
 
     isTypingRef.current[typingKey] = true
@@ -631,16 +760,15 @@ export function PricingTable({
 
     if (scope === "GLOBAL") {
       try {
-        const transactionTypeLower = transaction.type.toLowerCase()
-        const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-        const stateKey = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
-        const percentageKey = `${stateKey}Percentage`
+        const stateKey = getPercentageStateKey(transaction.type, metalType)
+        const apiTransactionType = getPercentageApiTransactionType(transaction.type)
+        const percentageKey = `${apiTransactionType.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}Percentage`
         const currentSpotPrice = spotPricesRef.current[metalType.toLowerCase() as keyof typeof spotPricesRef.current]
         const priceNum = Number(currentSpotPrice) || 0
         const requestBody: Record<string, unknown> = {
           metalType: metalType.toLowerCase(),
           price: priceNum,
-          transactionType: transaction.type,
+          transactionType: apiTransactionType,
           [percentageKey]: percentageValue,
         }
 
@@ -671,13 +799,14 @@ export function PricingTable({
             dwtValuesRef.current,
             purityPercentagesRef.current,
             spotPricesRef.current,
-            percentagesRef.current
+            percentagesRef.current,
+            saleRowsRef.current
           )
           onLineItemsUpdate(items)
         }
         toast({
           title: "Percentage updated",
-          description: `${metalType} ${transaction.type.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}% for everyone`,
+          description: `${metalType} ${apiTransactionType.toLowerCase()} percentage updated to ${formatDecimal(percentageValue)}% for everyone`,
           variant: "success",
         })
       } catch (error) {
@@ -688,9 +817,7 @@ export function PricingTable({
         })
       }
     } else {
-      const transactionTypeLower = transaction.type.toLowerCase()
-      const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-      const stateKey = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}` as keyof typeof percentagesRef.current
+      const stateKey = getPercentageStateKey(transaction.type, metalType) as keyof typeof percentagesRef.current
       localOverrideKeysRef.current.add(stateKey)
       setPercentages((prev) => ({ ...prev, [stateKey]: percentageValue }))
       percentagesRef.current = { ...percentagesRef.current, [stateKey]: percentageValue }
@@ -732,7 +859,8 @@ export function PricingTable({
             dwtValuesRef.current,
             purityPercentagesRef.current,
             spotPricesRef.current,
-            percentagesRef.current
+            percentagesRef.current,
+            saleRowsRef.current
           )
           onLineItemsUpdate(items)
         }
@@ -783,9 +911,7 @@ export function PricingTable({
   function resetPendingPercentageToOriginal() {
     if (!pendingPercentageChange) return
     const { metalType } = pendingPercentageChange
-    const transactionTypeLower = transaction.type.toLowerCase()
-    const metalTypeCamel = metalType.charAt(0) + metalType.slice(1).toLowerCase()
-    const key = `${transactionTypeLower}${metalTypeCamel.charAt(0).toUpperCase() + metalTypeCamel.slice(1)}`
+    const key = getPercentageStateKey(transaction.type, metalType)
     const original = originalPercentagesRef.current[key]
     setPercentages((prev) => ({
       ...prev,
@@ -1033,6 +1159,215 @@ export function PricingTable({
     }
   }
 
+  function getSalePercentage(): number {
+    const val = percentages.scrapGold
+    return typeof val === "number" ? val : parseFloat(String(val)) || 95
+  }
+
+  function getSaleRowCalc(row: SaleRow, existingItem?: LineItem) {
+    const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
+    const percentage = getSalePercentage()
+    if ((isStaffLocked || readOnly) && existingItem) {
+      return {
+        dwt: existingItem.dwt,
+        pricePerDWT: existingItem.pricePerOz,
+        lineTotal: existingItem.lineTotal,
+      }
+    }
+    const weight = parseFloat(row.weight)
+    const dwt = toDwt(weight, row.weightUnit)
+    const pricePerDWT = calculateScrapGoldPricePerDWT(row.purity, gold, percentage)
+    const lineTotal = dwt > 0 ? calculateLineTotal(pricePerDWT, dwt) : 0
+    return { dwt, pricePerDWT, lineTotal }
+  }
+
+  function updateSaleRow(id: string, patch: Partial<SaleRow>) {
+    if (isReadOnly) return
+    const next = saleRowsRef.current.map((row) => (row.id === id ? { ...row, ...patch } : row))
+    setSaleRows(next)
+    pushSaleLineItems(next)
+  }
+
+  function addSaleRow() {
+    if (isReadOnly) return
+    const next = [...saleRowsRef.current, createSaleRow()]
+    setSaleRows(next)
+    pushSaleLineItems(next)
+  }
+
+  function removeSaleRow(id: string) {
+    if (isReadOnly) return
+    const filtered = saleRowsRef.current.filter((row) => row.id !== id)
+    const next = filtered.length > 0 ? filtered : [createSaleRow()]
+    setSaleRows(next)
+    pushSaleLineItems(next)
+  }
+
+  function renderSaleTable() {
+    let totalDwt = 0
+    let totalPrice = 0
+
+    const rowData = saleRows.map((row) => {
+      const existingItem = transaction.lineItems.find((item) => item.id === row.id)
+      const calc = getSaleRowCalc(row, existingItem)
+      totalDwt += calc.dwt
+      totalPrice += calc.lineTotal
+      return { row, calc, existingItem }
+    })
+
+    return (
+      <div className="space-y-3">
+        <div className="overflow-x-auto -mx-2 sm:mx-0 rounded-lg border border-border/50 shadow-sm">
+          <div className="min-w-full inline-block px-2 sm:px-0">
+            <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: "100%" }}>
+              <colgroup>
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "10%", minWidth: "40px" }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b-2 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 shadow-xl">
+                  <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                    <div className="flex items-center justify-center gap-2">
+                      <Sparkles className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                      <span className="drop-shadow-md">Purity</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                    <div className="flex items-center justify-center gap-2">
+                      <DollarSign className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                      <span className="drop-shadow-md">Price/DWT</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                    <div className="flex items-center justify-center gap-2">
+                      <Scale className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                      <span className="drop-shadow-md">Weight</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                    <div className="flex items-center justify-center gap-2">
+                      <Calculator className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                      <span className="drop-shadow-md">Price</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-1 sm:p-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {rowData.map(({ row, calc }, index) => (
+                  <tr
+                    key={row.id}
+                    className={`border-b transition-colors ${
+                      index % 2 === 0 ? "bg-background" : "bg-muted/20"
+                    } ${calc.dwt > 0 ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/40"}`}
+                  >
+                    <td className="p-2 sm:p-3 md:p-4 text-center">
+                      <Select
+                        value={row.purity}
+                        onValueChange={(value) => updateSaleRow(row.id, { purity: value as GoldPurity })}
+                        disabled={isReadOnly}
+                      >
+                        <SelectTrigger className="w-full max-w-28 mx-auto text-center font-black text-base sm:text-lg text-red-600 bg-primary/10 border-primary/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SALE_GOLD_PURITIES.map((purity) => (
+                            <SelectItem key={purity} value={purity}>
+                              {purity}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-2 sm:p-3 md:p-4 text-center font-semibold text-base sm:text-lg text-muted-foreground">
+                      ${formatDecimal(calc.pricePerDWT)}
+                    </td>
+                    <td className="p-2 sm:p-3 md:p-4 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={row.weight}
+                          onChange={(e) => updateSaleRow(row.id, { weight: e.target.value })}
+                          disabled={isReadOnly}
+                          className={`w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all ${
+                            calc.dwt > 0
+                              ? "bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                              : "bg-background"
+                          }`}
+                          placeholder="0.00"
+                        />
+                        <Select
+                          value={row.weightUnit}
+                          onValueChange={(value) => updateSaleRow(row.id, { weightUnit: value as WeightUnit })}
+                          disabled={isReadOnly}
+                        >
+                          <SelectTrigger className="w-16 sm:w-20 h-9 text-xs sm:text-sm font-bold">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="DWT">DWT</SelectItem>
+                            <SelectItem value="GRAM">g</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {calc.dwt > 0 && row.weightUnit === "GRAM" && (
+                        <p className="mt-1 text-xs text-muted-foreground">= {formatDecimal(calc.dwt)} DWT</p>
+                      )}
+                    </td>
+                    <td className={`p-2 sm:p-3 md:p-4 text-center font-bold text-base sm:text-lg ${calc.lineTotal > 0 ? "text-red-600" : ""}`}>
+                      ${formatDecimal(calc.lineTotal)}
+                    </td>
+                    <td className="p-1 sm:p-2 text-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSaleRow(row.id)}
+                        disabled={isReadOnly || saleRows.length === 1}
+                        className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        title="Remove row"
+                      >
+                        <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-4 border-primary/30 bg-primary/5 font-black text-red-600">
+                  <td className="p-2 sm:p-3 md:p-4 text-center text-base sm:text-lg">
+                    <div className="flex items-center justify-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      <span>Total</span>
+                    </div>
+                  </td>
+                  <td className="p-2 sm:p-3 md:p-4 text-center text-base sm:text-lg">—</td>
+                  <td className="p-2 sm:p-3 md:p-4 text-center text-base sm:text-lg">{formatDecimal(totalDwt)}</td>
+                  <td className="p-2 sm:p-3 md:p-4 text-center text-lg sm:text-xl">${formatDecimal(totalPrice)}</td>
+                  <td className="p-1 sm:p-2" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addSaleRow}
+          disabled={isReadOnly}
+          className="border-primary/40 text-red-600 hover:bg-primary/10"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add another item
+        </Button>
+      </div>
+    )
+  }
+
   function renderMetalTable(metalType: MetalType) {
     const rows = getRowsForMetal(metalType)
     const totals = getTotalsForMetal(metalType)
@@ -1218,6 +1553,229 @@ export function PricingTable({
     )
   }
 
+  if (transaction.type === "SALE") {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
+            <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
+              <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
+                {!imageErrors.GOLD ? (
+                  <Image
+                    src="/metals/gold.png"
+                    alt="Gold"
+                    fill
+                    sizes="56px"
+                    className="object-contain drop-shadow-lg"
+                    onError={() => {
+                      setImageErrors((prev) => ({ ...prev, GOLD: true }))
+                    }}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-amber-500/20 border-2 border-amber-500/30 rounded-full flex items-center justify-center">
+                    <span className="text-amber-600 font-bold text-lg sm:text-xl">G</span>
+                  </div>
+                )}
+              </div>
+              <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-lg">
+                Gold
+              </span>
+            </CardTitle>
+            {userRole === "ADMIN" && (
+              <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 bg-primary/5 rounded-lg p-4 sm:p-5 border border-primary/20 shadow-md">
+                <label className="text-base sm:text-lg md:text-xl font-bold text-foreground">Gold Spot Price (per oz):</label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={spotPrices.gold === "" ? "" : spotPrices.gold}
+                    onFocus={() => handleSpotFocus("gold")}
+                    onChange={(e) => handlePriceChange("GOLD", e.target.value)}
+                    onBlur={(e) => handleSpotBlur("gold", e)}
+                    disabled={isReadOnly}
+                    className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="0.00"
+                  />
+                </div>
+                <label className="text-base sm:text-lg md:text-xl font-black text-foreground">%</label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={(() => {
+                      const key = getPercentageStateKey("SALE", "GOLD")
+                      const val = percentages[key]
+                      if (val === "" || val === null || val === undefined) return ""
+                      return String(val)
+                    })()}
+                    onFocus={() => handlePercentageFocus("GOLD")}
+                    onBlur={(e) => handlePercentageBlur("GOLD", e)}
+                    onChange={(e) => handlePercentageChange("GOLD", e.target.value)}
+                    disabled={isReadOnly}
+                    className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="95.00"
+                  />
+                </div>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderSaleTable()}</CardContent>
+        </Card>
+
+        {userRole === "ADMIN" && pendingPercentageChange && (
+          <Dialog
+            open={isPercentageScopeDialogOpen}
+            onOpenChange={(open) => {
+              if (!open) {
+                resetPendingPercentageToOriginal()
+                setIsPercentageScopeDialogOpen(false)
+                setPendingPercentageChange(null)
+              }
+            }}
+          >
+            <DialogContent className="sm:max-w-lg border border-primary/40 bg-gradient-to-br from-white via-slate-50 to-primary/10 text-slate-900 shadow-2xl shadow-primary/20 rounded-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+              <DialogHeader className="space-y-2 pb-2 border-b border-primary/20">
+                <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl font-extrabold tracking-tight">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/40 flex items-center justify-center shadow-inner shadow-primary/20">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="bg-gradient-to-r from-red-600 via-amber-500 to-primary bg-clip-text text-transparent">
+                    Apply Percentage Change
+                  </span>
+                </DialogTitle>
+                <p className="text-xs sm:text-sm font-semibold text-slate-600">
+                  Decide whether this new scrap % should be used just for this customer or across all transactions.
+                </p>
+              </DialogHeader>
+              <div className="mt-3 space-y-4">
+                <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-amber-100 px-4 py-3 text-xs sm:text-sm font-extrabold text-slate-900 shadow-sm">
+                  {pendingPercentageChange.metalType} scrap percentage →{" "}
+                  <span className="text-red-600">{formatDecimal(pendingPercentageChange.value)}%</span>
+                </div>
+                <div className="space-y-3">
+                  <div
+                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
+                      pendingPercentageChange.scope === "LOCAL"
+                        ? "border-emerald-500 bg-emerald-50 shadow-md scale-[1.01]"
+                        : "border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/70"
+                    }`}
+                    onClick={() =>
+                      setPendingPercentageChange((prev) => (prev ? { ...prev, scope: "LOCAL" } : prev))
+                    }
+                  >
+                    <div
+                      className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
+                        pendingPercentageChange.scope === "LOCAL"
+                          ? "border-emerald-500 bg-emerald-500"
+                          : "border-slate-400"
+                      }`}
+                    >
+                      {pendingPercentageChange.scope === "LOCAL" && (
+                        <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">For this customer only</p>
+                      <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
+                        Override the global scrap percentage for this customer on this device only.
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
+                      pendingPercentageChange.scope === "GLOBAL"
+                        ? "border-sky-500 bg-sky-50 shadow-md scale-[1.01]"
+                        : "border-slate-300 bg-white hover:border-sky-400 hover:bg-sky-50/70"
+                    }`}
+                    onClick={() =>
+                      setPendingPercentageChange((prev) => (prev ? { ...prev, scope: "GLOBAL" } : prev))
+                    }
+                  >
+                    <div
+                      className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
+                        pendingPercentageChange.scope === "GLOBAL"
+                          ? "border-sky-500 bg-sky-500"
+                          : "border-slate-400"
+                      }`}
+                    >
+                      {pendingPercentageChange.scope === "GLOBAL" && (
+                        <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">For everyone</p>
+                      <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
+                        Update today&apos;s global scrap percentage across all devices and future transactions.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-3 font-extrabold"
+                    onClick={() => {
+                      resetPendingPercentageToOriginal()
+                      setIsPercentageScopeDialogOpen(false)
+                      setPendingPercentageChange(null)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="px-4 font-extrabold"
+                    disabled={!pendingPercentageChange.scope}
+                    onClick={() => void applyPercentageChangeScope()}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 sticky bottom-2 sm:bottom-4 bg-background p-2 sm:p-3 md:p-4 border rounded-lg shadow-lg z-50 mx-2 sm:mx-0">
+          {customBottom !== undefined ? (
+            customBottom
+          ) : (
+            <>
+              {canPrint ? (
+                <Button onClick={onPrint} className="flex-1 w-full sm:w-auto text-sm sm:text-base" size="lg">
+                  <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Print</span>
+                </Button>
+              ) : approvalStatus === "PENDING" ? (
+                <div className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 px-4 py-3 text-sm font-medium text-emerald-800 dark:text-emerald-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
+                  Waiting for {pendingAdminName || "admin"}
+                </div>
+              ) : approvalStatus === "DENIED" ? (
+                <div className="flex-1 flex items-center justify-center rounded-lg border-2 border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400">
+                  Denied — cannot print
+                </div>
+              ) : onSendForApproval ? (
+                <Button onClick={onSendForApproval} variant="outline" className="flex-1 w-full sm:w-auto text-sm sm:text-base border-cyan-500/60 text-cyan-600 dark:text-cyan-400" size="lg">
+                  <span className="whitespace-nowrap">Send for approval</span>
+                </Button>
+              ) : (
+                <div className="flex-1" />
+              )}
+              <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={isReadOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
+                <span className="text-center">Start New <span className="text-red-600 font-semibold">SALE</span> Transaction</span>
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (metalType) {
     const metalName = metalType.charAt(0) + metalType.slice(1).toLowerCase()
     const spotPrice =
@@ -1278,7 +1836,7 @@ export function PricingTable({
                   min="0"
                   max="100"
                   value={(() => {
-                    const key = `${transaction.type.toLowerCase()}${metalType.charAt(0).toUpperCase() + metalType.slice(1).toLowerCase()}`
+                    const key = getPercentageStateKey(transaction.type, metalType)
                     const val = percentages[key]
                     if (val === "" || val === null || val === undefined) return ""
                     return String(val)
@@ -1301,8 +1859,6 @@ export function PricingTable({
 
   return (
     <div className="space-y-4">
-      {
-}
       <div className="space-y-4">
         <Card>
           <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
@@ -1354,7 +1910,7 @@ export function PricingTable({
                     min="0"
                     max="100"
                     value={(() => {
-                      const key = `${transaction.type.toLowerCase()}Gold`
+                      const key = getPercentageStateKey(transaction.type, "GOLD")
                       const val = percentages[key]
                       if (val === "" || val === null || val === undefined) return ""
                       return String(val)
@@ -1423,7 +1979,7 @@ export function PricingTable({
                     min="0"
                     max="100"
                     value={(() => {
-                      const key = `${transaction.type.toLowerCase()}Silver`
+                      const key = getPercentageStateKey(transaction.type, "SILVER")
                       const val = percentages[key]
                       if (val === "" || val === null || val === undefined) return ""
                       return String(val)
@@ -1492,7 +2048,7 @@ export function PricingTable({
                     min="0"
                     max="100"
                     value={(() => {
-                      const key = `${transaction.type.toLowerCase()}Platinum`
+                      const key = getPercentageStateKey(transaction.type, "PLATINUM")
                       const val = percentages[key]
                       if (val === "" || val === null || val === undefined) return ""
                       return String(val)

@@ -101,8 +101,8 @@ export function DataTable({ transactions, from, to }: DataTableProps) {
                     <td className="p-3 align-middle">
                       <div className="flex justify-center">
                         <Badge
-                          variant={t.type === "SCRAP" ? "default" : "destructive"}
-                          className="text-xs inline-flex"
+                          variant={t.type === "SCRAP" ? "default" : t.type === "SALE" ? "secondary" : "destructive"}
+                          className={`text-xs inline-flex ${t.type === "SALE" ? "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-300" : ""}`}
                         >
                           {t.type}
                         </Badge>

@@ -8,12 +8,13 @@ import type { DerivedData } from "./types"
 type Summary = {
   transactionCount: number
   grandTotal: number
-  byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+  byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
   byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
 }
 
 export function InsightsSection({ summary, derived }: { summary: Summary; derived: DerivedData }) {
   const scrapPct = summary.grandTotal > 0 ? (summary.byType.SCRAP.total / summary.grandTotal) * 100 : 0
+  const salePct = summary.grandTotal > 0 ? (summary.byType.SALE.total / summary.grandTotal) * 100 : 0
   const meltPct = summary.grandTotal > 0 ? (summary.byType.MELT.total / summary.grandTotal) * 100 : 0
   const goldPct = summary.grandTotal > 0 ? ((summary.byMetal.GOLD || 0) / summary.grandTotal) * 100 : 0
   const silverPct = summary.grandTotal > 0 ? ((summary.byMetal.SILVER || 0) / summary.grandTotal) * 100 : 0
@@ -47,9 +48,15 @@ export function InsightsSection({ summary, derived }: { summary: Summary; derive
     : "flat"
 
   const insights: string[] = []
-  if (scrapPct >= 60) insights.push(`SCRAP dominates at ${scrapPct.toFixed(0)}% of total value`)
-  else if (meltPct >= 60) insights.push(`MELT dominates at ${meltPct.toFixed(0)}% of total value`)
-  else insights.push(`Type mix: SCRAP ${scrapPct.toFixed(0)}% · MELT ${meltPct.toFixed(0)}%`)
+  const dominantType =
+    scrapPct >= salePct && scrapPct >= meltPct
+      ? "SCRAP"
+      : salePct >= meltPct
+        ? "SALE"
+        : "MELT"
+  const dominantPct = Math.max(scrapPct, salePct, meltPct)
+  if (dominantPct >= 50) insights.push(`${dominantType} dominates at ${dominantPct.toFixed(0)}% of total value`)
+  else insights.push(`Type mix: SCRAP ${scrapPct.toFixed(0)}% · SALE ${salePct.toFixed(0)}% · MELT ${meltPct.toFixed(0)}%`)
   if (goldPct >= 70) insights.push(`Gold represents ${goldPct.toFixed(0)}% of metal value`)
   else if (goldPct >= 50) insights.push(`Gold leads metals at ${goldPct.toFixed(0)}%`)
   if (topStatus.total > 0)

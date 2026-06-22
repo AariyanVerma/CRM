@@ -7,7 +7,7 @@ import { formatCurrency } from "./utils"
 type Summary = {
   transactionCount: number
   grandTotal: number
-  byType: { SCRAP: { count: number; total: number }; MELT: { count: number; total: number } }
+  byType: { SCRAP: { count: number; total: number }; SALE: { count: number; total: number }; MELT: { count: number; total: number } }
   byMetal: { GOLD: number; SILVER: number; PLATINUM: number }
 }
 
@@ -23,6 +23,7 @@ const tileConfig = [
   { title: "Avg per transaction", key: "avg", icon: Receipt, className: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20", iconClass: "text-emerald-600" },
   { title: "Highest single", key: "max", icon: Award, className: "from-amber-500/10 to-amber-500/5 border-amber-500/20", iconClass: "text-amber-600" },
   { title: "SCRAP", key: "scrap", icon: DollarSign, className: "from-slate-500/10 to-slate-500/5 border-slate-500/20", iconClass: "text-slate-600" },
+  { title: "SALE", key: "sale", icon: DollarSign, className: "from-violet-500/10 to-violet-500/5 border-violet-500/20", iconClass: "text-violet-600" },
   { title: "MELT", key: "melt", icon: DollarSign, className: "from-purple-500/10 to-purple-500/5 border-purple-500/20", iconClass: "text-purple-600" },
 ]
 
@@ -33,6 +34,7 @@ export function KPITiles({ summary, avgTx, maxTotal }: KPITilesProps) {
     avg: formatCurrency(avgTx),
     max: formatCurrency(maxTotal),
     scrap: `${summary.byType.SCRAP.count} · ${formatCurrency(summary.byType.SCRAP.total)}`,
+    sale: `${summary.byType.SALE.count} · ${formatCurrency(summary.byType.SALE.total)}`,
     melt: `${summary.byType.MELT.count} · ${formatCurrency(summary.byType.MELT.total)}`,
   }
   const subtitles: Record<string, string> = {
@@ -41,11 +43,12 @@ export function KPITiles({ summary, avgTx, maxTotal }: KPITilesProps) {
     avg: "Average",
     max: "Peak transaction",
     scrap: "SCRAP total",
+    sale: "SALE total",
     melt: "MELT total",
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
       {tileConfig.map((t) => (
         <Card key={t.title} className={`border bg-gradient-to-br ${t.className} shadow-sm overflow-hidden`}>
           <CardContent className="p-4">

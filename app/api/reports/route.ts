@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     }
     if (customerIds.length > 0) baseWhere.customerId = { in: customerIds }
     else if (customerId) baseWhere.customerId = customerId
-    if (typeFilter === "SCRAP" || typeFilter === "MELT") baseWhere.type = typeFilter as TransactionType
+    if (typeFilter === "SCRAP" || typeFilter === "SALE" || typeFilter === "MELT") baseWhere.type = typeFilter as TransactionType
     if (metalFilter === "GOLD" || metalFilter === "SILVER" || metalFilter === "PLATINUM") {
       baseWhere.lineItems = { some: { metalType: metalFilter } }
     }
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       withTotal = withTotal.filter((t) => t.total <= maxTotal)
     }
 
-    const byType = { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
+    const byType = { SCRAP: { count: 0, total: 0 }, SALE: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
     const byStatus: Record<TransactionStatus, { count: number; total: number }> = {
       OPEN: { count: 0, total: 0 },
       PENDING_APPROVAL: { count: 0, total: 0 },
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
         total: t.lineItems.reduce((s, i) => s + i.lineTotal, 0),
       }))
 
-      const approvedByType = { SCRAP: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
+      const approvedByType = { SCRAP: { count: 0, total: 0 }, SALE: { count: 0, total: 0 }, MELT: { count: 0, total: 0 } }
       const approvedByStatus: Record<TransactionStatus, { count: number; total: number }> = {
         OPEN: { count: 0, total: 0 },
         PENDING_APPROVAL: { count: 0, total: 0 },

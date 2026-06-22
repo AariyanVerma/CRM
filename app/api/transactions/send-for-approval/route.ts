@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { toPrismaTransactionType } from "@/lib/transaction-type"
 import { getIO } from "@/lib/ioServer"
 import {
   calculateScrapGoldPricePerDWT,
@@ -29,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { customerId, type, lineItems, requestedToUserId, approvalGroupId: existingGroupId, percentages: bodyPercentages } = body as {
+    const { customerId, type: rawType, lineItems, requestedToUserId, approvalGroupId: existingGroupId, percentages: bodyPercentages } = body as {
       customerId?: string
-      type?: "SCRAP" | "MELT"
+      type?: "SCRAP" | "MELT" | "SALE"
       lineItems?: LineItemInput[]
       requestedToUserId?: string
       approvalGroupId?: string
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
         meltPlatinumPercentage?: number
       }
     }
+
+    const type = rawType ? toPrismaTransactionType(rawType) : null
 
     if (!customerId || !type || !Array.isArray(lineItems) || !requestedToUserId) {
       return NextResponse.json(
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
     for (const item of lineItems) {
       const { metalType, purityLabel, dwt: rawDwt, purityPercentage: rawPct, pricePerOz, lineTotal: clientLineTotal } = item
       const parsedDwt = parseFloat(String(rawDwt)) || 0
-      if (type === "SCRAP" && parsedDwt <= 0) continue
+      if ((type === "SCRAP" || type === "SALE") && parsedDwt <= 0) continue
       if (!metalType || !purityLabel) continue
 
       
@@ -168,6 +171,10 @@ export async function POST(request: NextRequest) {
             pricePerDWT = calculateScrapSilverPricePerDWT(purityLabel as any, silverSpot, percentage)
           } else if (metalType === "PLATINUM") {
             pricePerDWT = calculateScrapPlatinumPricePerDWT(purityLabel as any, platinumSpot, percentage)
+          }
+        } else if (type === "SALE") {
+          if (metalType === "GOLD") {
+            pricePerDWT = calculateScrapGoldPricePerDWT(purityLabel as any, goldSpot, scrapGoldPct)
           }
         } else {
           const purityPct = rawPct != null ? parseFloat(String(rawPct)) || 0 : 0

@@ -147,10 +147,19 @@ export default async function ScanPage({
     )
   }
 
-  type DraftTransaction = { id: string | null; type: "SCRAP" | "MELT"; status: string; goldSpot: number; silverSpot: number; platinumSpot: number; lineItems: { id: string; metalType: "GOLD" | "SILVER" | "PLATINUM"; purityLabel: string; dwt: number; pricePerOz: number; lineTotal: number; purityPercentage?: number | null }[] }
+  type DraftTransaction = { id: string | null; type: "SCRAP" | "SALE" | "MELT"; status: string; goldSpot: number; silverSpot: number; platinumSpot: number; lineItems: { id: string; metalType: "GOLD" | "SILVER" | "PLATINUM"; purityLabel: string; dwt: number; pricePerOz: number; lineTotal: number; purityPercentage?: number | null }[] }
   const scrapDraft: DraftTransaction = {
     id: null,
     type: "SCRAP",
+    status: "DRAFT",
+    goldSpot: todayPrice.gold,
+    silverSpot: todayPrice.silver,
+    platinumSpot: todayPrice.platinum,
+    lineItems: [],
+  }
+  const saleDraft: DraftTransaction = {
+    id: null,
+    type: "SALE",
     status: "DRAFT",
     goldSpot: todayPrice.gold,
     silverSpot: todayPrice.silver,
@@ -175,6 +184,7 @@ export default async function ScanPage({
         <ScanPageClient
           customer={card.customer}
           scrapTransaction={scrapDraft}
+          saleTransaction={saleDraft}
           meltTransaction={meltDraft}
           userRole={session.role}
           userId={session.id}

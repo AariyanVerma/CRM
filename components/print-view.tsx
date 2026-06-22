@@ -28,7 +28,7 @@ interface LineItem {
 
 interface Transaction {
   id: string
-  type: "SCRAP" | "MELT"
+  type: "SCRAP" | "SALE" | "MELT"
   status: string
   goldSpot: number
   silverSpot: number
@@ -63,8 +63,8 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
   const hasMarkedAsPrinted = useRef(false)
   const hasPushedHistoryRef = useRef(false)
   const isA4 = layout === "a4"
-  const rollWidth = "103mm"
-  const rollPreviewWidth = "calc(103mm + 32px)"
+  const rollWidth = "4in"
+  const rollPreviewWidth = "calc(4in + 24px)"
   const thermalLogoSrc = "/logo-thermal.png"
 
   useEffect(() => {
@@ -112,9 +112,6 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
     }
   }
 
-  
-  
-  
   useEffect(() => {
     const handleBeforePrint = async () => {
       await markAsPrinted()
@@ -177,7 +174,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
       <style jsx global>{`
         @media print {
           @page {
-            size: ${isA4 ? "A4" : "103mm 164mm"};
+            size: ${isA4 ? "A4" : `${rollWidth} auto`};
             margin: ${isA4 ? "12mm" : "0"};
           }
           * {
@@ -222,15 +219,25 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             overflow: visible !important;
             box-sizing: border-box !important;
           }
+          .receipt-document {
+            width: ${isA4 ? "100%" : rollWidth} !important;
+            max-width: ${isA4 ? "100%" : rollWidth} !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid-page !important;
+          }
           .print-content {
             box-sizing: border-box !important;
-            page-break-inside: auto;
-            break-inside: auto;
+            page-break-inside: avoid !important;
+            break-inside: avoid-page !important;
             margin-left: auto !important;
             margin-right: auto !important;
             margin-top: 0 !important;
             margin-bottom: 0 !important;
-            padding: ${isA4 ? "0.2in" : "2mm 2mm 0 2mm"} !important;
+            padding: ${isA4 ? "0.2in" : "2mm 3mm 3mm 3mm"} !important;
             overflow: visible !important;
             width: ${isA4 ? "100%" : rollWidth} !important;
             max-width: ${isA4 ? "100%" : rollWidth} !important;
@@ -329,6 +336,12 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           .print-roll .print-content table {
             font-size: 10px !important;
           }
+          .print-roll .print-content thead {
+            display: table-row-group !important;
+          }
+          .print-roll .print-content tfoot {
+            display: table-row-group !important;
+          }
           .print-roll .print-content th,
           .print-roll .print-content td {
             padding-left: 1mm !important;
@@ -342,6 +355,13 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           }
           table {
             page-break-inside: auto;
+          }
+          .print-roll table,
+          .print-roll tr,
+          .print-roll .receipt-totals,
+          .print-roll .receipt-footer {
+            page-break-inside: avoid;
+            break-inside: avoid-page;
           }
           tr {
             page-break-inside: avoid;
@@ -362,9 +382,10 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
             width: ${rollPreviewWidth};
             max-width: 100%;
           }
-          .print-content {
-            width: 100% !important;
-            max-width: 100% !important;
+          .print-roll .receipt-document,
+          .print-roll .print-content {
+            width: ${rollWidth};
+            max-width: 100%;
           }
           .thermal-receipt-logo {
             display: none;
@@ -399,7 +420,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
       `}</style>
 
       <div className="print-root w-full max-w-4xl mx-auto">
-      <div className={`max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : "text-[11px] leading-tight"}`}>
+      <div className={`receipt-document max-w-4xl mx-auto print:max-w-none print:w-full print-content ${isA4 ? "max-w-2xl text-base" : "text-[11px] leading-tight"}`}>
         <div className="mb-4 pb-3 border-b-2 border-black">
           <div className="receipt-logo screen-receipt-logo mb-2 flex justify-center">
             <Logo size="lg" showText={false} />
@@ -469,17 +490,17 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           <div className="no-print screen-only-no-receipt mb-4 pb-2 border-b border-gray-700 text-xs text-black">
             <p className="font-semibold mb-1">Metal percentages used for this sale:</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {transaction.type === "SCRAP" ? (
-                <>
-                  <span>Scrap Gold: {formatDecimal(transaction.scrapGoldPercentage ?? 95)}%</span>
-                  <span>Scrap Silver: {formatDecimal(transaction.scrapSilverPercentage ?? 95)}%</span>
-                  <span>Scrap Platinum: {formatDecimal(transaction.scrapPlatinumPercentage ?? 95)}%</span>
-                </>
-              ) : (
+              {transaction.type === "MELT" ? (
                 <>
                   <span>Melt Gold: {formatDecimal(transaction.meltGoldPercentage ?? 95)}%</span>
                   <span>Melt Silver: {formatDecimal(transaction.meltSilverPercentage ?? 95)}%</span>
                   <span>Melt Platinum: {formatDecimal(transaction.meltPlatinumPercentage ?? 95)}%</span>
+                </>
+              ) : (
+                <>
+                  <span>Scrap Gold: {formatDecimal(transaction.scrapGoldPercentage ?? 95)}%</span>
+                  <span>Scrap Silver: {formatDecimal(transaction.scrapSilverPercentage ?? 95)}%</span>
+                  <span>Scrap Platinum: {formatDecimal(transaction.scrapPlatinumPercentage ?? 95)}%</span>
                 </>
               )}
             </div>
@@ -532,7 +553,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           </table>
         </div>
 
-        <div className="mt-4 pt-3 border-t-2 border-black font-black text-red-600">
+        <div className="receipt-totals mt-4 pt-3 border-t-2 border-black font-black text-red-600">
           <div className="flex flex-wrap justify-between items-end gap-3">
             <div className="min-w-0">
               <p className="text-sm">Total DWT: {formatDecimal(totalDwt)}</p>
@@ -544,7 +565,7 @@ export function PrintView({ transaction, layout = "label", hidePrintButton, show
           </div>
         </div>
 
-        <div className="mt-4 pt-2 border-t border-gray-700 text-xs text-center text-black">
+        <div className="receipt-footer mt-4 pt-2 border-t border-gray-700 text-xs text-center text-black">
           <p>Thank you for your business</p>
         </div>
 

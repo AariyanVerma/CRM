@@ -43,7 +43,7 @@ import { getCustomerDisplayName } from "@/lib/utils"
 
 interface Transaction {
   id: string
-  type: "SCRAP" | "MELT"
+  type: "SCRAP" | "SALE" | "MELT"
   status: "OPEN" | "PRINTED" | "VOID" | "PENDING_APPROVAL" | "APPROVED"
   createdAt: Date
   lineItems: Array<{ id: string }>

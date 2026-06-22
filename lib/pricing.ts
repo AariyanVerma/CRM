@@ -3,13 +3,15 @@ import { sortPuritiesAsc } from "@/lib/purity"
 
 
 export type MetalType = 'GOLD' | 'SILVER' | 'PLATINUM'
-export type TransactionType = 'SCRAP' | 'MELT'
+export type TransactionType = 'SCRAP' | 'SALE' | 'MELT'
 
 export type GoldPurity = '24K' | '22K' | '21.6K' | '21K' | '18K' | '16K' | '14K' | '13K' | '12K' | '11K' | '10K' | '9K'
 export type SilverPurity = '925' | '900' | '800'
 export type PlatinumPurity = '950' | '900'
 
 export const GOLD_PURITIES: GoldPurity[] = sortPuritiesAsc<GoldPurity>(['24K', '22K', '21.6K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K'])
+
+export const SALE_GOLD_PURITIES: GoldPurity[] = ['21K', '21.6K', '22K', '24K']
 export const SILVER_PURITIES: SilverPurity[] = sortPuritiesAsc<SilverPurity>(['925', '900', '800'])
 export const PLATINUM_PURITIES: PlatinumPurity[] = sortPuritiesAsc<PlatinumPurity>(['950', '900'])
 

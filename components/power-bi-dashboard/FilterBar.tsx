@@ -113,6 +113,7 @@ export function FilterBar(p: FilterBarProps) {
               <SelectContent>
                 <SelectItem value="ALL">All</SelectItem>
                 <SelectItem value="SCRAP">SCRAP</SelectItem>
+                <SelectItem value="SALE">SALE</SelectItem>
                 <SelectItem value="MELT">MELT</SelectItem>
               </SelectContent>
             </Select>
