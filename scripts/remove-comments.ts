@@ -41,4 +41,3 @@ function walkAndStrip(dir: string) {
 }
 
 walkAndStrip(ROOT)
-

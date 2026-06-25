@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, ReactNode } from "react"
+import { useState, useEffect, useRef, useCallback, ReactNode, Children } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -34,9 +34,10 @@ export function Carousel({
   const touchEndX = useRef<number>(0)
   const autoPlayTimer = useRef<NodeJS.Timeout | null>(null)
 
-  const itemCount = children.length
+  const slides = Children.toArray(children).filter((child) => Boolean(child))
+  const itemCount = slides.length
 
-  const items = [...children, ...children, ...children]
+  const items = [...slides, ...slides, ...slides]
   const startIndex = itemCount
   const [realIndex, setRealIndex] = useState(startIndex)
 
@@ -373,8 +374,6 @@ export function Carousel({
         ))}
       </div>
 
-      {
-}
       {showArrows && itemCount > 1 && (
         <>
           <Button
@@ -398,11 +397,9 @@ export function Carousel({
         </>
       )}
 
-      {
-}
       {showIndicators && itemCount > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-          {children.map((_, index) => {
+          {slides.map((_, index) => {
             const isActive = index === currentIndex
             return (
               <button

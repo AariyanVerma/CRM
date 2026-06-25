@@ -11,8 +11,6 @@ import {
   calculateMeltSilverPricePerDWT,
   calculateMeltPlatinumPricePerDWT,
   calculateLineTotal,
-  calculateSaleRowValue,
-  type GoldPurity,
 } from "@/lib/pricing"
 
 type LineItemInput = {
@@ -32,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { customerId, type: rawType, lineItems, requestedToUserId, approvalGroupId: existingGroupId, percentages: bodyPercentages, salePremiumPerOz: bodySalePremium } = body as {
+    const { customerId, type: rawType, lineItems, requestedToUserId, approvalGroupId: existingGroupId, percentages: bodyPercentages } = body as {
       customerId?: string
       type?: "SCRAP" | "MELT" | "SALE"
       lineItems?: LineItemInput[]
@@ -46,10 +44,13 @@ export async function POST(request: NextRequest) {
         meltSilverPercentage?: number
         meltPlatinumPercentage?: number
       }
-      salePremiumPerOz?: number
     }
 
     const type = rawType ? toPrismaTransactionType(rawType) : null
+
+    if (type === "SALE") {
+      return NextResponse.json({ message: "Only admin can create sale transactions" }, { status: 403 })
+    }
 
     if (!customerId || !type || !Array.isArray(lineItems) || !requestedToUserId) {
       return NextResponse.json(
@@ -86,7 +87,6 @@ export async function POST(request: NextRequest) {
       meltGoldPercentageOverride?: number | null
       meltSilverPercentageOverride?: number | null
       meltPlatinumPercentageOverride?: number | null
-      salePremiumPerOzOverride?: number | null
     } | null = null
     try {
       customer = await prisma.customer.findUnique({
@@ -98,7 +98,6 @@ export async function POST(request: NextRequest) {
           meltGoldPercentageOverride: true,
           meltSilverPercentageOverride: true,
           meltPlatinumPercentageOverride: true,
-          salePremiumPerOzOverride: true,
         },
       })
     } catch (e) {
@@ -136,10 +135,6 @@ export async function POST(request: NextRequest) {
       bodyPercentages?.meltPlatinumPercentage ??
       todayPrice.meltPlatinumPercentage ??
       95
-    const salePremiumPerOz =
-      type === "SALE"
-        ? (bodySalePremium ?? customer?.salePremiumPerOzOverride ?? 0)
-        : undefined
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -156,7 +151,6 @@ export async function POST(request: NextRequest) {
         meltGoldPercentage: meltGoldPct,
         meltSilverPercentage: meltSilverPct,
         meltPlatinumPercentage: meltPlatinumPct,
-        ...(salePremiumPerOz !== undefined ? { salePremiumPerOz } : {}),
       },
     })
 
@@ -165,7 +159,7 @@ export async function POST(request: NextRequest) {
     for (const item of lineItems) {
       const { metalType, purityLabel, dwt: rawDwt, purityPercentage: rawPct, pricePerOz, lineTotal: clientLineTotal } = item
       const parsedDwt = parseFloat(String(rawDwt)) || 0
-      if ((type === "SCRAP" || type === "SALE") && parsedDwt <= 0) continue
+      if (type === "SCRAP" && parsedDwt <= 0) continue
       if (!metalType || !purityLabel) continue
 
       let pricePerDWT: number
@@ -186,18 +180,6 @@ export async function POST(request: NextRequest) {
             pricePerDWT = calculateScrapSilverPricePerDWT(purityLabel as any, silverSpot, percentage)
           } else if (metalType === "PLATINUM") {
             pricePerDWT = calculateScrapPlatinumPricePerDWT(purityLabel as any, platinumSpot, percentage)
-          }
-        } else if (type === "SALE") {
-          if (metalType === "GOLD") {
-            const saleCalc = calculateSaleRowValue(
-              goldSpot,
-              purityLabel as GoldPurity,
-              parsedDwt,
-              "DWT",
-              salePremiumPerOz ?? 0
-            )
-            pricePerDWT = saleCalc.pricePerDWT
-            lineTotal = saleCalc.lineTotal
           }
         } else {
           const purityPct = rawPct != null ? parseFloat(String(rawPct)) || 0 : 0

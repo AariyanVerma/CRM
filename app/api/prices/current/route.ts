@@ -1,15 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
-
-  const referer = request.headers.get('referer') || 'unknown'
-  const userAgent = request.headers.get('user-agent') || 'unknown'
-  console.log(`[API] GET /api/prices/current - Referer: ${referer.substring(0, 100)}`)
-  
+export async function GET() {
   try {
     const session = await getSession()
     if (!session) {

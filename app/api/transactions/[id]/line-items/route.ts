@@ -16,11 +16,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const referer = request.headers.get('referer') || 'unknown'
-  console.log(`[API] GET /api/transactions/${id}/line-items - Referer: ${referer.substring(0, 100)}`)
-  
+
   try {
-    const session = await requireAuth()
+    await requireAuth()
     const transaction = await prisma.transaction.findUnique({
       where: { id },
       include: {
@@ -85,6 +83,12 @@ export async function POST(
         { status: 404 }
       )
     }
+    if (transaction.type === "SALE" && session.role !== "ADMIN") {
+      return NextResponse.json(
+        { message: "Only admin can modify sale transactions" },
+        { status: 403 }
+      )
+    }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const todayPrice = await prisma.dailyPrice.findFirst({
@@ -147,7 +151,7 @@ export async function POST(
           percentage
         )
       }
-    }
+    }
     const lineTotal = transaction.type === "MELT" 
       ? pricePerDWT 
       : calculateLineTotal(pricePerDWT, parsedDwt)
@@ -159,7 +163,7 @@ export async function POST(
       },
     })
 
-    if (existingItem) {
+    if (existingItem) {
       if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
         await prisma.lineItem.delete({
           where: { id: existingItem.id },
@@ -198,7 +202,7 @@ export async function POST(
         
         return NextResponse.json(updated)
       }
-    } else {
+    } else {
       if (transaction.type === "SCRAP" && (dwt === 0 || dwt === "")) {
         return NextResponse.json({ skipped: true })
       }

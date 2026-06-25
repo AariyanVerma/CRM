@@ -108,6 +108,8 @@ model Customer {
   meltSilverPercentageOverride    Float?
   meltPlatinumPercentageOverride  Float?
   salePremiumPerOzOverride        Float?
+  isWalkIn                        Boolean            @default(false)
+  detailsSkipped                    Boolean            @default(false)
   createdAt                 DateTime           @default(now())
   updatedAt                 DateTime           @updatedAt
   cards                     MembershipCard[]

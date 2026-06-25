@@ -17,6 +17,9 @@ export async function POST(
     if (!existing) {
       return NextResponse.json({ message: "Transaction not found" }, { status: 404 })
     }
+    if (existing.type === "SALE" && session.role !== "ADMIN") {
+      return NextResponse.json({ message: "Only admin can print sale transactions" }, { status: 403 })
+    }
     if (existing.status !== "PENDING_APPROVAL" && existing.status !== "OPEN" && existing.status !== "APPROVED") {
       return NextResponse.json({ message: "Transaction is not available to print" }, { status: 400 })
     }

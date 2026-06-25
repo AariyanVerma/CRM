@@ -3,6 +3,7 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { getSession } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { loadTransactionPageData } from "@/lib/transaction-page-data"
 import { PageHeader } from "@/components/page-header"
 import { ScanPageSkeleton } from "@/components/skeletons"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,8 +14,6 @@ const ScanPageClient = dynamic(
   () => import("@/components/scan-page-client").then((m) => ({ default: m.ScanPageClient })),
   { loading: () => <ScanPageSkeleton /> }
 )
-import { ThemeToggle } from "@/components/theme-toggle"
-import { LogoutButton } from "@/components/logout-button"
 
 export default async function ScanPage({
   params,
@@ -97,44 +96,14 @@ export default async function ScanPage({
     )
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  await prisma.membershipCard.update({
+    where: { id: card.id },
+    data: { lastScannedAt: new Date() },
+  })
 
-  type CustomerOverrides = {
-    scrapGoldPercentageOverride?: number | null
-    scrapSilverPercentageOverride?: number | null
-    scrapPlatinumPercentageOverride?: number | null
-    meltGoldPercentageOverride?: number | null
-    meltSilverPercentageOverride?: number | null
-    meltPlatinumPercentageOverride?: number | null
-    salePremiumPerOzOverride?: number | null
-  }
-  const [_, todayPrice, customerWithOverridesRaw] = await Promise.all([
-    prisma.membershipCard.update({
-      where: { id: card.id },
-      data: { lastScannedAt: new Date() },
-    }),
-    prisma.dailyPrice.findFirst({
-      where: { date: { lte: today } },
-      orderBy: { date: "desc" },
-    }),
-    prisma.customer.findUnique({
-      where: { id: card.customer.id },
-      select: {
-        
-        scrapGoldPercentageOverride: true,
-        scrapSilverPercentageOverride: true,
-        scrapPlatinumPercentageOverride: true,
-        meltGoldPercentageOverride: true,
-        meltSilverPercentageOverride: true,
-        meltPlatinumPercentageOverride: true,
-        salePremiumPerOzOverride: true,
-      } as Record<string, boolean>,
-    }) as Promise<CustomerOverrides | null>,
-  ])
-  const customerWithOverrides = customerWithOverridesRaw as CustomerOverrides | null
+  const pageData = await loadTransactionPageData(card.customer.id)
 
-  if (!todayPrice) {
+  if ("error" in pageData) {
     return (
       <div className="min-h-screen bg-background">
         <PageHeader title="No Prices Set" />
@@ -149,60 +118,23 @@ export default async function ScanPage({
     )
   }
 
-  type DraftTransaction = { id: string | null; type: "SCRAP" | "SALE" | "MELT"; status: string; goldSpot: number; silverSpot: number; platinumSpot: number; lineItems: { id: string; metalType: "GOLD" | "SILVER" | "PLATINUM"; purityLabel: string; dwt: number; pricePerOz: number; lineTotal: number; purityPercentage?: number | null }[] }
-  const scrapDraft: DraftTransaction = {
-    id: null,
-    type: "SCRAP",
-    status: "DRAFT",
-    goldSpot: todayPrice.gold,
-    silverSpot: todayPrice.silver,
-    platinumSpot: todayPrice.platinum,
-    lineItems: [],
-  }
-  const saleDraft: DraftTransaction = {
-    id: null,
-    type: "SALE",
-    status: "DRAFT",
-    goldSpot: todayPrice.gold,
-    silverSpot: todayPrice.silver,
-    platinumSpot: todayPrice.platinum,
-    lineItems: [],
-  }
-  const meltDraft: DraftTransaction = {
-    id: null,
-    type: "MELT",
-    status: "DRAFT",
-    goldSpot: todayPrice.gold,
-    silverSpot: todayPrice.silver,
-    platinumSpot: todayPrice.platinum,
-    lineItems: [],
-  }
-
   return (
     <div className="min-h-screen bg-background" style={{ overflowY: "auto", height: "100vh" }}>
       <PageHeader title="Transaction" />
 
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8" style={{ touchAction: "pan-y", maxWidth: "100vw", overflowX: "hidden" }}>
         <ScanPageClient
-          customer={card.customer}
-          scrapTransaction={scrapDraft}
-          saleTransaction={saleDraft}
-          meltTransaction={meltDraft}
+          customer={pageData.customer}
+          scrapTransaction={pageData.scrapDraft}
+          saleTransaction={pageData.saleDraft}
+          meltTransaction={pageData.meltDraft}
           userRole={session.role}
           userId={session.id}
           cardLocked={isLocked}
-          initialPercentages={{
-            scrapGold: customerWithOverrides?.scrapGoldPercentageOverride ?? todayPrice.scrapGoldPercentage ?? 95,
-            scrapSilver: customerWithOverrides?.scrapSilverPercentageOverride ?? todayPrice.scrapSilverPercentage ?? 95,
-            scrapPlatinum: customerWithOverrides?.scrapPlatinumPercentageOverride ?? todayPrice.scrapPlatinumPercentage ?? 95,
-            meltGold: customerWithOverrides?.meltGoldPercentageOverride ?? todayPrice.meltGoldPercentage ?? 95,
-            meltSilver: customerWithOverrides?.meltSilverPercentageOverride ?? todayPrice.meltSilverPercentage ?? 95,
-            meltPlatinum: customerWithOverrides?.meltPlatinumPercentageOverride ?? todayPrice.meltPlatinumPercentage ?? 95,
-          }}
-          initialSalePremium={customerWithOverrides?.salePremiumPerOzOverride ?? 0}
+          initialPercentages={pageData.initialPercentages}
+          initialSalePremium={pageData.initialSalePremium}
         />
       </main>
     </div>
   )
 }
-

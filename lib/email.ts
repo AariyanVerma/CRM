@@ -44,16 +44,6 @@ const fromEmailParsed = parseFromEmail(process.env.FROM_EMAIL)
 
 export async function sendOTPEmail(to: string, otp: string, userName?: string) {
   try {
-
-    console.log("[Email] Attempting to send OTP email:")
-    console.log("[Email] To:", to)
-    console.log("[Email] From:", `${fromEmailParsed.name} <${fromEmailParsed.address}>`)
-    console.log("[Email] SMTP Host:", smtpConfig.host)
-    console.log("[Email] SMTP Port:", smtpConfig.port)
-    console.log("[Email] SMTP Secure:", smtpConfig.secure)
-    console.log("[Email] SMTP User:", smtpConfig.auth.user ? "SET" : "NOT SET")
-    console.log("[Email] SMTP Pass:", smtpConfig.auth.pass ? "SET" : "NOT SET")
-
     const mailOptions = {
       from: {
         name: fromEmailParsed.name,
@@ -172,21 +162,9 @@ This is an automated message. Please do not reply to this email.
     }
 
     const info = await transporter.sendMail(mailOptions)
-    console.log("[Email] OTP email sent successfully!")
-    console.log("[Email] Message ID:", info.messageId)
-    console.log("[Email] Response:", info.response)
     return { success: true, messageId: info.messageId }
   } catch (error) {
-    console.error("[Email] ERROR sending OTP email:")
-    console.error("[Email] Error type:", error instanceof Error ? error.constructor.name : typeof error)
-    console.error("[Email] Error message:", error instanceof Error ? error.message : String(error))
-    if (error instanceof Error && 'code' in error) {
-      console.error("[Email] Error code:", (error as any).code)
-    }
-    if (error instanceof Error && 'command' in error) {
-      console.error("[Email] Failed command:", (error as any).command)
-    }
-    console.error("[Email] Full error:", error)
+    console.error("Error sending OTP email:", error)
     throw new Error(`Failed to send OTP email: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
 }

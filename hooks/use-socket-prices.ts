@@ -14,32 +14,30 @@ interface DailyPrice {
   meltSilverPercentage: number
   meltPlatinumPercentage: number
   timestamp?: number
-}
+}
 let initialPricesFetched = false
 let initialPricesPromise: Promise<DailyPrice | null> | null = null
 let globalLastPrices: DailyPrice | null = null
 let globalRefetchTimeout: NodeJS.Timeout | null = null
-const activeCallbacks = new Set<(prices: DailyPrice) => void>()
-let pricesRoomJoined = false
+const activeCallbacks = new Set<(prices: DailyPrice) => void>()
+let pricesRoomJoined = false
 let socketListenersAttached = false
 let globalSocket: ReturnType<typeof getSocket> | null = null
 let globalOnConnect: (() => void) | null = null
 let globalOnDisconnect: (() => void) | null = null
-let globalOnPricesChanged: (() => void) | null = null
-let inFlightPricesRefetch = false
-async function refetchPrices() {
+let globalOnPricesChanged: (() => void) | null = null
+let inFlightPricesRefetch = false
+async function refetchPrices() {
   if (inFlightPricesRefetch) {
-    console.log('[useSocketPrices] Skipping refetch - already in flight')
     return
-  }
+  }
   if (globalRefetchTimeout) {
     clearTimeout(globalRefetchTimeout)
     globalRefetchTimeout = null
-  }
+  }
   inFlightPricesRefetch = true
 
   try {
-    console.log('[useSocketPrices] Refetching prices')
     const res = await fetch("/api/prices/current", {
       credentials: "include",
       cache: "no-store",
@@ -57,7 +55,7 @@ async function refetchPrices() {
         meltSilverPercentage: data.meltSilverPercentage || 95,
         meltPlatinumPercentage: data.meltPlatinumPercentage || 95,
         timestamp: data.timestamp,
-      }
+      }
       const pricesChanged = 
         !globalLastPrices ||
         globalLastPrices.gold !== prices.gold ||
@@ -71,13 +69,13 @@ async function refetchPrices() {
         globalLastPrices.meltPlatinumPercentage !== prices.meltPlatinumPercentage
 
       if (pricesChanged) {
-        globalLastPrices = prices
+        globalLastPrices = prices
         activeCallbacks.forEach(callback => callback(prices))
       }
     }
   } catch (error) {
     console.error("Error fetching prices:", error)
-  } finally {
+  } finally {
     inFlightPricesRefetch = false
   }
 }
@@ -89,7 +87,7 @@ export function useSocketPrices(
   const { enabled = true } = options
   const [isConnected, setIsConnected] = useState(false)
   const callbackRef = useRef(onPriceUpdate)
-  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null)
+  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null)
   useEffect(() => {
     callbackRef.current = onPriceUpdate
   }, [onPriceUpdate])
@@ -98,24 +96,23 @@ export function useSocketPrices(
     if (!enabled) return
 
     const socket = getSocket()
-    socketRef.current = socket
+    socketRef.current = socket
     const wrappedCallback = (prices: DailyPrice) => {
       callbackRef.current(prices)
     }
-    activeCallbacks.add(wrappedCallback)
-    const fetchInitialPrices = async () => {
+    activeCallbacks.add(wrappedCallback)
+    const fetchInitialPrices = async () => {
       if (initialPricesPromise) {
         const prices = await initialPricesPromise
         if (prices) {
           wrappedCallback(prices)
         }
         return
-      }
+      }
       if (initialPricesFetched && globalLastPrices) {
         wrappedCallback(globalLastPrices)
         return
-      }
-      console.log('[useSocketPrices] Fetching initial prices (first time)')
+      }
       initialPricesPromise = (async () => {
         try {
           const res = await fetch("/api/prices/current", {
@@ -137,7 +134,7 @@ export function useSocketPrices(
               timestamp: data.timestamp,
             }
             initialPricesFetched = true
-            globalLastPrices = prices
+            globalLastPrices = prices
             activeCallbacks.forEach(cb => cb(prices))
             return prices
           }
@@ -150,40 +147,38 @@ export function useSocketPrices(
       const prices = await initialPricesPromise
       initialPricesPromise = null
       return prices
-    }
+    }
     if (!initialPricesFetched || activeCallbacks.size === 1) {
       fetchInitialPrices()
-    } else if (globalLastPrices) {
+    } else if (globalLastPrices) {
       wrappedCallback(globalLastPrices)
-    }
+    }
     if (!pricesRoomJoined) {
       socket.emit("join_prices")
       pricesRoomJoined = true
-      console.log('[useSocketPrices] Joined prices room (first time)')
-    }
+    }
     const onConnect = () => {
-      setIsConnected(true)
+      setIsConnected(true)
       if (pricesRoomJoined) {
         socket.emit("join_prices")
       }
     }
-    const onDisconnect = () => setIsConnected(false)
+    const onDisconnect = () => setIsConnected(false)
     if (!socketListenersAttached) {
       globalSocket = socket
       socketListenersAttached = true
       
-      globalOnConnect = () => {
+      globalOnConnect = () => {
         if (pricesRoomJoined) {
           socket.emit("join_prices")
         }
       }
-      globalOnDisconnect = () => {
-      }
-      globalOnPricesChanged = () => {
+      globalOnDisconnect = () => {
+      }
+      globalOnPricesChanged = () => {
         if (inFlightPricesRefetch) {
-          console.log('[useSocketPrices] Socket event received but refetch already in flight - skipping')
           return
-        }
+        }
         if (globalRefetchTimeout) {
           clearTimeout(globalRefetchTimeout)
         }
@@ -195,9 +190,7 @@ export function useSocketPrices(
       socket.on("connect", globalOnConnect)
       socket.on("disconnect", globalOnDisconnect)
       socket.on("prices_changed", globalOnPricesChanged)
-      
-      console.log('[useSocketPrices] Socket listeners attached (global)')
-    }
+    }
     const onInstanceConnect = () => {
       setIsConnected(true)
     }
@@ -207,10 +200,10 @@ export function useSocketPrices(
     socket.on("connect", onInstanceConnect)
     socket.on("disconnect", onInstanceDisconnect)
 
-    return () => {
-      activeCallbacks.delete(wrappedCallback)
+    return () => {
+      activeCallbacks.delete(wrappedCallback)
       socket.off("connect", onInstanceConnect)
-      socket.off("disconnect", onInstanceDisconnect)
+      socket.off("disconnect", onInstanceDisconnect)
       if (activeCallbacks.size === 0 && socketListenersAttached && globalSocket) {
         if (globalOnConnect) globalSocket.off("connect", globalOnConnect)
         if (globalOnDisconnect) globalSocket.off("disconnect", globalOnDisconnect)
@@ -227,7 +220,6 @@ export function useSocketPrices(
           clearTimeout(globalRefetchTimeout)
           globalRefetchTimeout = null
         }
-        console.log('[useSocketPrices] Socket listeners removed (last subscriber)')
       }
     }
   }, [enabled])

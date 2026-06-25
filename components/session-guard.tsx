@@ -42,12 +42,24 @@ export function SessionGuard() {
     }
     if (active) return
 
+    if (pathname === "/" || pathname === "/login") return
     if (pathname?.startsWith("/print")) return
-    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).then(() => {
-      if (pathname !== "/" && pathname !== "/login") {
-        window.location.href = "/"
-      }
-    })
+
+    fetch("/api/user/current", { credentials: "include" })
+      .then((res) => {
+        if (res.ok) {
+          setSessionActive()
+          return
+        }
+        clearSessionActive()
+        return fetch("/api/auth/logout", { method: "POST", credentials: "include" }).then(() => {
+          window.location.href = "/"
+        })
+      })
+      .catch(() => {
+        clearSessionActive()
+        fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {})
+      })
   }, [pathname, searchParams])
 
   return null

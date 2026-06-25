@@ -33,12 +33,10 @@ const REFETCH_COOLDOWN_MS = 200
 async function refetchLineItems(transactionId: string) {
   const state = transactionState.get(transactionId)
   if (!state) {
-    console.log(`[useSocketTransaction] No state found for transaction ${transactionId} - skipping refetch`)
     return
   }
 
   if (inFlightRefetches.has(transactionId)) {
-    console.log(`[useSocketTransaction] Skipping refetch for ${transactionId} - already in flight`)
     return
   }
 
@@ -50,7 +48,6 @@ async function refetchLineItems(transactionId: string) {
   inFlightRefetches.add(transactionId)
 
   try {
-    console.log(`[useSocketTransaction] Refetching line items for transaction ${transactionId}`)
     const res = await fetch(`/api/transactions/${transactionId}/line-items`, {
       credentials: "include",
       cache: "no-store",
@@ -140,7 +137,6 @@ export function useSocketTransaction(
         return
       }
 
-      console.log(`[useSocketTransaction] Fetching initial line items for transaction ${transactionId}`)
       state.fetchPromise = (async () => {
         try {
           const res = await fetch(`/api/transactions/${transactionId}/line-items`, {
@@ -180,49 +176,36 @@ export function useSocketTransaction(
       state.socketListenersAttached = true
 
         state.globalOnLineItemsChanged = (eventData?: { transactionId?: string }) => {
-
           if (eventData?.transactionId) {
             if (eventData.transactionId !== transactionId) {
-              console.log(`[useSocketTransaction] Ignoring line_items_changed event for transaction ${eventData.transactionId} (we are ${transactionId})`)
               return
             }
           }
 
-          if (!eventData?.transactionId) {
-            console.warn(`[useSocketTransaction] line_items_changed event received without transactionId - processing anyway for ${transactionId}`)
-          }
-
           if (inFlightRefetches.has(transactionId)) {
-            console.log(`[useSocketTransaction] Socket event received for ${transactionId} but refetch already in flight - skipping`)
             return
           }
 
           const lastRefetch = lastRefetchTime.get(transactionId)
           const timeSinceLastRefetch = lastRefetch ? Date.now() - lastRefetch : Infinity
           if (timeSinceLastRefetch < REFETCH_COOLDOWN_MS) {
-            console.log(`[useSocketTransaction] Socket event received for ${transactionId} but refetch completed ${timeSinceLastRefetch}ms ago (cooldown: ${REFETCH_COOLDOWN_MS}ms) - skipping`)
             return
           }
 
           if (state.refetchTimeout) {
-            console.log(`[useSocketTransaction] Socket event received for ${transactionId} but debounced refetch already scheduled - skipping (will use existing timeout)`)
             return
           }
 
-          console.log(`[useSocketTransaction] Scheduling debounced refetch for ${transactionId} in 100ms`)
           state.refetchTimeout = setTimeout(() => {
-
             state.refetchTimeout = null
 
             if (inFlightRefetches.has(transactionId)) {
-              console.log(`[useSocketTransaction] Debounced refetch for ${transactionId} cancelled - refetch already in flight`)
               return
             }
 
             const lastRefetch = lastRefetchTime.get(transactionId)
             const timeSinceLastRefetch = lastRefetch ? Date.now() - lastRefetch : Infinity
             if (timeSinceLastRefetch < REFETCH_COOLDOWN_MS) {
-              console.log(`[useSocketTransaction] Debounced refetch for ${transactionId} cancelled - refetch completed ${timeSinceLastRefetch}ms ago (cooldown: ${REFETCH_COOLDOWN_MS}ms)`)
               return
             }
 
@@ -231,16 +214,10 @@ export function useSocketTransaction(
         }
 
       state.globalOnTransactionChanged = (eventData?: { transactionId?: string }) => {
-
         if (eventData?.transactionId) {
           if (eventData.transactionId !== transactionId) {
-            console.log(`[useSocketTransaction] Ignoring transaction_changed event for transaction ${eventData.transactionId} (we are ${transactionId})`)
             return
           }
-        }
-
-        if (!eventData?.transactionId) {
-          console.warn(`[useSocketTransaction] transaction_changed event received without transactionId - processing anyway for ${transactionId}`)
         }
 
         if (state.globalOnLineItemsChanged) {
@@ -256,8 +233,6 @@ export function useSocketTransaction(
       socket.on("line_items_changed", state.globalOnLineItemsChanged)
       socket.on("transaction_changed", state.globalOnTransactionChanged)
       socket.on("connect", state.globalOnConnect)
-      
-      console.log(`[useSocketTransaction] Socket listeners attached for transaction ${transactionId} (global)`)
     }
 
     const onInstanceConnect = () => {
@@ -292,7 +267,6 @@ export function useSocketTransaction(
           state.refetchTimeout = null
         }
         transactionState.delete(transactionId)
-        console.log(`[useSocketTransaction] Socket listeners removed for transaction ${transactionId} (last subscriber)`)
       } else if (state.activeCallbacks.size > 0) {
 
         socket.emit("leave_tx", { transactionId })

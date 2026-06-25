@@ -28,6 +28,8 @@ interface Customer {
   address: string
   isBusiness: boolean
   businessName: string | null
+  isWalkIn?: boolean
+  detailsSkipped?: boolean
 }
 
 interface LineItem {
@@ -63,6 +65,7 @@ export function ScanPageClient({
   cardLocked = false,
   initialPercentages,
   initialSalePremium = 0,
+  walkInMode = false,
 }: {
   customer: Customer
   scrapTransaction: Transaction
@@ -80,9 +83,11 @@ export function ScanPageClient({
     meltPlatinum: number
   }
   initialSalePremium?: number
+  walkInMode?: boolean
 }) {
   const router = useRouter()
   const { toast } = useToast()
+  const saleAccess = userRole === "ADMIN"
   const hasPushedHistoryRef = useRef(false)
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -167,9 +172,9 @@ export function ScanPageClient({
   useEffect(() => {
     if (userRole !== "STAFF") return
     if (scrapTx.id) fetchApprovalStatus(scrapTx.id)
-    if (saleTx.id) fetchApprovalStatus(saleTx.id)
+    if (saleAccess && saleTx.id) fetchApprovalStatus(saleTx.id)
     if (meltTx.id) fetchApprovalStatus(meltTx.id)
-  }, [userRole, scrapTx.id, saleTx.id, meltTx.id, fetchApprovalStatus])
+  }, [userRole, saleAccess, scrapTx.id, saleTx.id, meltTx.id, fetchApprovalStatus])
 
   useEffect(() => {
     if (userRole !== "STAFF") return
@@ -342,33 +347,6 @@ export function ScanPageClient({
         setSentForApprovalBanner({ show: true, adminName, sendBoth: false })
         return
       }
-      if (saleTx.id && type === "SALE") {
-        const res = await fetch(`/api/transactions/${saleTx.id}/approval-request`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ requestedToUserId: adminId }),
-          credentials: "include",
-        })
-        const err = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          if (res.status === 400 && (err.message || "").toLowerCase().includes("already pending")) {
-            fetchApprovalStatus(saleTx.id).then(() => {
-              setSaleApproval((prev) => ({ ...prev, status: "PENDING", pendingAdminName: prev.pendingAdminName || "admin" }))
-            })
-            setAdminPickerFor(null)
-            return
-          }
-          throw new Error(err.message || "Failed to send request")
-        }
-        const data = await res.json()
-        const adminName = data.requestedTo ? [data.requestedTo.firstName, data.requestedTo.lastName].filter(Boolean).join(" ") || data.requestedTo.email : "Admin"
-        setSaleApproval({ status: "PENDING", pendingAdminName: adminName })
-        setAdminPickerFor(null)
-        setSentForApprovalBanner({ show: true, adminName, sendBoth: false })
-        return
-      }
-
-      const sendSale = !saleTx.id && saleLineItems.length > 0
       let groupId: string | undefined = approvalGroupId ?? undefined
       let lastAdminName: string | null = null
       if (sendScrap) {
@@ -439,19 +417,8 @@ export function ScanPageClient({
         setMeltTx(data.transaction)
         setMeltLineItems(data.transaction.lineItems)
       }
-      if (sendSale) {
-        const data = await sendDraftForApproval("SALE", adminId, saleLineItems, groupId)
-        groupId = data.approvalGroupId
-        if (groupId) setApprovalGroupId(groupId)
-        lastAdminName = data.approvalRequest?.requestedTo
-          ? [data.approvalRequest.requestedTo.firstName, data.approvalRequest.requestedTo.lastName].filter(Boolean).join(" ") || data.approvalRequest.requestedTo.email
-          : lastAdminName
-        setSaleTx(data.transaction)
-        setSaleLineItems(data.transaction.lineItems)
-      }
       const adminName = lastAdminName || [admins.find((a) => a.id === adminId)?.firstName, admins.find((a) => a.id === adminId)?.lastName].filter(Boolean).join(" ") || admins.find((a) => a.id === adminId)?.email || "Admin"
       setScrapApproval((prev) => (sendScrap ? { ...prev, status: "PENDING", pendingAdminName: adminName } : prev))
-      setSaleApproval((prev) => (sendSale ? { ...prev, status: "PENDING", pendingAdminName: adminName } : prev))
       setMeltApproval((prev) => (sendMelt ? { ...prev, status: "PENDING", pendingAdminName: adminName } : prev))
       setAdminPickerFor(null)
       setSentForApprovalBanner({ show: true, adminName, sendBoth })
@@ -502,7 +469,25 @@ export function ScanPageClient({
     }
   }
 
+  function finishPrintNavigation(printTarget: string) {
+    if (walkInMode) {
+      if (printTarget.startsWith("batch:")) {
+        const ids = printTarget.slice("batch:".length)
+        window.location.replace(`/print/batch?ids=${ids}`)
+      } else {
+        window.location.replace(`/print/${printTarget}`)
+      }
+      return
+    }
+    sessionStorage.setItem("scanRedirectToPrint", printTarget)
+    history.go(-1)
+  }
+
   async function handlePrint(type: ScanTxType) {
+    if (type === "SALE" && !saleAccess) {
+      toast({ title: "Access denied", description: "Only admin can access sale transactions.", variant: "destructive" })
+      return
+    }
     const scrapHasRows = scrapLineItems.length > 0
     const saleHasRows = saleLineItems.length > 0
     const meltHasRows = meltLineItems.length > 0
@@ -532,8 +517,7 @@ export function ScanPageClient({
         await postPrintIfNeeded(scrap)
         await postPrintIfNeeded(melt)
 
-        sessionStorage.setItem("scanRedirectToPrint", `batch:${scrap.id},${melt.id}`)
-        history.go(-1)
+        finishPrintNavigation(`batch:${scrap.id},${melt.id}`)
       } catch (error) {
         toast({
           title: "Error",
@@ -577,11 +561,20 @@ export function ScanPageClient({
       }
     }
 
-    if (!transaction.id) return
+    if (!transaction.id) {
+      toast({
+        title: "Cannot print yet",
+        description:
+          userRole === "STAFF"
+            ? "Send for admin approval before printing, or wait until approved."
+            : "Add line items before printing.",
+        variant: "destructive",
+      })
+      return
+    }
     try {
       await postPrintIfNeeded(transaction)
-      sessionStorage.setItem("scanRedirectToPrint", transaction.id)
-      history.go(-1)
+      finishPrintNavigation(transaction.id)
     } catch (error) {
       toast({
         title: "Error",
@@ -634,10 +627,18 @@ export function ScanPageClient({
     [meltLineItems]
   )
 
-  const grandTotal = useMemo(() => scrapTotal + saleTotal + meltTotal, [scrapTotal, saleTotal, meltTotal])
-  const grandTotalDwt = useMemo(() => scrapDwt + saleDwt + meltDwt, [scrapDwt, saleDwt, meltDwt])
+  const grandTotal = useMemo(
+    () => scrapTotal + meltTotal + (saleAccess ? saleTotal : 0),
+    [scrapTotal, meltTotal, saleTotal, saleAccess]
+  )
+  const grandTotalDwt = useMemo(
+    () => scrapDwt + meltDwt + (saleAccess ? saleDwt : 0),
+    [scrapDwt, meltDwt, saleDwt, saleAccess]
+  )
 
   useEffect(() => {
+    if (walkInMode) return
+
     if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("scanBlockReentry") === "1") {
       window.location.replace("/dashboard")
       return
@@ -663,9 +664,13 @@ export function ScanPageClient({
     }
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
-  }, [])
+  }, [walkInMode])
 
   const handleLeaveTransaction = () => {
+    if (walkInMode) {
+      router.push("/dashboard")
+      return
+    }
     history.go(-1)
   }
 
@@ -691,9 +696,21 @@ export function ScanPageClient({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent truncate">
-                {getCustomerDisplayName(customer)}
-              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent truncate">
+                  {getCustomerDisplayName(customer)}
+                </h2>
+                {customer.isWalkIn && (
+                  <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                    Walk-in
+                  </Badge>
+                )}
+                {customer.detailsSkipped && (
+                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                    Details skipped
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground mt-1" suppressHydrationWarning>
                 {mounted && currentDate
                   ? `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`
@@ -746,6 +763,7 @@ export function ScanPageClient({
 
       <div className="w-full" style={{ touchAction: "pan-y" }}>
         <Carousel
+          key={saleAccess ? "tx-carousel-admin" : "tx-carousel-staff"}
           showIndicators={false}
           showArrows={false}
           className="rounded-lg min-h-[600px]"
@@ -805,6 +823,7 @@ export function ScanPageClient({
               />
             </div>
           </div>
+          {saleAccess && (
           <div className="space-y-4 w-full">
             <div className="text-center mb-4 touch-none">
               <div className="text-center mb-4 touch-none">
@@ -849,10 +868,8 @@ export function ScanPageClient({
                 userRole={userRole}
                 onLineItemsUpdate={setSaleLineItems}
                 readOnly={cardLocked}
-                canPrint={userRole === "ADMIN" || saleApproval.status === "APPROVED"}
-                approvalStatus={saleApproval.status}
-                onSendForApproval={userRole === "STAFF" ? () => setAdminPickerFor("SALE") : undefined}
-                pendingAdminName={saleApproval.pendingAdminName}
+                canPrint
+                approvalStatus={null}
                 initialPercentages={initialPercentages}
                 onPercentagesChange={handlePercentagesChange}
                 initialSalePremium={initialSalePremium}
@@ -861,6 +878,7 @@ export function ScanPageClient({
               />
             </div>
           </div>
+          )}
           <div className="space-y-4 w-full">
             <div className="text-center mb-4 touch-none">
               <div className="text-center mb-4 touch-none">
@@ -933,14 +951,14 @@ export function ScanPageClient({
             <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
                 <Scale className="h-4 w-4" />
-                Total DWT (SCRAP + SALE + MELT)
+                Total DWT ({saleAccess ? "SCRAP + SALE + MELT" : "SCRAP + MELT"})
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-red-600">{formatDecimal(grandTotalDwt)}</p>
             </div>
             <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <p className="text-sm text-muted-foreground font-medium mb-2 flex items-center gap-2">
                 <Coins className="h-4 w-4" />
-                Total Value (SCRAP + SALE + MELT)
+                Total Value ({saleAccess ? "SCRAP + SALE + MELT" : "SCRAP + MELT"})
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-red-600">${formatDecimal(grandTotal)}</p>
             </div>

@@ -21,14 +21,6 @@ export function getSocket(): Socket {
       autoConnect: true,
     })
 
-    socket.on('connect', () => {
-      console.log('[Socket.IO Client] Connected to server')
-    })
-
-    socket.on('disconnect', () => {
-      console.log('[Socket.IO Client] Disconnected from server')
-    })
-
     socket.on('connect_error', (error) => {
       console.error('[Socket.IO Client] Connection error:', error)
     })

@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight, BarChart3, Search, LayoutDashboard, Gem, ClipboardCheck } from "lucide-react"
+import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight, BarChart3, Search, LayoutDashboard, Gem, ClipboardCheck, UserPlus } from "lucide-react"
 import { useEffect, useRef } from "react"
 
 interface ActionCardProps {
@@ -128,7 +128,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
 
       <ActionCard
         title="Scan Card"
-        description="Start a transaction by scanning an NFC card"
+        description="Start a transaction by scanning an NFC card or for a walk-in customer"
         icon={<ScanLine className="h-7 w-7" />}
         gradient="from-green-500/20 via-emerald-500/10 to-transparent"
         actions={[
@@ -136,6 +136,12 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
             label: "Scan Entry",
             href: "/scan",
             icon: <ScanLine className="h-4 w-4" />,
+          },
+          {
+            label: "Walk-in Entry",
+            href: "/walk-in",
+            variant: "outline",
+            icon: <UserPlus className="h-4 w-4" />,
           },
         ]}
         delay={100}

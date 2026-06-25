@@ -42,16 +42,12 @@ export async function POST(request: NextRequest) {
     const user = users[0] || null
 
     if (!user) {
-      console.log(`[OTP Verify] User not found for email: ${normalizedEmail}`)
       return NextResponse.json(
         { message: "Invalid credentials" },
         { status: 400 }
       )
     }
-    
-    console.log(`[OTP Verify] User found: ${user.email}, User ID: ${user.id}`)
 
-    console.log(`[OTP Verify] Looking for OTP: ${otp} for user ID: ${user.id}`)
     const otpRecord = await prisma.passwordResetOTP.findFirst({
       where: {
         userId: user.id,
@@ -64,8 +60,6 @@ export async function POST(request: NextRequest) {
     })
 
     if (!otpRecord) {
-      console.log(`[OTP Verify] OTP record not found for user ${user.id} with OTP: ${otp}`)
-
       await prisma.passwordResetOTP.updateMany({
         where: {
           userId: user.id,
@@ -83,12 +77,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
-    console.log(`[OTP Verify] OTP record found: ID=${otpRecord.id}, OTP=${otpRecord.otp}, Expires=${otpRecord.expiresAt}, Attempts=${otpRecord.attempts}`)
 
     const now = new Date()
     if (now > otpRecord.expiresAt) {
-      console.log(`[OTP Verify] OTP expired. Now: ${now.toISOString()}, Expires: ${otpRecord.expiresAt.toISOString()}`)
       return NextResponse.json(
         { message: "OTP has expired. Please request a new one." },
         { status: 400 }
@@ -96,7 +87,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (otpRecord.attempts >= 5) {
-      console.log(`[OTP Verify] Too many attempts: ${otpRecord.attempts}`)
       return NextResponse.json(
         { message: "Too many failed attempts. Please request a new OTP." },
         { status: 400 }
@@ -105,12 +95,8 @@ export async function POST(request: NextRequest) {
 
     const trimmedOtp = otp.trim()
     const trimmedRecordOtp = otpRecord.otp.trim()
-    
-    console.log(`[OTP Verify] Comparing OTPs - Input: "${trimmedOtp}", Stored: "${trimmedRecordOtp}", Match: ${trimmedOtp === trimmedRecordOtp}`)
-    
-    if (trimmedOtp !== trimmedRecordOtp) {
-      console.log(`[OTP Verify] OTP mismatch!`)
 
+    if (trimmedOtp !== trimmedRecordOtp) {
       await prisma.passwordResetOTP.update({
         where: { id: otpRecord.id },
         data: {
@@ -125,8 +111,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
-    console.log(`[OTP Verify] ✅ OTP verified successfully!`)
 
     await prisma.passwordResetOTP.update({
       where: { id: otpRecord.id },
@@ -158,4 +142,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

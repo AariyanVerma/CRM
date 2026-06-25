@@ -81,13 +81,23 @@ export default async function CustomerDetailPage({
                 <CardTitle>Customer Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {customer.isBusiness ? (
                     <Building2 className="h-5 w-5 text-muted-foreground" />
                   ) : (
                     <User className="h-5 w-5 text-muted-foreground" />
                   )}
                   <h2 className="text-2xl font-bold">{customer.fullName}</h2>
+                  {customer.isWalkIn && (
+                    <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                      Walk-in
+                    </Badge>
+                  )}
+                  {customer.detailsSkipped && (
+                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                      Details skipped
+                    </Badge>
+                  )}
                 </div>
 
                 {customer.businessName && (

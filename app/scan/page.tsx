@@ -4,6 +4,9 @@ import { ManualScanForm } from "@/components/manual-scan-form"
 import { NFCScanCard } from "@/components/nfc-scan-card"
 import { BackButton } from "@/components/back-button"
 import { PageHeader } from "@/components/page-header"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { UserPlus } from "lucide-react"
 
 export default async function ManualScanPage() {
   const session = await getSession()
@@ -23,6 +26,15 @@ export default async function ManualScanPage() {
             <p className="text-sm text-muted-foreground">OR</p>
           </div>
           <ManualScanForm />
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">OR</p>
+          </div>
+          <Link href="/walk-in" className="block">
+            <Button variant="outline" className="w-full" size="lg">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Walk-in customer (no card)
+            </Button>
+          </Link>
         </div>
       </main>
     </div>

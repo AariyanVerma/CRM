@@ -30,6 +30,9 @@ export async function POST(
     if (!transaction) {
       return NextResponse.json({ message: "Transaction not found" }, { status: 404 })
     }
+    if (transaction.type === "SALE") {
+      return NextResponse.json({ message: "Only admin can access sale transactions" }, { status: 403 })
+    }
     if (transaction.status !== "PENDING_APPROVAL" && transaction.status !== "OPEN") {
       return NextResponse.json({ message: "Transaction is not available for approval" }, { status: 400 })
     }

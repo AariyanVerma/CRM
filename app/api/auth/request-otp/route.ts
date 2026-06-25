@@ -11,8 +11,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email } = body
 
-    console.log(`[OTP Request] Received request for email: ${email}`)
-
     if (!email) {
       return NextResponse.json(
         { message: "Email is required" },
@@ -21,7 +19,6 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim()
-    console.log(`[OTP Request] Normalized email: ${normalizedEmail}`)
 
     const users = await prisma.$queryRaw<Array<{
       id: string
@@ -40,13 +37,7 @@ export async function POST(request: NextRequest) {
     `
     const user = users[0] || null
 
-    console.log(`[OTP Request] User found: ${user ? "YES" : "NO"}`)
-    if (user) {
-      console.log(`[OTP Request] User ID: ${user.id}, Role: ${user.role}`)
-    }
-
     if (!user) {
-      console.log(`[OTP Request] User not found, returning generic success message`)
       return NextResponse.json({
         message: "If an account exists, an OTP has been sent to your email.",
       })
@@ -75,55 +66,25 @@ export async function POST(request: NextRequest) {
     })
 
     try {
-      const userName = user.firstName && user.lastName 
-        ? `${user.firstName} ${user.lastName}` 
+      const userName = user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
         : user.firstName || user.lastName || undefined
 
-      console.log(`[OTP] ========================================`)
-      console.log(`[OTP] Generating OTP for user: ${user.email}`)
-      console.log(`[OTP] User name: ${userName || "N/A"}`)
-      console.log(`[OTP] OTP generated: ${otp}`)
-      console.log(`[OTP] OTP expires at: ${expiresAt.toISOString()}`)
-      console.log(`[OTP] Attempting to send email...`)
-      
-      const emailResult = await sendOTPEmail(user.email, otp, userName)
-      
-      console.log(`[OTP] ✅ Email sent successfully!`)
-      console.log(`[OTP] Message ID: ${emailResult.messageId}`)
-      console.log(`[OTP] ========================================`)
-      
-      return NextResponse.json({
-        message: "OTP has been sent to your email address.",
-        debug: process.env.NODE_ENV === "development" ? {
-          email: user.email,
-          otpGenerated: otp,
-          messageId: emailResult.messageId,
-        } : undefined,
-      })
-    } catch (emailError) {
-      console.error(`[OTP] ❌ CRITICAL: Error sending OTP email`)
-      console.error(`[OTP] ========================================`)
-      console.error(`[OTP] User email: ${user.email}`)
-      console.error(`[OTP] Generated OTP: ${otp}`)
-      console.error(`[OTP] Error type: ${emailError instanceof Error ? emailError.constructor.name : typeof emailError}`)
-      console.error(`[OTP] Error message: ${emailError instanceof Error ? emailError.message : String(emailError)}`)
-      if (emailError instanceof Error && 'code' in emailError) {
-        console.error(`[OTP] Error code: ${(emailError as any).code}`)
-      }
-      if (emailError instanceof Error && 'command' in emailError) {
-        console.error(`[OTP] Failed command: ${(emailError as any).command}`)
-      }
-      console.error(`[OTP] Full error stack:`, emailError)
-      console.error(`[OTP] ========================================`)
+      await sendOTPEmail(user.email, otp, userName)
 
       return NextResponse.json({
-        message: "Failed to send OTP email. Please check server logs for details.",
-        error: emailError instanceof Error ? emailError.message : "Unknown error",
-        debug: process.env.NODE_ENV === "development" ? {
-          email: user.email,
-          otpGenerated: otp,
-          errorCode: emailError instanceof Error && 'code' in emailError ? (emailError as any).code : undefined,
-        } : undefined,
+        message: "OTP has been sent to your email address.",
+        ...(process.env.NODE_ENV === "development"
+          ? { debug: { email: user.email, otp } }
+          : {}),
+      })
+    } catch (emailError) {
+      console.error("Error sending OTP email:", emailError)
+      return NextResponse.json({
+        message: "Failed to send OTP email. Please try again later.",
+        ...(process.env.NODE_ENV === "development"
+          ? { error: emailError instanceof Error ? emailError.message : "Unknown error", debug: { email: user.email, otp } }
+          : {}),
       }, { status: 500 })
     }
   } catch (error) {
@@ -134,4 +95,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

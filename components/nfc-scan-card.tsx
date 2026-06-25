@@ -69,27 +69,15 @@ export function NFCScanCard() {
       const ndef = new (window as any).NDEFReader()
       ndefReaderRef.current = ndef
 
-      console.log("Starting NFC scan...")
-
       await ndef.scan()
-      
-      console.log("✓ NFC scan active - ready to read tags")
-      console.log("Note: Only NDEF-formatted cards will work (not debit/credit cards)")
 
       ndef.addEventListener("reading", async (event: any) => {
         try {
           if (Date.now() - lastReadAt.current < 3000) return
-          console.log("NFC tag detected!", event)
-          console.log("Event details:", {
-            message: event.message,
-            serialNumber: event.serialNumber,
-            type: event.type
-          })
-          
+
           const message = event.message
-          
+
           if (!message) {
-            console.warn("No message in NFC event - card may not be NDEF formatted")
             toast({
               title: "Card Detected",
               description: "Card detected but not in expected format. This card may not be a membership card.",
@@ -104,7 +92,6 @@ export function NFCScanCard() {
           }
           
           if (!message.records || message.records.length === 0) {
-            console.warn("No records found in NFC message")
             toast({
               title: "Card Detected",
               description: "Card detected but contains no readable data. This may not be a membership card.",
@@ -118,15 +105,6 @@ export function NFCScanCard() {
             }, 2000)
             return
           }
-          
-          console.log(`Found ${message.records.length} record(s) in NFC message`)
-          message.records.forEach((record: any, index: number) => {
-            console.log(`Record ${index + 1}:`, {
-              type: record.recordType,
-              mediaType: record.mediaType,
-              dataLength: record.data?.byteLength || record.data?.length || 'unknown'
-            })
-          })
 
         for (const record of message.records) {
           try {
@@ -214,13 +192,10 @@ export function NFCScanCard() {
               text = new TextDecoder().decode(textBytes)
             }
 
-            console.log("Decoded text:", text)
-
             const urlMatch = text.match(/\/scan\/([a-zA-Z0-9]+)/)
             if (urlMatch && urlMatch[1]) {
               lastReadAt.current = Date.now()
               const token = urlMatch[1]
-              console.log("Token extracted from URL:", token)
               setScanning(false)
               toast({
                 title: "Card scanned",
@@ -236,7 +211,6 @@ export function NFCScanCard() {
             const trimmedText = text.trim()
             if (/^[a-zA-Z0-9]{8,64}$/.test(trimmedText)) {
               lastReadAt.current = Date.now()
-              console.log("Token found in text:", trimmedText)
               setScanning(false)
               toast({
                 title: "Card scanned",
@@ -254,10 +228,6 @@ export function NFCScanCard() {
           }
         }
 
-          console.warn("Could not extract token from NFC data")
-          console.log("All decoded texts from records:", 
-            message.records.map((r: any, i: number) => `Record ${i}: ${r.recordType}`)
-          )
           toast({
             title: "Card Detected",
             description: "Card detected but doesn't contain a membership token. This may be a different type of card (debit/credit). Please use a membership card or enter token manually.",
@@ -302,7 +272,6 @@ export function NFCScanCard() {
                                errorMessage.includes("cancel")
           
           if (!isCommonError) {
-            console.warn("NFC reading error:", errorMessage)
             toast({
               title: "Scan Error",
               description: "Failed to read NFC card. Make sure the card is close to the device and try again.",
