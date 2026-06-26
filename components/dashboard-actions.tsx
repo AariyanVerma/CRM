@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
   Users,
@@ -19,11 +20,34 @@ import {
 } from "lucide-react"
 import { useEffect, useRef } from "react"
 
+const actionButtonClass =
+  "border-0 bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 hover:text-primary-foreground"
+
 interface ActionLink {
   label: string
   href: string
-  variant?: "default" | "outline"
   icon?: React.ReactNode
+}
+
+interface ActionButtonProps extends ActionLink {
+  size?: "default" | "lg"
+}
+
+function ActionButton({ label, href, icon, size = "lg" }: ActionButtonProps) {
+  return (
+    <Link href={href} className="block">
+      <Button
+        className={cn("w-full group/btn", actionButtonClass, size === "default" ? "h-11" : "")}
+        size={size}
+      >
+        <span className="flex items-center justify-center gap-2">
+          {icon}
+          <span className="truncate">{label}</span>
+          <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover/btn:translate-x-1" />
+        </span>
+      </Button>
+    </Link>
+  )
 }
 
 interface ActionCardProps {
@@ -88,19 +112,8 @@ function ActionCard({ title, description, icon, gradient, actions, delay = 0 }: 
       </CardHeader>
 
       <CardContent className="relative z-10 mt-auto flex flex-col gap-2.5 pb-6 pt-0">
-        {actions.map((action, index) => (
-          <Link key={index} href={action.href} className="block">
-            <Button variant={action.variant || "default"} className="w-full group/btn relative overflow-hidden" size="lg">
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                {action.icon}
-                <span className="truncate">{action.label}</span>
-                {action.variant !== "outline" && (
-                  <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover/btn:translate-x-1" />
-                )}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-            </Button>
-          </Link>
+        {actions.map((action) => (
+          <ActionButton key={action.href} {...action} />
         ))}
       </CardContent>
     </Card>
@@ -114,9 +127,9 @@ function AdminActionsPanel({ delay = 0 }: { delay?: number }) {
     { label: "Daily Prices", href: "/admin/prices", icon: <DollarSign className="h-4 w-4" /> },
     { label: "Reports", href: "/admin/reports", icon: <BarChart3 className="h-4 w-4" /> },
     { label: "Analytics Dashboard", href: "/admin/analytics-dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: "All Transactions", href: "/admin/transactions", variant: "outline", icon: <Search className="h-4 w-4" /> },
-    { label: "Manage Users", href: "/admin/users", variant: "outline", icon: <UserCog className="h-4 w-4" /> },
-    { label: "Pending Approvals", href: "/dashboard/approvals", variant: "outline", icon: <ClipboardCheck className="h-4 w-4" /> },
+    { label: "All Transactions", href: "/admin/transactions", icon: <Search className="h-4 w-4" /> },
+    { label: "Manage Users", href: "/admin/users", icon: <UserCog className="h-4 w-4" /> },
+    { label: "Pending Approvals", href: "/dashboard/approvals", icon: <ClipboardCheck className="h-4 w-4" /> },
   ]
 
   useEffect(() => {
@@ -168,15 +181,8 @@ function AdminActionsPanel({ delay = 0 }: { delay?: number }) {
       </CardHeader>
 
       <CardContent className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 pb-6 pt-0">
-        {links.map((link, index) => (
-          <Link key={index} href={link.href} className="block">
-            <Button variant={link.variant || "default"} className="w-full h-11" size="default">
-              <span className="flex items-center justify-center gap-2 truncate">
-                {link.icon}
-                <span className="truncate text-sm">{link.label}</span>
-              </span>
-            </Button>
-          </Link>
+        {links.map((link) => (
+          <ActionButton key={link.href} {...link} size="default" />
         ))}
       </CardContent>
     </Card>
@@ -198,7 +204,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
           gradient="from-blue-500/20 via-indigo-500/10 to-transparent"
           actions={[
             { label: "View All Customers", href: "/customers", icon: <Users className="h-4 w-4" /> },
-            { label: "New Customer", href: "/customers/new", variant: "outline", icon: <Plus className="h-4 w-4" /> },
+            { label: "New Customer", href: "/customers/new", icon: <Plus className="h-4 w-4" /> },
           ]}
           delay={0}
         />
@@ -210,7 +216,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
           gradient="from-green-500/20 via-emerald-500/10 to-transparent"
           actions={[
             { label: "Scan Entry", href: "/scan", icon: <ScanLine className="h-4 w-4" /> },
-            { label: "Walk-in Entry", href: "/walk-in", variant: "outline", icon: <UserPlus className="h-4 w-4" /> },
+            { label: "Walk-in Entry", href: "/walk-in", icon: <UserPlus className="h-4 w-4" /> },
           ]}
           delay={100}
         />
@@ -249,30 +255,9 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
               </div>
             </CardHeader>
             <CardContent className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3 pb-6 pt-0">
-              <Link href="/dashboard/inventory/scrap" className="block">
-                <Button className="w-full h-11" size="default">
-                  <span className="flex items-center justify-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Scrap inventory
-                  </span>
-                </Button>
-              </Link>
-              <Link href="/dashboard/inventory/melt" className="block">
-                <Button variant="outline" className="w-full h-11" size="default">
-                  <span className="flex items-center justify-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Melt inventory
-                  </span>
-                </Button>
-              </Link>
-              <Link href="/dashboard/inventory/refinery-settlement" className="block">
-                <Button variant="outline" className="w-full h-11" size="default">
-                  <span className="flex items-center justify-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Refinery Settlement
-                  </span>
-                </Button>
-              </Link>
+              <ActionButton label="Scrap inventory" href="/dashboard/inventory/scrap" icon={<DollarSign className="h-4 w-4" />} size="default" />
+              <ActionButton label="Melt inventory" href="/dashboard/inventory/melt" icon={<DollarSign className="h-4 w-4" />} size="default" />
+              <ActionButton label="Refinery Settlement" href="/dashboard/inventory/refinery-settlement" icon={<DollarSign className="h-4 w-4" />} size="default" />
             </CardContent>
           </Card>
         </>
