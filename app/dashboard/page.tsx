@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import { getDisplayName } from "@/lib/utils"
 import { prisma } from "@/lib/db"
+import { summarizeTransactions } from "@/lib/transaction-totals"
 import { PageHeader } from "@/components/page-header"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { DashboardActions } from "@/components/dashboard-actions"
@@ -19,24 +20,22 @@ export default async function DashboardPage() {
   const todayEnd = new Date(todayStart)
   todayEnd.setDate(todayEnd.getDate() + 1)
 
-  const [customerCount, cardCount, openTransactions, todayStats, allTimeTransactionCount, allTimeValueAgg] = await Promise.all([
+  const [customerCount, cardCount, openTransactions, todayStats, allTimePrinted] = await Promise.all([
     prisma.customer.count({ where: { isWalkIn: false } }),
     prisma.membershipCard.count({ where: { status: 'ACTIVE' } }),
     prisma.transaction.count({ where: { status: { in: ['OPEN', 'PENDING_APPROVAL', 'APPROVED'] } } }),
     prisma.transaction.findMany({
       where: { createdAt: { gte: todayStart, lt: todayEnd } },
-      include: { lineItems: { select: { lineTotal: true } } },
+      select: { type: true, createdAt: true, lineItems: { select: { lineTotal: true } } },
     }),
-    prisma.transaction.count({ where: { status: 'PRINTED' } }),
-    prisma.lineItem.aggregate({
-      where: { transaction: { status: 'PRINTED' } },
-      _sum: { lineTotal: true },
+    prisma.transaction.findMany({
+      where: { status: 'PRINTED' },
+      select: { type: true, createdAt: true, lineItems: { select: { lineTotal: true } } },
     }),
   ])
 
-  const todayTransactionCount = todayStats.length
-  const todayTotalValue = todayStats.reduce((s, t) => s + t.lineItems.reduce((a, i) => a + i.lineTotal, 0), 0)
-  const allTimeTotalValue = allTimeValueAgg._sum.lineTotal ?? 0
+  const todayTypeTotals = summarizeTransactions(todayStats)
+  const allTimeTypeTotals = summarizeTransactions(allTimePrinted)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-x-hidden">
@@ -65,10 +64,8 @@ export default async function DashboardPage() {
               customerCount={customerCount}
               cardCount={cardCount}
               openTransactions={openTransactions}
-              todayTransactionCount={todayTransactionCount}
-              todayTotalValue={todayTotalValue}
-              allTimeTransactionCount={allTimeTransactionCount}
-              allTimeTotalValue={allTimeTotalValue}
+              todayTypeTotals={todayTypeTotals}
+              allTimeTypeTotals={allTimeTypeTotals}
               isAdmin={session.role === "ADMIN"}
             />
           </div>
