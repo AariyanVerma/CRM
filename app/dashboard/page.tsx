@@ -19,18 +19,24 @@ export default async function DashboardPage() {
   const todayEnd = new Date(todayStart)
   todayEnd.setDate(todayEnd.getDate() + 1)
 
-  const [customerCount, cardCount, openTransactions, todayStats] = await Promise.all([
-    prisma.customer.count(),
+  const [customerCount, cardCount, openTransactions, todayStats, allTimeTransactionCount, allTimeValueAgg] = await Promise.all([
+    prisma.customer.count({ where: { isWalkIn: false } }),
     prisma.membershipCard.count({ where: { status: 'ACTIVE' } }),
     prisma.transaction.count({ where: { status: { in: ['OPEN', 'PENDING_APPROVAL', 'APPROVED'] } } }),
     prisma.transaction.findMany({
       where: { createdAt: { gte: todayStart, lt: todayEnd } },
       include: { lineItems: { select: { lineTotal: true } } },
     }),
+    prisma.transaction.count({ where: { status: 'PRINTED' } }),
+    prisma.lineItem.aggregate({
+      where: { transaction: { status: 'PRINTED' } },
+      _sum: { lineTotal: true },
+    }),
   ])
 
   const todayTransactionCount = todayStats.length
   const todayTotalValue = todayStats.reduce((s, t) => s + t.lineItems.reduce((a, i) => a + i.lineTotal, 0), 0)
+  const allTimeTotalValue = allTimeValueAgg._sum.lineTotal ?? 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-x-hidden">
@@ -61,6 +67,8 @@ export default async function DashboardPage() {
               openTransactions={openTransactions}
               todayTransactionCount={todayTransactionCount}
               todayTotalValue={todayTotalValue}
+              allTimeTransactionCount={allTimeTransactionCount}
+              allTimeTotalValue={allTimeTotalValue}
               isAdmin={session.role === "ADMIN"}
             />
           </div>
