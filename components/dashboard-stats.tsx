@@ -3,8 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, CreditCard, TrendingUp } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { cn } from "@/lib/utils"
 
 const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
+const statCardShell = "flex-1 min-w-[min(100%,11.5rem)] h-44 shrink-0"
 
 interface StatCardProps {
   title: string
@@ -13,9 +15,10 @@ interface StatCardProps {
   icon: React.ReactNode
   gradient: string
   delay?: number
+  className?: string
 }
 
-function StatCard({ title, value, description, icon, gradient, delay = 0 }: StatCardProps) {
+function StatCard({ title, value, description, icon, gradient, delay = 0, className }: StatCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -45,7 +48,11 @@ function StatCard({ title, value, description, icon, gradient, delay = 0 }: Stat
   return (
     <Card
       ref={cardRef}
-      className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl group cursor-pointer transform hover:-translate-y-1"
+      className={cn(
+        "relative overflow-hidden border-0 shadow-lg hover:shadow-xl group cursor-pointer transform hover:-translate-y-1 w-full flex flex-col",
+        statCardShell,
+        className
+      )}
       style={{
         opacity: 0,
         transform: "translateY(20px)",
@@ -55,22 +62,24 @@ function StatCard({ title, value, description, icon, gradient, delay = 0 }: Stat
       <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700" />
 
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6 relative z-10 shrink-0">
+        <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate pr-2 min-w-0">
           {title}
         </CardTitle>
-        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+        <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
           <div className="text-blue-600 dark:text-blue-400">
             {icon}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="relative z-10">
-        <div className="text-4xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-1 group-hover:scale-105 transition-transform duration-300">
-          {value}
+      <CardContent className="relative z-10 flex-1 min-h-0 flex flex-col justify-end pb-6 pt-0">
+        <div className="h-10 flex items-end">
+          <div className="text-4xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300 leading-none tabular-nums truncate w-full">
+            {value}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground font-medium">
+        <p className="h-8 text-xs text-muted-foreground font-medium leading-4 line-clamp-2">
           {description}
         </p>
       </CardContent>
@@ -83,24 +92,33 @@ function SummaryCard({
   transactionCount,
   totalValue,
   gradient,
+  className,
 }: {
   title: string
   transactionCount: number
   totalValue: number
   gradient: string
+  className?: string
 }) {
   return (
-    <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 group transform hover:-translate-y-1">
+    <Card className={cn(
+      "relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 group transform hover:-translate-y-1 w-full flex flex-col",
+      statCardShell,
+      className
+    )}>
       <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6 relative z-10 shrink-0">
+        <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate pr-2 min-w-0">
           {title}
         </CardTitle>
+        <div className="h-12 w-12 shrink-0" aria-hidden />
       </CardHeader>
-      <CardContent className="relative z-10">
-        <div className="text-2xl font-extrabold mb-1">{transactionCount} transactions</div>
-        <p className="text-sm text-muted-foreground font-medium">
-          Total: {currencyFormatter.format(totalValue)}
+      <CardContent className="relative z-10 flex-1 min-h-0 flex flex-col justify-end pb-6 pt-0">
+        <div className="h-10 flex items-end">
+          <div className="text-4xl font-extrabold leading-none tabular-nums truncate w-full">{transactionCount}</div>
+        </div>
+        <p className="h-8 text-xs text-muted-foreground font-medium leading-4 line-clamp-2">
+          transactions · Total: {currencyFormatter.format(totalValue)}
         </p>
       </CardContent>
     </Card>
@@ -129,7 +147,7 @@ export function DashboardStats({
   isAdmin = false,
 }: DashboardStatsProps) {
   return (
-    <div className={`grid gap-6 md:grid-cols-2 ${isAdmin ? "lg:grid-cols-3 xl:grid-cols-5" : "lg:grid-cols-3"}`}>
+    <div className="flex flex-wrap items-stretch gap-4 sm:gap-6 w-full">
       <StatCard
         title="Customers"
         value={customerCount}

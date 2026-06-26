@@ -60,7 +60,7 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div>
+          <div className="w-full">
             <DashboardStats
               customerCount={customerCount}
               cardCount={cardCount}

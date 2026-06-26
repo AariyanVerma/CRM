@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Users, Plus, ScanLine, DollarSign, UserCog, ArrowRight, BarChart3, Search, LayoutDashboard, Gem, ClipboardCheck, UserPlus } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { cn } from "@/lib/utils"
+
+const actionCardBasis = "flex-1 min-w-[min(100%,18rem)]"
 
 interface ActionCardProps {
   title: string
@@ -18,9 +21,10 @@ interface ActionCardProps {
     icon?: React.ReactNode
   }>
   delay?: number
+  className?: string
 }
 
-function ActionCard({ title, description, icon, gradient, actions, delay = 0 }: ActionCardProps) {
+function ActionCard({ title, description, icon, gradient, actions, delay = 0, className }: ActionCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -50,7 +54,10 @@ function ActionCard({ title, description, icon, gradient, actions, delay = 0 }: 
   return (
     <Card
       ref={cardRef}
-      className="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl group transform hover:-translate-y-2"
+      className={cn(
+        "relative overflow-hidden border-0 shadow-lg hover:shadow-2xl group transform hover:-translate-y-2 w-full h-full flex flex-col",
+        className
+      )}
       style={{
         opacity: 0,
         transform: "translateY(20px)",
@@ -104,8 +111,9 @@ interface DashboardActionsProps {
 
 export function DashboardActions({ isAdmin }: DashboardActionsProps) {
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-wrap items-stretch gap-4 sm:gap-6 w-full">
       <ActionCard
+        className={actionCardBasis}
         title="Customers"
         description="Manage customer records and issue NFC cards"
         icon={<Users className="h-7 w-7" />}
@@ -127,6 +135,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
       />
 
       <ActionCard
+        className={actionCardBasis}
         title="Scan Card"
         description="Start a transaction by scanning an NFC card or for a walk-in customer"
         icon={<ScanLine className="h-7 w-7" />}
@@ -149,6 +158,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
 
       {isAdmin && (
         <ActionCard
+          className={actionCardBasis}
           title="Admin Panel"
           description="Manage prices and system settings"
           icon={<UserCog className="h-7 w-7" />}
@@ -194,6 +204,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
 
       {isAdmin && (
         <ActionCard
+          className={actionCardBasis}
           title="Stones Table"
           description="Record stone purchases by metal, purity, DWT and price paid"
           icon={<Gem className="h-7 w-7" />}
@@ -211,6 +222,7 @@ export function DashboardActions({ isAdmin }: DashboardActionsProps) {
 
       {isAdmin && (
         <ActionCard
+          className={actionCardBasis}
           title="Inventory"
           description="Track accumulated scrap and melt inventory by metal, purity and weight"
           icon={<DollarSign className="h-7 w-7" />}
