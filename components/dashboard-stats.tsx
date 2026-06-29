@@ -8,7 +8,8 @@ import { formatCurrency, type TransactionTypeTotals } from "@/lib/transaction-to
 
 const statCardShell = "flex-1 min-w-[min(100%,11.5rem)] h-44 shrink-0"
 const WIDE_CARD_MIN_PX = 280
-const WIDE_CHIP_ROW_MIN_PX = 380
+const STACKED_LAYOUT_MAX_PX = 520
+const WIDE_CHIP_ROW_MIN_PX = 560
 
 type ChipVariant = "grid" | "rows"
 type ChipScale = "sm" | "md" | "lg" | "xl"
@@ -55,6 +56,39 @@ function getChipScale(width: number): ChipScale {
   return "sm"
 }
 
+function FitAmount({ text, className, inset = true }: { text: string; className?: string; inset?: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const textRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    const textEl = textRef.current
+    if (!container || !textEl) return
+
+    const fit = () => {
+      textEl.style.transform = "scale(1)"
+      const available = container.clientWidth
+      const needed = textEl.scrollWidth
+      if (needed <= 0 || available <= 0) return
+      const scale = Math.min(1, (available - 2) / needed)
+      textEl.style.transform = `scale(${scale})`
+    }
+
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [text])
+
+  return (
+    <div ref={containerRef} className={cn("flex w-full min-w-0 justify-center overflow-hidden", inset && "mt-1")}>
+      <span ref={textRef} className={cn("inline-block origin-center whitespace-nowrap tabular-nums", className)}>
+        {text}
+      </span>
+    </div>
+  )
+}
+
 function CompactTypeChip({
   label,
   amount,
@@ -69,6 +103,7 @@ function CompactTypeChip({
   scale: ChipScale
 }) {
   const styles = chipScaleStyles[scale]
+  const formatted = formatCurrency(amount)
   const shell =
     tone === "scrap"
       ? "border-blue-500/20 bg-blue-500/10"
@@ -85,17 +120,15 @@ function CompactTypeChip({
   return (
     <div
       className={cn(
-        "flex h-full w-full min-h-0 flex-col items-center justify-center rounded-md border text-center",
+        "flex h-full w-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border text-center",
         variant === "rows" ? styles.padRows : styles.pad,
         shell
       )}
     >
-      <span className={cn("w-full truncate uppercase tracking-[0.12em] leading-none", styles.label, labelClass)}>
+      <span className={cn("w-full min-w-0 truncate uppercase tracking-[0.08em] leading-none", styles.label, labelClass)}>
         {label}
       </span>
-      <span className={cn("mt-1 w-full truncate tabular-nums leading-tight text-foreground", styles.amount)}>
-        {formatCurrency(amount)}
-      </span>
+      <FitAmount text={formatted} className={cn("font-extrabold text-foreground", styles.amount)} />
     </div>
   )
 }
@@ -110,19 +143,22 @@ function CompactTotalChip({
   scale: ChipScale
 }) {
   const styles = chipScaleStyles[scale]
+  const formatted = formatCurrency(amount)
 
   if (variant === "rows") {
     return (
       <div
         className={cn(
-          "flex h-full w-full min-h-0 flex-row items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary text-primary-foreground shadow-sm shadow-primary/15",
+          "flex h-full w-full min-h-0 min-w-0 flex-row items-center justify-between gap-2 overflow-hidden rounded-md border border-primary/30 bg-primary text-primary-foreground shadow-sm shadow-primary/15",
           styles.padRows
         )}
       >
-        <span className={cn("shrink-0 uppercase tracking-[0.14em] text-primary-foreground/90", styles.totalLabel)}>
+        <span className={cn("shrink-0 uppercase tracking-[0.1em] text-primary-foreground/90", styles.totalLabel)}>
           Total
         </span>
-        <span className={cn("min-w-0 truncate tabular-nums", styles.totalAmount)}>{formatCurrency(amount)}</span>
+        <div className="flex min-w-0 flex-1 items-center justify-end overflow-hidden">
+          <FitAmount text={formatted} inset={false} className={cn("font-black text-primary-foreground", styles.totalAmount)} />
+        </div>
       </div>
     )
   }
@@ -130,24 +166,27 @@ function CompactTotalChip({
   return (
     <div
       className={cn(
-        "flex h-full w-full min-h-0 flex-col items-center justify-center rounded-md border border-primary/30 bg-primary text-center text-primary-foreground shadow-sm shadow-primary/15",
+        "flex h-full w-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border border-primary/30 bg-primary text-center text-primary-foreground shadow-sm shadow-primary/15",
         styles.pad
       )}
     >
-      <span className={cn("w-full truncate uppercase tracking-[0.12em] leading-none text-primary-foreground/85", styles.totalLabel)}>
+      <span className={cn("w-full min-w-0 truncate uppercase tracking-[0.08em] leading-none text-primary-foreground/85", styles.totalLabel)}>
         Total
       </span>
-      <span className={cn("mt-1 w-full truncate tabular-nums leading-tight", styles.totalAmount)}>
-        {formatCurrency(amount)}
-      </span>
+      <FitAmount text={formatted} className={cn("font-black text-primary-foreground", styles.totalAmount)} />
     </div>
   )
 }
 
 function useCardChipLayout(ref: React.RefObject<HTMLDivElement | null>) {
-  const [state, setState] = useState<{ layout: "hidden" | ChipVariant; scale: ChipScale }>({
+  const [state, setState] = useState<{
+    layout: "hidden" | ChipVariant
+    scale: ChipScale
+    stacked: boolean
+  }>({
     layout: "hidden",
     scale: "sm",
+    stacked: false,
   })
 
   useEffect(() => {
@@ -157,9 +196,15 @@ function useCardChipLayout(ref: React.RefObject<HTMLDivElement | null>) {
     const observer = new ResizeObserver(([entry]) => {
       const width = entry.contentRect.width
       const scale = getChipScale(width)
-      if (width < WIDE_CARD_MIN_PX) setState({ layout: "hidden", scale })
-      else if (width < WIDE_CHIP_ROW_MIN_PX) setState({ layout: "grid", scale })
-      else setState({ layout: "rows", scale })
+      const stacked = width < STACKED_LAYOUT_MAX_PX
+
+      if (width < WIDE_CARD_MIN_PX) {
+        setState({ layout: "hidden", scale, stacked: false })
+      } else if (width < WIDE_CHIP_ROW_MIN_PX) {
+        setState({ layout: "grid", scale, stacked })
+      } else {
+        setState({ layout: "rows", scale, stacked })
+      }
     })
     observer.observe(el)
     return () => observer.disconnect()
@@ -255,15 +300,15 @@ function SummaryCard({
   icon: React.ReactNode
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const { layout: chipLayout, scale: chipScale } = useCardChipLayout(cardRef)
+  const { layout: chipLayout, scale: chipScale, stacked } = useCardChipLayout(cardRef)
   const showChips = chipLayout !== "hidden"
 
   return (
     <Card
       ref={cardRef}
       className={cn(
-        "relative overflow-hidden border-0 shadow-lg hover:shadow-xl group cursor-pointer transform hover:-translate-y-1 w-full flex flex-col",
-        statCardShell
+        "relative overflow-hidden border-0 shadow-lg hover:shadow-xl group cursor-pointer transform hover:-translate-y-1 w-full flex flex-col min-h-44 h-auto",
+        showChips ? "flex-1 min-w-[min(100%,11.5rem)] shrink-0" : statCardShell
       )}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
@@ -282,11 +327,11 @@ function SummaryCard({
 
       <CardContent
         className={cn(
-          "relative z-10 flex-1 min-h-0 pb-4 pt-0",
-          showChips ? "flex flex-row items-stretch gap-2" : "flex flex-col justify-end pb-6"
+          "relative z-10 flex-1 min-h-0 pt-0",
+          showChips ? cn("flex gap-2 pb-4", stacked ? "flex-col" : "flex-row items-stretch") : "flex flex-col justify-end pb-6"
         )}
       >
-        <div className={cn("flex min-w-0 flex-col justify-end", showChips ? "w-[40%] shrink-0" : "w-full")}>
+        <div className={cn("flex min-w-0 flex-col justify-end", showChips && !stacked ? "w-[40%] shrink-0" : "w-full")}>
           <div className="h-10 flex items-end">
             <div className="text-4xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300 leading-none tabular-nums truncate w-full">
               {typeTotals.count}
@@ -302,7 +347,8 @@ function SummaryCard({
         {showChips && (
           <div
             className={cn(
-              "grid h-full min-h-0 w-[60%] min-w-0 flex-1 gap-1.5",
+              "grid min-h-[5.5rem] min-w-0 max-w-full gap-1.5 overflow-hidden",
+              stacked ? "w-full" : "h-full w-[60%] flex-1",
               chipLayout === "rows"
                 ? "grid-cols-3 grid-rows-[minmax(0,1.15fr)_minmax(0,0.9fr)]"
                 : "grid-cols-2 grid-rows-2"
@@ -311,7 +357,7 @@ function SummaryCard({
             <CompactTypeChip label="Scrap" amount={typeTotals.scrap} tone="scrap" variant={chipLayout} scale={chipScale} />
             <CompactTypeChip label="Sale" amount={typeTotals.sale} tone="sale" variant={chipLayout} scale={chipScale} />
             <CompactTypeChip label="Melt" amount={typeTotals.melt} tone="melt" variant={chipLayout} scale={chipScale} />
-            <div className={cn("h-full min-h-0", chipLayout === "rows" && "col-span-3")}>
+            <div className={cn("min-h-0 min-w-0 overflow-hidden", chipLayout === "rows" && "col-span-3")}>
               <CompactTotalChip amount={typeTotals.total} variant={chipLayout} scale={chipScale} />
             </div>
           </div>
