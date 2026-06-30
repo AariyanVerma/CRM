@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Star, Plus, Trash2 } from "lucide-react"
+import { Printer, RotateCcw, DollarSign, Scale, Calculator, Sparkles, Star, Plus, Trash2, Save } from "lucide-react"
 import {
   getScrapPricingRows,
   getMeltPricingRows,
@@ -185,9 +185,19 @@ function buildDraftLineItems(
   return items
 }
 
+const saveButtonClass =
+  "flex-1 w-full sm:w-auto text-sm sm:text-base border-0 bg-secondary text-secondary-foreground transition-all duration-200 hover:!bg-[#39ff14] hover:!text-black hover:shadow-[0_0_16px_rgba(57,255,20,0.7)] active:!bg-[#32e610] active:!text-black active:shadow-[0_0_20px_rgba(57,255,20,0.85)] focus-visible:ring-[#39ff14]"
+
+const printButtonClass =
+  "flex-1 w-full sm:w-auto text-sm sm:text-base border-0 transition-all duration-200 hover:!bg-[hsl(221.2_95%_61%)] hover:!text-primary-foreground hover:shadow-[0_0_16px_hsla(221,95%,61%,0.75),0_0_28px_hsla(221,95%,61%,0.4)] active:!bg-[hsl(221.2_83%_46%)] active:!text-primary-foreground active:shadow-[0_0_20px_hsla(221,83%,53%,0.85),0_0_36px_hsla(221,83%,53%,0.45)] focus-visible:ring-primary"
+
+const newTransactionButtonClass =
+  "w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base border-2 border-amber-500/40 bg-background transition-all duration-200 hover:!bg-[#ffb020] hover:!text-black hover:!border-[#ffb020] hover:shadow-[0_0_16px_rgba(255,176,32,0.65)] active:!bg-[#e69a00] active:!text-black active:!border-[#e69a00] active:shadow-[0_0_20px_rgba(255,176,32,0.8)] focus-visible:ring-[#ffb020]"
+
 export function PricingTable({
   transaction,
   onPrint,
+  onSave,
   onNewTransaction,
   metalType,
   userRole = "STAFF",
@@ -206,6 +216,7 @@ export function PricingTable({
 }: {
   transaction: Transaction
   onPrint: () => void
+  onSave?: () => void
   onNewTransaction: () => void
   metalType?: MetalType
   userRole?: "ADMIN" | "STAFF"
@@ -269,6 +280,32 @@ export function PricingTable({
   const isStaffLocked = userRole === "STAFF" && approvalStatus !== null
   const isReadOnly = readOnly || isStaffLocked
 
+  const resetFormState = useCallback(() => {
+    setDwtValues({})
+    setPurityPercentages({})
+    setSaving({})
+    lastSavedValuesRef.current = {}
+    lastEditTimeRef.current = {}
+    isTypingRef.current = {}
+    focusedFieldRef.current = null
+    pendingPriceRef.current = {}
+
+    if (transaction.type === "SALE") {
+      const premium = initialSalePremium > 0 ? initialSalePremium : ""
+      setSaleRows([createSaleRow()])
+      setSalePremiumPerOz(premium)
+      salePremiumRef.current = premium
+      originalSalePremiumRef.current = premium
+      lastPushedSaleItemsRef.current = ""
+      loadedSaleTransactionIdRef.current = null
+    }
+  }, [transaction.type, initialSalePremium])
+
+  const handleStartNewTransaction = useCallback(() => {
+    resetFormState()
+    onNewTransaction()
+  }, [resetFormState, onNewTransaction])
+
   const [pendingPercentageChange, setPendingPercentageChange] = useState<{
     metalType: MetalType
     value: number
@@ -277,7 +314,12 @@ export function PricingTable({
   const [isPercentageScopeDialogOpen, setIsPercentageScopeDialogOpen] = useState(false)
 
   useEffect(() => {
-    if (isDraft) return
+    if (isDraft) {
+      if (transaction.lineItems.length === 0) {
+        resetFormState()
+      }
+      return
+    }
     const values: Record<string, number> = {}
     const purityValues: Record<string, number> = {}
     transaction.lineItems.forEach((item) => {
@@ -294,7 +336,7 @@ export function PricingTable({
     })
     setDwtValues(values)
     setPurityPercentages(purityValues)
-  }, [transaction.lineItems, transaction.type, isDraft])
+  }, [transaction.lineItems, transaction.type, isDraft, resetFormState])
 
   useSocketPrices(
     useCallback((prices) => {
@@ -1726,10 +1768,18 @@ export function PricingTable({
           ) : (
             <>
               {canPrint ? (
-                <Button onClick={onPrint} className="flex-1 w-full sm:w-auto text-sm sm:text-base" size="lg">
-                  <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                  <span className="whitespace-nowrap">Print</span>
-                </Button>
+                <>
+                  <Button onClick={onPrint} className={printButtonClass} size="lg">
+                    <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Print</span>
+                  </Button>
+                  {onSave && (
+                    <Button onClick={onSave} variant="secondary" className={saveButtonClass} size="lg">
+                      <Save className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Save</span>
+                    </Button>
+                  )}
+                </>
               ) : approvalStatus === "PENDING" ? (
                 <div className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 px-4 py-3 text-sm font-medium text-emerald-800 dark:text-emerald-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
@@ -1746,7 +1796,7 @@ export function PricingTable({
               ) : (
                 <div className="flex-1" />
               )}
-              <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={isReadOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
+              <Button onClick={handleStartNewTransaction} variant="outline" size="lg" disabled={isReadOnly} className={newTransactionButtonClass}>
                 <span className="text-center">Start New <span className="text-red-600 font-semibold">SALE</span> Transaction</span>
               </Button>
             </>
@@ -2185,10 +2235,18 @@ export function PricingTable({
         ) : (
           <>
         {canPrint ? (
-          <Button onClick={onPrint} className="flex-1 w-full sm:w-auto text-sm sm:text-base" size="lg">
-            <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-            <span className="whitespace-nowrap">Print</span>
-          </Button>
+          <>
+            <Button onClick={onPrint} className={printButtonClass} size="lg">
+              <Printer className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="whitespace-nowrap">Print</span>
+            </Button>
+            {onSave && (
+              <Button onClick={onSave} variant="secondary" className={saveButtonClass} size="lg">
+                <Save className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                <span className="whitespace-nowrap">Save</span>
+              </Button>
+            )}
+          </>
         ) : approvalStatus === "PENDING" ? (
           <div className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 px-4 py-3 text-sm font-medium text-emerald-800 dark:text-emerald-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
@@ -2205,7 +2263,7 @@ export function PricingTable({
         ) : (
           <div className="flex-1" />
         )}
-        <Button onClick={onNewTransaction} variant="outline" size="lg" disabled={isReadOnly} className="w-full sm:w-auto whitespace-normal sm:whitespace-nowrap text-sm sm:text-base">
+        <Button onClick={handleStartNewTransaction} variant="outline" size="lg" disabled={isReadOnly} className={newTransactionButtonClass}>
           <span className="text-center">Start New <span className="text-red-600 font-semibold">{transaction.type}</span> Transaction</span>
         </Button>
           </>

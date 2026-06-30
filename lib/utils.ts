@@ -57,3 +57,22 @@ export function getCustomerDisplayName(customer: {
   return customer.fullName
 }
 
+function isPlaceholderWalkInPhone(phoneNumber: string): boolean {
+  const phone = phoneNumber.trim()
+  return phone === "—" || phone === "-" || phone === "–" || phone === "" || phone === "N/A"
+}
+
+export function isAnonymousSkippedWalkIn(customer: {
+  isWalkIn?: boolean
+  detailsSkipped?: boolean
+  fullName: string
+  phoneNumber: string
+}): boolean {
+  return (
+    customer.isWalkIn === true &&
+    customer.detailsSkipped === true &&
+    isPlaceholderWalkInPhone(customer.phoneNumber) &&
+    customer.fullName.startsWith("Walk-in ")
+  )
+}
+

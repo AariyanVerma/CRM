@@ -12,7 +12,7 @@ import { Printer } from "lucide-react"
 import { Carousel } from "@/components/carousel"
 import { TradingViewTickerTape } from "@/components/trading-view-ticker-tape"
 import { useSocketTransaction } from "@/hooks/use-socket-transaction"
-import { formatDecimal, getCustomerDisplayName } from "@/lib/utils"
+import { formatDecimal, getCustomerDisplayName, isAnonymousSkippedWalkIn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -483,13 +483,42 @@ export function ScanPageClient({
     history.go(-1)
   }
 
-  async function handlePrint(type: ScanTxType) {
+  async function finishSaveNavigation() {
+    if (walkInMode && isAnonymousSkippedWalkIn(customer)) {
+      try {
+        const res = await fetch("/api/customers/walk-in", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ skipDetails: true }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error((err as { message?: string }).message || "Failed to start new walk-in session")
+        }
+        const data = (await res.json()) as { customer: { id: string } }
+        router.replace(`/transaction/${data.customer.id}`)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Could not start a new walk-in session",
+          variant: "destructive",
+        })
+      }
+      return
+    }
+    router.replace("/scan")
+  }
+
+  async function completeTransactions(type: ScanTxType, action: "print" | "save") {
+    const actionLabel = action === "print" ? "print" : "save"
+    const actionPast = action === "print" ? "print" : "save"
+
     if (type === "SALE" && !saleAccess) {
       toast({ title: "Access denied", description: "Only admin can access sale transactions.", variant: "destructive" })
       return
     }
     const scrapHasRows = scrapLineItems.length > 0
-    const saleHasRows = saleLineItems.length > 0
     const meltHasRows = meltLineItems.length > 0
     const adminBothForms =
       userRole === "ADMIN" && scrapHasRows && meltHasRows
@@ -510,18 +539,23 @@ export function ScanPageClient({
           setMeltLineItems(melt.lineItems)
         }
         if (!scrap.id || !melt.id) {
-          toast({ title: "Error", description: "Could not prepare both transactions for printing.", variant: "destructive" })
+          toast({ title: "Error", description: `Could not prepare both transactions for ${actionLabel}.`, variant: "destructive" })
           return
         }
 
         await postPrintIfNeeded(scrap)
         await postPrintIfNeeded(melt)
 
-        finishPrintNavigation(`batch:${scrap.id},${melt.id}`)
+        if (action === "print") {
+          finishPrintNavigation(`batch:${scrap.id},${melt.id}`)
+        } else {
+          toast({ title: "Saved", description: "Transactions saved successfully." })
+          await finishSaveNavigation()
+        }
       } catch (error) {
         toast({
           title: "Error",
-          description: error instanceof Error ? error.message : "Failed to print transactions",
+          description: error instanceof Error ? error.message : `Failed to ${actionPast} transactions`,
           variant: "destructive",
         })
       }
@@ -534,8 +568,8 @@ export function ScanPageClient({
       const draftItems = type === "SCRAP" ? scrapLineItems : type === "SALE" ? saleLineItems : meltLineItems
       if (draftItems.length === 0) {
         toast({
-          title: "Nothing to print",
-          description: `Add DWT values for ${type} before printing.`,
+          title: `Nothing to ${actionLabel}`,
+          description: `Add DWT values for ${type} before ${actionLabel}ing.`,
         })
         return
       }
@@ -554,7 +588,7 @@ export function ScanPageClient({
       } catch (error) {
         toast({
           title: "Error",
-          description: error instanceof Error ? error.message : "Failed to create transaction before printing",
+          description: error instanceof Error ? error.message : `Failed to create transaction before ${actionLabel}ing`,
           variant: "destructive",
         })
         return
@@ -563,42 +597,58 @@ export function ScanPageClient({
 
     if (!transaction.id) {
       toast({
-        title: "Cannot print yet",
+        title: `Cannot ${actionLabel} yet`,
         description:
           userRole === "STAFF"
-            ? "Send for admin approval before printing, or wait until approved."
-            : "Add line items before printing.",
+            ? "Send for admin approval before saving or printing, or wait until approved."
+            : "Add line items before saving or printing.",
         variant: "destructive",
       })
       return
     }
     try {
       await postPrintIfNeeded(transaction)
-      finishPrintNavigation(transaction.id)
+      if (action === "print") {
+        finishPrintNavigation(transaction.id)
+      } else {
+        toast({ title: "Saved", description: "Transaction saved successfully." })
+        await finishSaveNavigation()
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print transaction",
+        description: error instanceof Error ? error.message : `Failed to ${actionPast} transaction`,
         variant: "destructive",
       })
     }
   }
 
+  async function handlePrint(type: ScanTxType) {
+    await completeTransactions(type, "print")
+  }
+
+  async function handleSave(type: ScanTxType) {
+    await completeTransactions(type, "save")
+  }
+
   function handleNewTransaction(type: ScanTxType) {
     const tx = type === "SCRAP" ? scrapTx : type === "SALE" ? saleTx : meltTx
     if (tx.id) {
-      toast({ title: "Info", description: "Print this transaction or wait for approval first.", variant: "default" })
+      toast({ title: "Info", description: "Save or print this transaction before starting a new one.", variant: "default" })
       return
     }
     if (type === "SCRAP") {
+      setScrapTx((prev) => ({ ...prev, id: null, status: "DRAFT", lineItems: [] }))
       setScrapLineItems([])
-      toast({ title: "Cleared", description: "SCRAP draft cleared." })
+      toast({ title: "Cleared", description: "SCRAP form cleared for a new transaction." })
     } else if (type === "SALE") {
+      setSaleTx((prev) => ({ ...prev, id: null, status: "DRAFT", lineItems: [] }))
       setSaleLineItems([])
-      toast({ title: "Cleared", description: "SALE draft cleared." })
+      toast({ title: "Cleared", description: "SALE form cleared for a new transaction." })
     } else {
+      setMeltTx((prev) => ({ ...prev, id: null, status: "DRAFT", lineItems: [] }))
       setMeltLineItems([])
-      toast({ title: "Cleared", description: "MELT draft cleared." })
+      toast({ title: "Cleared", description: "MELT form cleared for a new transaction." })
     }
   }
 
@@ -809,6 +859,7 @@ export function ScanPageClient({
               <PricingTable
                 transaction={{ ...scrapTx, type: "SCRAP", lineItems: scrapLineItems }}
                 onPrint={() => handlePrint("SCRAP")}
+                onSave={() => handleSave("SCRAP")}
                 onNewTransaction={() => handleNewTransaction("SCRAP")}
                 userRole={userRole}
                 onLineItemsUpdate={setScrapLineItems}
@@ -864,6 +915,7 @@ export function ScanPageClient({
               <PricingTable
                 transaction={{ ...saleTx, type: "SALE", lineItems: saleLineItems }}
                 onPrint={() => handlePrint("SALE")}
+                onSave={() => handleSave("SALE")}
                 onNewTransaction={() => handleNewTransaction("SALE")}
                 userRole={userRole}
                 onLineItemsUpdate={setSaleLineItems}
@@ -919,6 +971,7 @@ export function ScanPageClient({
               <PricingTable
                 transaction={{ ...meltTx, type: "MELT", lineItems: meltLineItems }}
                 onPrint={() => handlePrint("MELT")}
+                onSave={() => handleSave("MELT")}
                 onNewTransaction={() => handleNewTransaction("MELT")}
                 userRole={userRole}
                 onLineItemsUpdate={setMeltLineItems}
