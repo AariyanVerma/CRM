@@ -1966,7 +1966,7 @@ export function PricingTable({
                   <span className="drop-shadow-md">Price</span>
                 </div>
               </th>
-              <th className="text-center p-1 sm:p-2"></th>
+              <th className="py-1 sm:py-2 pl-0 pr-1 sm:pr-2" aria-hidden />
             </tr>
           </thead>
           <tbody>
@@ -2079,7 +2079,7 @@ export function PricingTable({
                 }`}>
                   ${formatDecimal(row.lineTotal)}
                 </td>
-                <td className="p-1 sm:p-2 text-center">
+                <td className="py-1 sm:py-2 pl-0 pr-1 sm:pr-2 text-center">
                   {row.isCustomGold && customRowId ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -2155,7 +2155,7 @@ export function PricingTable({
               <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-lg sm:text-xl">
                 ${formatDecimal(totals.totalPrice)}
               </td>
-              <td className="p-1 sm:p-2">
+              <td className="py-1 sm:py-2 pl-0 pr-1 sm:pr-2">
                 {totals.totalDwt > 0 && (
                   <Button
                     variant="ghost"
