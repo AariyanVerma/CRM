@@ -14,6 +14,26 @@ export type PlatinumPurity = '950' | '900'
 
 export const GOLD_PURITIES: GoldPurity[] = sortPuritiesAsc<GoldPurity>(['24K', '22K', '21.6K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K'])
 
+export const SCRAP_GOLD_CUSTOM_ROW_KEY = 'CUSTOM'
+
+export function isStandardGoldScrapPurity(purityLabel: string): purityLabel is GoldPurity {
+  return (GOLD_PURITIES as readonly string[]).includes(purityLabel)
+}
+
+export function parseGoldKaratFromLabel(purityLabel: string): number | null {
+  const match = String(purityLabel).trim().match(/^(\d+(?:\.\d+)?)\s*K$/i)
+  if (!match) return null
+  const karat = parseFloat(match[1])
+  if (!Number.isFinite(karat) || karat <= 0 || karat > 24) return null
+  return karat
+}
+
+export function formatGoldKaratLabel(karat: number): string {
+  if (!Number.isFinite(karat) || karat <= 0) return ''
+  const rounded = Math.round(karat * 10) / 10
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded}K`
+}
+
 export const SALE_GOLD_PURITIES: GoldPurity[] = ['21K', '21.6K', '22K', '24K']
 export const SILVER_PURITIES: SilverPurity[] = sortPuritiesAsc<SilverPurity>(['925', '900', '800'])
 export const PLATINUM_PURITIES: PlatinumPurity[] = sortPuritiesAsc<PlatinumPurity>(['950', '900'])
@@ -30,14 +50,23 @@ function purityToValue(purity: string): number {
 
 
 
-export function calculateScrapGoldPricePerDWT(
-  purity: GoldPurity,
+export function calculateScrapGoldPricePerDWTFromKarat(
+  karatValue: number,
   goldSpotPrice: number,
   percentage: number = 95
 ): number {
-  const karatValue = parseFloat(purity.replace('K', ''))
+  if (!Number.isFinite(karatValue) || karatValue <= 0) return 0
   const result = ((goldSpotPrice * (karatValue - 0.5)) / 24) * ((percentage / 20) / 100)
   return Math.max(0, result)
+}
+
+export function calculateScrapGoldPricePerDWT(
+  purity: GoldPurity | string,
+  goldSpotPrice: number,
+  percentage: number = 95
+): number {
+  const karatValue = parseGoldKaratFromLabel(purity) ?? parseFloat(String(purity).replace(/K/i, ''))
+  return calculateScrapGoldPricePerDWTFromKarat(karatValue, goldSpotPrice, percentage)
 }
 
 
