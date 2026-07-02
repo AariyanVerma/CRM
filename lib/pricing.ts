@@ -15,6 +15,8 @@ export type PlatinumPurity = '950' | '900'
 export const GOLD_PURITIES: GoldPurity[] = sortPuritiesAsc<GoldPurity>(['24K', '22K', '21.6K', '21K', '18K', '16K', '14K', '13K', '12K', '11K', '10K', '9K'])
 
 export const SCRAP_GOLD_CUSTOM_ROW_KEY = 'CUSTOM'
+export const SCRAP_GOLD_COIN_CUSTOM_ROW_KEY = 'GOLD_COIN_CUSTOM'
+export const SCRAP_GOLD_COIN_PURITY_PREFIX = 'GC:'
 
 export function isStandardGoldScrapPurity(purityLabel: string): purityLabel is GoldPurity {
   return (GOLD_PURITIES as readonly string[]).includes(purityLabel)
@@ -58,6 +60,49 @@ export function calculateScrapGoldPricePerDWTFromKarat(
   if (!Number.isFinite(karatValue) || karatValue <= 0) return 0
   const result = ((goldSpotPrice * (karatValue - 0.5)) / 24) * ((percentage / 20) / 100)
   return Math.max(0, result)
+}
+
+export function calculateGoldCoinPricePerDWTFromKarat(
+  karatValue: number,
+  goldSpotPrice: number,
+  percentage: number = 95
+): number {
+  if (!Number.isFinite(karatValue) || karatValue <= 0) return 0
+  const result = ((goldSpotPrice * karatValue) / 24) * ((percentage / 20) / 100)
+  return Math.max(0, result)
+}
+
+export function isGoldCoinPurityLabel(purityLabel: string): boolean {
+  return String(purityLabel).startsWith(SCRAP_GOLD_COIN_PURITY_PREFIX)
+}
+
+export function formatGoldCoinPurityLabel(karat: number): string {
+  const label = formatGoldKaratLabel(karat)
+  return label ? `${SCRAP_GOLD_COIN_PURITY_PREFIX}${label}` : ""
+}
+
+export function parseGoldCoinPurityLabel(purityLabel: string): number | null {
+  if (!isGoldCoinPurityLabel(purityLabel)) return null
+  return parseGoldKaratFromLabel(purityLabel.slice(SCRAP_GOLD_COIN_PURITY_PREFIX.length))
+}
+
+export function displayGoldCoinPurityLabel(purityLabel: string): string {
+  if (isGoldCoinPurityLabel(purityLabel)) {
+    return purityLabel.slice(SCRAP_GOLD_COIN_PURITY_PREFIX.length)
+  }
+  return purityLabel
+}
+
+export function resolveScrapGoldPricePerDWT(
+  purityLabel: string,
+  goldSpotPrice: number,
+  percentage: number = 95
+): number {
+  const coinKarat = parseGoldCoinPurityLabel(purityLabel)
+  if (coinKarat != null) {
+    return calculateGoldCoinPricePerDWTFromKarat(coinKarat, goldSpotPrice, percentage)
+  }
+  return calculateScrapGoldPricePerDWT(purityLabel, goldSpotPrice, percentage)
 }
 
 export function calculateScrapGoldPricePerDWT(

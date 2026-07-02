@@ -27,13 +27,18 @@ import {
   getScrapPricingRows,
   getMeltPricingRows,
   calculateScrapGoldPricePerDWTFromKarat,
+  calculateGoldCoinPricePerDWTFromKarat,
   calculateLineTotal,
   calculateSaleRowValue,
   SALE_GOLD_PURITIES,
   SCRAP_GOLD_CUSTOM_ROW_KEY,
+  SCRAP_GOLD_COIN_CUSTOM_ROW_KEY,
   formatGoldKaratLabel,
+  formatGoldCoinPurityLabel,
+  isGoldCoinPurityLabel,
   isStandardGoldScrapPurity,
   parseGoldKaratFromLabel,
+  parseGoldCoinPurityLabel,
   type MetalType,
   type GoldPurity,
   GOLD_PURITIES,
@@ -117,6 +122,11 @@ type CustomGoldScrapRow = {
   karat: number | string
 }
 
+type CustomGoldCoinRow = {
+  id: string
+  karat: number | string
+}
+
 type MetalPricingRow = {
   purity: string
   dwt: number
@@ -131,10 +141,16 @@ type MetalPricingRow = {
 }
 
 let customGoldRowCounter = 0
+let customGoldCoinRowCounter = 0
 
 function createCustomGoldScrapRow(karat: number | string = ""): CustomGoldScrapRow {
   customGoldRowCounter += 1
   return { id: `custom-${Date.now()}-${customGoldRowCounter}`, karat }
+}
+
+function createCustomGoldCoinRow(karat: number | string = ""): CustomGoldCoinRow {
+  customGoldCoinRowCounter += 1
+  return { id: `coin-${Date.now()}-${customGoldCoinRowCounter}`, karat }
 }
 
 function encodeCustomGoldRowPurity(rowId: string): string {
@@ -148,6 +164,27 @@ function decodeCustomGoldRowPurity(purity: string): string | null {
 
 function isCustomGoldRowPurity(purity: string): boolean {
   return purity.startsWith(`${SCRAP_GOLD_CUSTOM_ROW_KEY}:`)
+}
+
+function encodeCustomGoldCoinRowPurity(rowId: string): string {
+  return `${SCRAP_GOLD_COIN_CUSTOM_ROW_KEY}:${rowId}`
+}
+
+function decodeCustomGoldCoinRowPurity(purity: string): string | null {
+  if (!purity.startsWith(`${SCRAP_GOLD_COIN_CUSTOM_ROW_KEY}:`)) return null
+  return purity.slice(SCRAP_GOLD_COIN_CUSTOM_ROW_KEY.length + 1)
+}
+
+function isCustomGoldCoinRowPurity(purity: string): boolean {
+  return purity.startsWith(`${SCRAP_GOLD_COIN_CUSTOM_ROW_KEY}:`)
+}
+
+function customGoldCoinDwtKey(rowId: string): string {
+  return `GOLD-${SCRAP_GOLD_COIN_CUSTOM_ROW_KEY}-${rowId}`
+}
+
+function customGoldCoinKaratFocusKey(rowId: string): string {
+  return `custom-coin-karat-${customGoldCoinDwtKey(rowId)}`
 }
 
 function customGoldScrapDwtKey(rowId: string): string {
@@ -167,6 +204,10 @@ function scrapLineItemStateKey(
   const customRowId = decodeCustomGoldRowPurity(purity)
   if (metalType === "GOLD" && customRowId) {
     return customGoldScrapDwtKey(customRowId)
+  }
+  const goldCoinRowId = decodeCustomGoldCoinRowPurity(purity)
+  if (metalType === "GOLD" && goldCoinRowId) {
+    return customGoldCoinDwtKey(goldCoinRowId)
   }
   return `${metalType}-${purity}`
 }
@@ -203,7 +244,8 @@ function buildDraftLineItems(
   percentages: Record<string, number | string>,
   saleRows: SaleRow[] = [],
   salePremiumPerOz: number = 0,
-  customGoldScrapRows: CustomGoldScrapRow[] = []
+  customGoldScrapRows: CustomGoldScrapRow[] = [],
+  customGoldCoinRows: CustomGoldCoinRow[] = []
 ): LineItem[] {
   const gold = typeof spotPrices.gold === "number" ? spotPrices.gold : parseFloat(String(spotPrices.gold)) || 0
   const silver = typeof spotPrices.silver === "number" ? spotPrices.silver : parseFloat(String(spotPrices.silver)) || 0
@@ -263,6 +305,22 @@ function buildDraftLineItems(
               id: `draft-${++id}`,
               metalType: "GOLD",
               purityLabel: formatGoldKaratLabel(customKarat),
+              dwt: customDwt,
+              pricePerOz: pricePerDWT,
+              lineTotal: calculateLineTotal(pricePerDWT, customDwt),
+            })
+          }
+        }
+        for (const customRow of customGoldCoinRows) {
+          const customKey = customGoldCoinDwtKey(customRow.id)
+          const customDwt = dwtValues[customKey] ?? 0
+          const customKarat = parseCustomGoldKaratValue(customRow.karat)
+          if (customDwt > 0 && customKarat > 0) {
+            const pricePerDWT = calculateGoldCoinPricePerDWTFromKarat(customKarat, spot, percentage)
+            items.push({
+              id: `draft-${++id}`,
+              metalType: "GOLD",
+              purityLabel: formatGoldCoinPurityLabel(customKarat),
               dwt: customDwt,
               pricePerOz: pricePerDWT,
               lineTotal: calculateLineTotal(pricePerDWT, customDwt),
@@ -360,7 +418,9 @@ export function PricingTable({
 
   const [purityPercentages, setPurityPercentages] = useState<Record<string, number | string>>({})
   const [customGoldScrapRows, setCustomGoldScrapRows] = useState<CustomGoldScrapRow[]>(() => [createCustomGoldScrapRow()])
+  const [customGoldCoinRows, setCustomGoldCoinRows] = useState<CustomGoldCoinRow[]>(() => [createCustomGoldCoinRow()])
   const [editingCustomKaratRowId, setEditingCustomKaratRowId] = useState<string | null>(null)
+  const [editingCustomGoldCoinKaratRowId, setEditingCustomGoldCoinKaratRowId] = useState<string | null>(null)
   const [saleRows, setSaleRows] = useState<SaleRow[]>([createSaleRow()])
   const [salePremiumPerOz, setSalePremiumPerOz] = useState<number | string>(() => {
     const fromTx = transaction.salePremiumPerOz
@@ -382,8 +442,12 @@ export function PricingTable({
   purityPercentagesRef.current = purityPercentages
   const customGoldScrapRowsRef = useRef(customGoldScrapRows)
   customGoldScrapRowsRef.current = customGoldScrapRows
+  const customGoldCoinRowsRef = useRef(customGoldCoinRows)
+  customGoldCoinRowsRef.current = customGoldCoinRows
   const lastCustomGoldPurityLabelRef = useRef<Record<string, string>>({})
+  const lastCustomGoldCoinPurityLabelRef = useRef<Record<string, string>>({})
   const customKaratInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const customGoldCoinKaratInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const saleRowsRef = useRef(saleRows)
   saleRowsRef.current = saleRows
   const salePremiumRef = useRef(salePremiumPerOz)
@@ -402,8 +466,11 @@ export function PricingTable({
     setDwtValues({})
     setPurityPercentages({})
     setCustomGoldScrapRows([createCustomGoldScrapRow()])
+    setCustomGoldCoinRows([createCustomGoldCoinRow()])
     setEditingCustomKaratRowId(null)
+    setEditingCustomGoldCoinKaratRowId(null)
     lastCustomGoldPurityLabelRef.current = {}
+    lastCustomGoldCoinPurityLabelRef.current = {}
     setSaving({})
     lastSavedValuesRef.current = {}
     lastEditTimeRef.current = {}
@@ -445,7 +512,21 @@ export function PricingTable({
     const purityValues: Record<string, number> = {}
     const loadedCustomRows: CustomGoldScrapRow[] = []
     const loadedCustomLabels: Record<string, string> = {}
+    const loadedGoldCoinRows: CustomGoldCoinRow[] = []
+    const loadedGoldCoinLabels: Record<string, string> = {}
     transaction.lineItems.forEach((item) => {
+      if (
+        transaction.type === "SCRAP" &&
+        item.metalType === "GOLD" &&
+        isGoldCoinPurityLabel(item.purityLabel)
+      ) {
+        const rowId = `item-${item.id}`
+        const karat = parseGoldCoinPurityLabel(item.purityLabel)
+        loadedGoldCoinRows.push({ id: rowId, karat: karat ?? "" })
+        values[customGoldCoinDwtKey(rowId)] = item.dwt
+        loadedGoldCoinLabels[rowId] = item.purityLabel
+        return
+      }
       if (
         transaction.type === "SCRAP" &&
         item.metalType === "GOLD" &&
@@ -473,8 +554,21 @@ export function PricingTable({
       const focusKey = customGoldKaratFocusKey(row.id)
       return focusedFieldRef.current === focusKey || isTypingRef.current[focusKey]
     })?.id
+    const editingGoldCoinRowId = customGoldCoinRowsRef.current.find((row) => {
+      const focusKey = customGoldCoinKaratFocusKey(row.id)
+      return focusedFieldRef.current === focusKey || isTypingRef.current[focusKey]
+    })?.id
     if (editingCustomRowId) {
       const localKey = customGoldScrapDwtKey(editingCustomRowId)
+      if (values[localKey] === undefined) {
+        const localCustomDwt = dwtValuesRef.current[localKey]
+        if (localCustomDwt !== undefined) {
+          values[localKey] = localCustomDwt
+        }
+      }
+    }
+    if (editingGoldCoinRowId) {
+      const localKey = customGoldCoinDwtKey(editingGoldCoinRowId)
       if (values[localKey] === undefined) {
         const localCustomDwt = dwtValuesRef.current[localKey]
         if (localCustomDwt !== undefined) {
@@ -490,6 +584,14 @@ export function PricingTable({
         lastCustomGoldPurityLabelRef.current = loadedCustomLabels
       } else if (customGoldScrapRowsRef.current.length === 0) {
         setCustomGoldScrapRows([createCustomGoldScrapRow()])
+      }
+    }
+    if (!editingGoldCoinRowId) {
+      if (loadedGoldCoinRows.length > 0) {
+        setCustomGoldCoinRows(loadedGoldCoinRows)
+        lastCustomGoldCoinPurityLabelRef.current = loadedGoldCoinLabels
+      } else if (customGoldCoinRowsRef.current.length === 0) {
+        setCustomGoldCoinRows([createCustomGoldCoinRow()])
       }
     }
   }, [transaction.lineItems, transaction.type, isDraft, resetFormState])
@@ -600,8 +702,22 @@ export function PricingTable({
       const purityValues: Record<string, number> = {}
       const syncedCustomRows: CustomGoldScrapRow[] = []
       const syncedCustomLabels: Record<string, string> = {}
+      const syncedGoldCoinRows: CustomGoldCoinRow[] = []
+      const syncedGoldCoinLabels: Record<string, string> = {}
       
       lineItems.forEach((item) => {
+        if (
+          transaction.type === "SCRAP" &&
+          item.metalType === "GOLD" &&
+          isGoldCoinPurityLabel(item.purityLabel)
+        ) {
+          const rowId = `item-${item.id}`
+          const karat = parseGoldCoinPurityLabel(item.purityLabel)
+          syncedGoldCoinRows.push({ id: rowId, karat: karat ?? "" })
+          values[customGoldCoinDwtKey(rowId)] = item.dwt
+          syncedGoldCoinLabels[rowId] = item.purityLabel
+          return
+        }
         if (
           transaction.type === "SCRAP" &&
           item.metalType === "GOLD" &&
@@ -632,6 +748,12 @@ export function PricingTable({
         if (
           transaction.type === "SCRAP" &&
           item.metalType === "GOLD" &&
+          isGoldCoinPurityLabel(item.purityLabel)
+        ) {
+          key = customGoldCoinDwtKey(`item-${item.id}`)
+        } else if (
+          transaction.type === "SCRAP" &&
+          item.metalType === "GOLD" &&
           !isStandardGoldScrapPurity(item.purityLabel)
         ) {
           key = customGoldScrapDwtKey(`item-${item.id}`)
@@ -649,6 +771,15 @@ export function PricingTable({
       if (!editingCustomRowId && syncedCustomRows.length > 0) {
         setCustomGoldScrapRows(syncedCustomRows)
         lastCustomGoldPurityLabelRef.current = syncedCustomLabels
+      }
+
+      const editingGoldCoinRowId = customGoldCoinRowsRef.current.find((row) => {
+        const focusKey = customGoldCoinKaratFocusKey(row.id)
+        return focusedFieldRef.current === focusKey || isTypingRef.current[focusKey]
+      })?.id
+      if (!editingGoldCoinRowId && syncedGoldCoinRows.length > 0) {
+        setCustomGoldCoinRows(syncedGoldCoinRows)
+        lastCustomGoldCoinPurityLabelRef.current = syncedGoldCoinLabels
       }
 
       setDwtValues((prev) => {
@@ -752,7 +883,8 @@ export function PricingTable({
               percentagesRef.current,
               saleRowsRef.current,
               0,
-              customGoldScrapRowsRef.current
+              customGoldScrapRowsRef.current,
+              customGoldCoinRowsRef.current
             )
             onLineItemsUpdate(items)
           } catch (e) {
@@ -844,7 +976,11 @@ export function PricingTable({
     const dwt = dwtValuesRef.current[key] ?? dwtValues[key] ?? 0
     const purityPctValue = purityPercentagesRef.current[key] ?? purityPercentages[key] ?? 0
     const currentPurityPercentage = typeof purityPctValue === "string" ? parseFloat(purityPctValue) || 0 : purityPctValue
-    const purityParam = transaction.type === "MELT" ? metalType : resolveScrapGoldPurityLabel(purity)
+    const purityParam = transaction.type === "MELT"
+      ? metalType
+      : isCustomGoldCoinRowPurity(purity)
+        ? resolveScrapGoldCoinPurityLabel(purity)
+        : resolveScrapGoldPurityLabel(purity)
     if (metalType === "GOLD" && isCustomGoldRowPurity(purity)) {
       const rowId = decodeCustomGoldRowPurity(purity)
       const row = customGoldScrapRowsRef.current.find((entry) => entry.id === rowId)
@@ -852,7 +988,14 @@ export function PricingTable({
       if (karat <= 0) return
       if (rowId) lastCustomGoldPurityLabelRef.current[rowId] = formatGoldKaratLabel(karat)
     }
-    if (isCustomGoldRowPurity(purityParam)) return
+    if (metalType === "GOLD" && isCustomGoldCoinRowPurity(purity)) {
+      const rowId = decodeCustomGoldCoinRowPurity(purity)
+      const row = customGoldCoinRowsRef.current.find((entry) => entry.id === rowId)
+      const karat = parseCustomGoldKaratValue(row?.karat ?? 0)
+      if (karat <= 0) return
+      if (rowId) lastCustomGoldCoinPurityLabelRef.current[rowId] = formatGoldCoinPurityLabel(karat)
+    }
+    if (isCustomGoldRowPurity(purityParam) || isCustomGoldCoinRowPurity(purity)) return
     void saveLineItemBlur(metalType, purityParam, dwt, currentPurityPercentage)
   }
 
@@ -1050,7 +1193,8 @@ export function PricingTable({
             percentagesRef.current,
             saleRowsRef.current,
             0,
-            customGoldScrapRowsRef.current
+            customGoldScrapRowsRef.current,
+            customGoldCoinRowsRef.current
           )
           onLineItemsUpdate(items)
         }
@@ -1112,7 +1256,8 @@ export function PricingTable({
             percentagesRef.current,
             saleRowsRef.current,
             0,
-            customGoldScrapRowsRef.current
+            customGoldScrapRowsRef.current,
+            customGoldCoinRowsRef.current
           )
           onLineItemsUpdate(items)
         }
@@ -1267,6 +1412,14 @@ export function PricingTable({
     return karat > 0 ? formatGoldKaratLabel(karat) : purity
   }
 
+  function resolveScrapGoldCoinPurityLabel(purity: string): string {
+    const rowId = decodeCustomGoldCoinRowPurity(purity)
+    if (!rowId) return purity
+    const row = customGoldCoinRowsRef.current.find((entry) => entry.id === rowId)
+    const karat = parseCustomGoldKaratValue(row?.karat ?? 0)
+    return karat > 0 ? formatGoldCoinPurityLabel(karat) : purity
+  }
+
   function updateCustomGoldRowKarat(rowId: string, karat: number | string) {
     setCustomGoldScrapRows((prev) =>
       prev.map((row) => (row.id === rowId ? { ...row, karat } : row))
@@ -1340,7 +1493,8 @@ export function PricingTable({
           percentagesRef.current,
           saleRowsRef.current,
           0,
-          customGoldScrapRowsRef.current
+          customGoldScrapRowsRef.current,
+          customGoldCoinRowsRef.current
         )
         onLineItemsUpdate(items)
       }
@@ -1385,6 +1539,133 @@ export function PricingTable({
         percentagesRef.current,
         saleRowsRef.current,
         0,
+        rows,
+        customGoldCoinRowsRef.current
+      )
+      onLineItemsUpdate(items)
+    }
+  }
+
+  function updateCustomGoldCoinRowKarat(rowId: string, karat: number | string) {
+    setCustomGoldCoinRows((prev) =>
+      prev.map((row) => (row.id === rowId ? { ...row, karat } : row))
+    )
+  }
+
+  function handleCustomGoldCoinKaratChange(rowId: string, value: string) {
+    if (isReadOnly) return
+    const focusKey = customGoldCoinKaratFocusKey(rowId)
+    isTypingRef.current[focusKey] = true
+    lastEditTimeRef.current[focusKey] = Date.now()
+
+    if (value === "" || value === null || value === undefined) {
+      updateCustomGoldCoinRowKarat(rowId, "")
+      return
+    }
+
+    updateCustomGoldCoinRowKarat(rowId, sanitizeDecimalInput(value))
+  }
+
+  function handleCustomGoldCoinKaratFocus(rowId: string) {
+    const focusKey = customGoldCoinKaratFocusKey(rowId)
+    focusedFieldRef.current = focusKey
+    isTypingRef.current[focusKey] = true
+    setEditingCustomGoldCoinKaratRowId(rowId)
+  }
+
+  function startCustomGoldCoinKaratEdit(rowId: string) {
+    if (isReadOnly) return
+    setEditingCustomGoldCoinKaratRowId(rowId)
+    requestAnimationFrame(() => {
+      customGoldCoinKaratInputRefs.current[rowId]?.focus()
+      customGoldCoinKaratInputRefs.current[rowId]?.select()
+    })
+  }
+
+  function handleCustomGoldCoinKaratBlur(rowId: string, e: React.FocusEvent<HTMLInputElement>) {
+    const focusKey = customGoldCoinKaratFocusKey(rowId)
+    focusedFieldRef.current = null
+    isTypingRef.current[focusKey] = false
+    const raw = sanitizeDecimalInput(e.target.value)
+    if (raw === "" || raw === null || raw === undefined) {
+      updateCustomGoldCoinRowKarat(rowId, "")
+      setEditingCustomGoldCoinKaratRowId(null)
+      return
+    }
+    const karat = parseFloat(raw)
+    if (Number.isNaN(karat) || karat <= 0 || karat > 24) return
+
+    const newLabel = formatGoldCoinPurityLabel(karat)
+    updateCustomGoldCoinRowKarat(rowId, karat)
+    setEditingCustomGoldCoinKaratRowId(null)
+
+    const customKey = customGoldCoinDwtKey(rowId)
+    const dwt = dwtValuesRef.current[customKey] ?? 0
+    const oldLabel = lastCustomGoldCoinPurityLabelRef.current[rowId]
+
+    if (oldLabel && oldLabel !== newLabel && dwt > 0 && !isDraft) {
+      void saveLineItemBlur("GOLD", oldLabel, 0)
+    }
+    if (dwt > 0) {
+      lastCustomGoldCoinPurityLabelRef.current[rowId] = newLabel
+      if (!isDraft) {
+        void saveLineItemBlur("GOLD", newLabel, dwt)
+      } else if (onLineItemsUpdate) {
+        const items = buildDraftLineItems(
+          transaction.type,
+          dwtValuesRef.current,
+          purityPercentagesRef.current,
+          spotPricesRef.current,
+          percentagesRef.current,
+          saleRowsRef.current,
+          0,
+          customGoldScrapRowsRef.current,
+          customGoldCoinRowsRef.current
+        )
+        onLineItemsUpdate(items)
+      }
+    } else {
+      lastCustomGoldCoinPurityLabelRef.current[rowId] = newLabel
+    }
+  }
+
+  function addCustomGoldCoinRow() {
+    if (isReadOnly) return
+    const newRow = createCustomGoldCoinRow()
+    setCustomGoldCoinRows((prev) => [...prev, newRow])
+    setEditingCustomGoldCoinKaratRowId(newRow.id)
+    requestAnimationFrame(() => {
+      customGoldCoinKaratInputRefs.current[newRow.id]?.focus()
+    })
+  }
+
+  function removeCustomGoldCoinRow(rowId: string) {
+    if (isReadOnly) return
+    const purity = encodeCustomGoldCoinRowPurity(rowId)
+    const savePurity = resolveScrapGoldCoinPurityLabel(purity)
+    if (!isCustomGoldCoinRowPurity(savePurity)) {
+      void saveLineItemBlur("GOLD", savePurity, 0)
+    }
+    const key = customGoldCoinDwtKey(rowId)
+    const latestDwt = { ...dwtValuesRef.current }
+    delete latestDwt[key]
+    setDwtValues(latestDwt)
+    delete lastCustomGoldCoinPurityLabelRef.current[rowId]
+    delete lastSavedValuesRef.current[key]
+    if (editingCustomGoldCoinKaratRowId === rowId) setEditingCustomGoldCoinKaratRowId(null)
+    const nextRows = customGoldCoinRowsRef.current.filter((row) => row.id !== rowId)
+    const rows = nextRows.length > 0 ? nextRows : [createCustomGoldCoinRow()]
+    setCustomGoldCoinRows(rows)
+    if (isDraft && onLineItemsUpdate) {
+      const items = buildDraftLineItems(
+        transaction.type,
+        latestDwt,
+        purityPercentagesRef.current,
+        spotPricesRef.current,
+        percentagesRef.current,
+        saleRowsRef.current,
+        0,
+        customGoldScrapRowsRef.current,
         rows
       )
       onLineItemsUpdate(items)
@@ -1396,10 +1677,18 @@ export function PricingTable({
     const key = scrapLineItemStateKey(transaction.type, metalType, purity)
     setDwtValues((prev) => ({ ...prev, [key]: 0 }))
     const customRowId = decodeCustomGoldRowPurity(purity)
+    const scrapCustomSaveLabel = customRowId ? lastCustomGoldPurityLabelRef.current[customRowId] : undefined
     if (customRowId && metalType === "GOLD") {
       updateCustomGoldRowKarat(customRowId, "")
       if (editingCustomKaratRowId === customRowId) setEditingCustomKaratRowId(null)
       delete lastCustomGoldPurityLabelRef.current[customRowId]
+    }
+    const goldCoinRowId = decodeCustomGoldCoinRowPurity(purity)
+    const goldCoinSaveLabel = goldCoinRowId ? lastCustomGoldCoinPurityLabelRef.current[goldCoinRowId] : undefined
+    if (goldCoinRowId && metalType === "GOLD") {
+      updateCustomGoldCoinRowKarat(goldCoinRowId, "")
+      if (editingCustomGoldCoinKaratRowId === goldCoinRowId) setEditingCustomGoldCoinKaratRowId(null)
+      delete lastCustomGoldCoinPurityLabelRef.current[goldCoinRowId]
     }
     if (transaction.type === "MELT") {
       setPurityPercentages((prev) => {
@@ -1409,8 +1698,12 @@ export function PricingTable({
       })
       debouncedSave(metalType, metalType, 0)
     } else {
-      const savePurity = resolveScrapGoldPurityLabel(purity)
-      if (!isCustomGoldRowPurity(savePurity)) {
+      const savePurity = goldCoinSaveLabel
+        ?? scrapCustomSaveLabel
+        ?? (isCustomGoldCoinRowPurity(purity)
+          ? resolveScrapGoldCoinPurityLabel(purity)
+          : resolveScrapGoldPurityLabel(purity))
+      if (!isCustomGoldRowPurity(savePurity) && !isCustomGoldCoinRowPurity(savePurity)) {
         debouncedSave(metalType, savePurity, 0)
       }
     }
@@ -1578,6 +1871,65 @@ export function PricingTable({
       totalDwt: rows.reduce((sum, row) => sum + row.dwt, 0),
       totalPrice: rows.reduce((sum, row) => sum + row.lineTotal, 0),
     }
+  }
+
+  function getRowsForGoldCoin(): MetalPricingRow[] {
+    const spotPriceNum = Number(spotPrices.gold) || 0
+    const percentageValue = percentages.scrapGold
+    const percentage = typeof percentageValue === "number"
+      ? percentageValue
+      : typeof percentageValue === "string" && percentageValue !== ""
+        ? parseFloat(percentageValue) || 95
+        : 95
+
+    return customGoldCoinRows.map((customRow) => {
+      const customKey = customGoldCoinDwtKey(customRow.id)
+      const customDwt = dwtValues[customKey] || 0
+      const customKarat = parseCustomGoldKaratValue(customRow.karat)
+      const customLabel = customKarat > 0 ? formatGoldCoinPurityLabel(customKarat) : null
+      const existingCustomItem = customLabel
+        ? transaction.lineItems.find((item) => item.metalType === "GOLD" && item.purityLabel === customLabel)
+        : undefined
+
+      let customPricePerDWT = customKarat > 0
+        ? calculateGoldCoinPricePerDWTFromKarat(customKarat, spotPriceNum, percentage)
+        : 0
+      let customLineTotal = calculateLineTotal(customPricePerDWT, customDwt)
+
+      if ((isStaffLocked || readOnly) && existingCustomItem) {
+        customPricePerDWT = existingCustomItem.pricePerOz
+        customLineTotal = existingCustomItem.lineTotal
+      }
+
+      return {
+        purity: encodeCustomGoldCoinRowPurity(customRow.id),
+        dwt: customDwt,
+        pricePerDWT: customPricePerDWT,
+        lineTotal: customLineTotal,
+        purityPercentage: undefined,
+        saving: saving[customKey] || false,
+        existingItem: existingCustomItem,
+        isCustomGold: true,
+        customKarat: customRow.karat,
+        customRowId: customRow.id,
+      }
+    })
+  }
+
+  function getTotalsForGoldCoin() {
+    const rows = getRowsForGoldCoin()
+    return {
+      totalDwt: rows.reduce((sum, row) => sum + row.dwt, 0),
+      totalPrice: rows.reduce((sum, row) => sum + row.lineTotal, 0),
+    }
+  }
+
+  function handleClearAllGoldCoin() {
+    customGoldCoinRows.forEach((row) => {
+      handleClear("GOLD", encodeCustomGoldCoinRowPurity(row.id))
+    })
+    setCustomGoldCoinRows([createCustomGoldCoinRow()])
+    setEditingCustomGoldCoinKaratRowId(null)
   }
 
   function handleClearAll(metalType: MetalType) {
@@ -2177,6 +2529,229 @@ export function PricingTable({
     )
   }
 
+  function renderGoldCoinTable() {
+    const rows = getRowsForGoldCoin()
+    const totals = getTotalsForGoldCoin()
+
+    return (
+      <div className="overflow-x-auto -mx-2 sm:mx-0 rounded-lg border border-border/50 shadow-sm">
+        <div className="min-w-full inline-block px-2 sm:px-0">
+          <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: "100%" }}>
+            <colgroup>
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "8%", minWidth: "48px" }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b-2 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 shadow-xl">
+                <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                  <div className="flex items-center justify-center gap-2">
+                    <Sparkles className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                    <span className="drop-shadow-md">Purity</span>
+                  </div>
+                </th>
+                <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                  <div className="flex items-center justify-center gap-2">
+                    <DollarSign className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                    <span className="drop-shadow-md">Price/DWT</span>
+                  </div>
+                </th>
+                <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                  <div className="flex items-center justify-center gap-2">
+                    <Scale className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                    <span className="drop-shadow-md">DWT</span>
+                  </div>
+                </th>
+                <th className="text-center p-2 sm:p-3 md:p-4 font-extrabold text-base sm:text-lg text-red-600">
+                  <div className="flex items-center justify-center gap-2">
+                    <Calculator className="h-4 w-4 text-red-600 drop-shadow-lg" />
+                    <span className="drop-shadow-md">Price</span>
+                  </div>
+                </th>
+                <th className="py-1 sm:py-2 pl-0 pr-1 sm:pr-2" aria-hidden />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => {
+                const customRowId = row.customRowId
+                const rowKaratValue = parseCustomGoldKaratValue(row.customKarat ?? 0)
+                const hasRowKarat = row.customKarat !== "" && rowKaratValue > 0
+                const showRowKaratInput = Boolean(customRowId && (!hasRowKarat || editingCustomGoldCoinKaratRowId === customRowId))
+
+                return (
+                  <tr
+                    key={row.purity}
+                    className={`border-b transition-colors ${
+                      index % 2 === 0 ? "bg-background" : "bg-muted/20"
+                    } ${
+                      row.dwt > 0 || parseCustomGoldKaratValue(row.customKarat ?? 0) > 0
+                        ? "bg-primary/5 hover:bg-primary/10"
+                        : "hover:bg-muted/40"
+                    }`}
+                  >
+                    <td className="p-2 sm:p-3 md:p-4 font-black text-center overflow-hidden text-ellipsis text-base sm:text-lg text-red-600">
+                      {customRowId ? (
+                        showRowKaratInput ? (
+                          <div className="flex justify-center items-center gap-1">
+                            <Input
+                              ref={(el) => { customGoldCoinKaratInputRefs.current[customRowId] = el }}
+                              type="text"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              value={row.customKarat === "" ? "" : String(row.customKarat)}
+                              onChange={(e) => handleCustomGoldCoinKaratChange(customRowId, e.target.value)}
+                              onFocus={() => handleCustomGoldCoinKaratFocus(customRowId)}
+                              onBlur={(e) => handleCustomGoldCoinKaratBlur(customRowId, e)}
+                              onKeyDown={blockNonNumericDecimalKeyDown}
+                              onPaste={(e) => {
+                                e.preventDefault()
+                                handleCustomGoldCoinKaratChange(customRowId, e.clipboardData.getData("text"))
+                              }}
+                              disabled={isReadOnly}
+                              className="w-full max-w-20 sm:max-w-24 text-center font-black text-base sm:text-lg text-red-600 transition-all bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                              placeholder="0"
+                              aria-label="Custom gold coin karat"
+                            />
+                            <span className="font-black">K</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => startCustomGoldCoinKaratEdit(customRowId)}
+                            disabled={isReadOnly}
+                            className="font-black text-base sm:text-lg text-red-600 bg-transparent border-0 p-0 cursor-text disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {formatGoldKaratLabel(rowKaratValue)}
+                          </button>
+                        )
+                      ) : null}
+                    </td>
+                    <td className="p-2 sm:p-3 md:p-4 text-center font-semibold overflow-hidden text-ellipsis text-base sm:text-lg text-muted-foreground">
+                      ${formatDecimal(row.pricePerDWT)}
+                    </td>
+                    <td className="p-2 sm:p-3 md:p-4 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={row.dwt || ""}
+                          onChange={(e) => handleDwtChange("GOLD", row.purity, e.target.value)}
+                          onFocus={() => { focusedFieldRef.current = scrapLineItemStateKey(transaction.type, "GOLD", row.purity) }}
+                          onBlur={() => handleDwtBlur("GOLD", row.purity)}
+                          disabled={isReadOnly}
+                          className={`w-full max-w-24 sm:max-w-28 text-center font-bold text-base sm:text-lg transition-all ${
+                            row.dwt > 0
+                              ? "bg-primary/10 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                              : "bg-background"
+                          }`}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </td>
+                    <td className={`p-2 sm:p-3 md:p-4 text-center font-bold overflow-hidden text-ellipsis text-base sm:text-lg ${
+                      row.lineTotal > 0 ? "text-red-600" : ""
+                    }`}>
+                      ${formatDecimal(row.lineTotal)}
+                    </td>
+                    <td className="py-1 sm:py-2 pl-0 pr-1 sm:pr-2 text-center">
+                      {customRowId ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={isReadOnly}
+                              className="h-10 w-10 p-0 border-primary/30 hover:bg-primary/10"
+                              aria-label="Custom gold coin row options"
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="min-w-[10.5rem]">
+                            <DropdownMenuItem onClick={addCustomGoldCoinRow} className="py-2.5 cursor-pointer">
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add karat row
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => removeCustomGoldCoinRow(customRowId)}
+                              disabled={customGoldCoinRows.length <= 1}
+                              className="py-2.5 cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Remove row
+                            </DropdownMenuItem>
+                            {(row.dwt > 0 || hasRowKarat) && (
+                              <DropdownMenuItem
+                                onClick={() => handleClear("GOLD", row.purity)}
+                                className="py-2.5 cursor-pointer"
+                              >
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Clear values
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        row.dwt > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleClear("GOLD", row.purity)}
+                            disabled={isReadOnly}
+                            className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                            title="Clear DWT"
+                          >
+                            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </Button>
+                        )
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-4 border-primary/30 bg-primary/5 font-black text-red-600">
+                <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">
+                  <div className="flex items-center justify-center gap-2">
+                    <Calculator className="h-4 w-4" />
+                    <span>Total</span>
+                  </div>
+                </td>
+                <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">—</td>
+                <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-base sm:text-lg">
+                  {formatDecimal(totals.totalDwt)}
+                </td>
+                <td className="p-2 sm:p-3 md:p-4 text-center overflow-hidden text-ellipsis text-lg sm:text-xl">
+                  ${formatDecimal(totals.totalPrice)}
+                </td>
+                <td className="py-1 sm:py-2 pl-0 pr-1 sm:pr-2">
+                  {totals.totalDwt > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleClearAllGoldCoin}
+                      disabled={isReadOnly}
+                      className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
+                      title="Clear all DWT values"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
   if (transaction.type === "SALE") {
     return (
       <div className="space-y-4">
@@ -2439,6 +3014,77 @@ export function PricingTable({
           </CardHeader>
           <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderMetalTable("GOLD")}</CardContent>
         </Card>
+
+        {transaction.type === "SCRAP" && (
+        <Card>
+          <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
+            <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
+              <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
+                {!imageErrors.GOLD_COIN ? (
+                  <Image
+                    src="/metals/gold.png"
+                    alt="Gold Coin"
+                    fill
+                    sizes="56px"
+                    className="object-contain drop-shadow-lg"
+                    onError={() => {
+                      setImageErrors((prev) => ({ ...prev, GOLD_COIN: true }))
+                    }}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-amber-500/20 border-2 border-amber-500/30 rounded-full flex items-center justify-center">
+                    <span className="text-amber-600 font-bold text-lg sm:text-xl">GC</span>
+                  </div>
+                )}
+              </div>
+              <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent drop-shadow-lg">
+                Gold Coin
+              </span>
+            </CardTitle>
+            {userRole === "ADMIN" && (
+              <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 bg-primary/5 rounded-lg p-4 sm:p-5 border border-primary/20 shadow-md">
+                <label className="text-base sm:text-lg md:text-xl font-bold text-foreground">Gold Spot Price (per oz):</label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={spotPrices.gold === "" ? "" : spotPrices.gold}
+                    onFocus={() => handleSpotFocus("gold")}
+                    onChange={(e) => handlePriceChange("GOLD", e.target.value)}
+                    onBlur={(e) => handleSpotBlur("gold", e)}
+                    disabled={isReadOnly}
+                    className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="0.00"
+                  />
+                </div>
+                <label className="text-base sm:text-lg md:text-xl font-black text-foreground">%</label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={(() => {
+                      const key = getPercentageStateKey(transaction.type, "GOLD")
+                      const val = percentages[key]
+                      if (val === "" || val === null || val === undefined) return ""
+                      return String(val)
+                    })()}
+                    onFocus={() => handlePercentageFocus("GOLD")}
+                    onBlur={(e) => handlePercentageBlur("GOLD", e)}
+                    onChange={(e) => handlePercentageChange("GOLD", e.target.value)}
+                    disabled={isReadOnly}
+                    className="w-28 sm:w-36 md:w-40 text-center text-base sm:text-lg md:text-xl font-bold border-2 border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    placeholder="95.00"
+                  />
+                </div>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className={`p-2 sm:p-6 ${userRole === "STAFF" ? "pt-2 sm:pt-3" : ""}`}>{renderGoldCoinTable()}</CardContent>
+        </Card>
+        )}
 
         <Card>
           <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>

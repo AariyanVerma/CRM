@@ -5,6 +5,7 @@ import { toPrismaTransactionType } from "@/lib/transaction-type"
 import { getIO } from "@/lib/ioServer"
 import {
   calculateScrapGoldPricePerDWT,
+  resolveScrapGoldPricePerDWT,
   calculateScrapSilverPricePerDWT,
   calculateScrapPlatinumPricePerDWT,
   calculateMeltGoldPricePerDWT,
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest) {
         pricePerDWT = 0
         if (type === "SCRAP") {
           if (metalType === "GOLD") {
-            pricePerDWT = calculateScrapGoldPricePerDWT(purityLabel as any, goldSpot, percentage)
+            pricePerDWT = resolveScrapGoldPricePerDWT(purityLabel, goldSpot, percentage)
           } else if (metalType === "SILVER") {
             pricePerDWT = calculateScrapSilverPricePerDWT(purityLabel as any, silverSpot, percentage)
           } else if (metalType === "PLATINUM") {

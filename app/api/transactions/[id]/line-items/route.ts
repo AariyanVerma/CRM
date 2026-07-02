@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db"
 import { getIO } from "@/lib/ioServer"
 import {
   calculateScrapGoldPricePerDWT,
+  resolveScrapGoldPricePerDWT,
   calculateScrapSilverPricePerDWT,
   calculateScrapPlatinumPricePerDWT,
   calculateMeltGoldPricePerDWT,
@@ -106,8 +107,8 @@ export async function POST(
       const percentage = todayPrice ? (todayPrice[percentageKey] as number) ?? 95 : 95
       
       if (metalType === "GOLD") {
-        pricePerDWT = calculateScrapGoldPricePerDWT(
-          purityLabel as any,
+        pricePerDWT = resolveScrapGoldPricePerDWT(
+          purityLabel,
           transaction.goldSpot,
           percentage
         )
