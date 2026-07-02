@@ -3022,7 +3022,7 @@ export function PricingTable({
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
                 {!imageErrors.GOLD_COIN ? (
                   <Image
-                    src="/metals/gold-coin.png"
+                    src="/metals/liberty-coin.png"
                     alt="Gold Coin"
                     fill
                     sizes="56px"
