@@ -3019,13 +3019,13 @@ export function PricingTable({
         <Card>
           <CardHeader className={`p-3 sm:p-6 ${userRole === "STAFF" ? "pb-2 sm:pb-3" : ""}`}>
             <CardTitle className={`text-3xl sm:text-4xl md:text-5xl font-extrabold text-center flex items-center justify-center gap-3 sm:gap-4 ${userRole === "ADMIN" ? "mb-4 sm:mb-6" : "mb-0"}`}>
-              <div className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 flex-shrink-0">
+              <div className="relative h-14 w-20 sm:h-16 sm:w-28 md:h-20 md:w-32 flex-shrink-0">
                 {!imageErrors.GOLD_COIN ? (
                   <Image
-                    src="/metals/liberty-coin.png"
+                    src="/metals/double-eagle.png"
                     alt="Gold Coin"
                     fill
-                    sizes="56px"
+                    sizes="160px"
                     quality={100}
                     className="object-contain drop-shadow-lg"
                     onError={() => {
