@@ -17,6 +17,7 @@ import {
   Gem,
   ClipboardCheck,
   UserPlus,
+  TrendingUp,
 } from "lucide-react"
 import { useEffect, useRef } from "react"
 
@@ -125,6 +126,7 @@ function AdminActionsPanel({ delay = 0 }: { delay?: number }) {
 
   const links: ActionLink[] = [
     { label: "Daily Prices", href: "/admin/prices", icon: <DollarSign className="h-4 w-4" /> },
+    { label: "Price History", href: "/admin/price-history", icon: <TrendingUp className="h-4 w-4" /> },
     { label: "Reports", href: "/admin/reports", icon: <BarChart3 className="h-4 w-4" /> },
     { label: "Analytics Dashboard", href: "/admin/analytics-dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: "All Transactions", href: "/admin/transactions", icon: <Search className="h-4 w-4" /> },
@@ -175,12 +177,12 @@ function AdminActionsPanel({ delay = 0 }: { delay?: number }) {
           </div>
           <div>
             <CardTitle className="text-lg font-bold">Admin Panel</CardTitle>
-            <CardDescription className="mt-1 text-sm">Manage prices, reports, users and approvals</CardDescription>
+            <CardDescription className="mt-1 text-sm">Manage prices, history, reports, users and approvals</CardDescription>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 pb-6 pt-0">
+      <CardContent className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-6 pt-0">
         {links.map((link) => (
           <ActionButton key={link.href} {...link} size="default" />
         ))}
