@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/Daily-Prices", "destination": "/" },
+    { "source": "/daily-prices", "destination": "/" }
+  ]
+}

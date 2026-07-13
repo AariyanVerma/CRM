@@ -1,11 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import { Link2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+
+const PUBLIC_PRICES_URL =
+  process.env.NEXT_PUBLIC_PUBLIC_PRICES_URL || "https://prices.newyorkgoldmarket.com"
 
 interface DailyPrice {
   id: string
@@ -105,13 +109,38 @@ export function PricesForm({ initialPrices }: { initialPrices: DailyPrice | null
     }
   }
 
+  async function copyPublicLink() {
+    try {
+      await navigator.clipboard.writeText(PUBLIC_PRICES_URL)
+      toast({
+        title: "Public link copied",
+        description: PUBLIC_PRICES_URL,
+        variant: "success",
+      })
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: PUBLIC_PRICES_URL,
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Set Today&apos;s Prices</CardTitle>
-        <CardDescription>
-          Update spot prices and percentages for all metals. These values will be used for all new transactions created today.
-        </CardDescription>
+      <CardHeader className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>Set Today&apos;s Prices</CardTitle>
+            <CardDescription>
+              Update spot prices and percentages for all metals. These values will be used for all new transactions created today.
+            </CardDescription>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 gap-2" onClick={copyPublicLink}>
+            <Link2 className="h-4 w-4" />
+            Copy public link
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
