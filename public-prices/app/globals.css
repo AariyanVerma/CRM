@@ -7,8 +7,8 @@
   --muted: #b5a99a;
   --red: #c91f2d;
   --gold: #e0b456;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-sans: "Outfit", system-ui, sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
 }
 
 * {
