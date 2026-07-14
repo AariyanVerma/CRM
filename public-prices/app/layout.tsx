@@ -3,7 +3,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Daily Prices | New York Gold Market",
-  description: "Live gold, silver, and platinum buy prices from New York Gold Market.",
+  description: "Gold, silver, and platinum buy prices from New York Gold Market.",
   icons: {
     icon: "/icon-512.png",
   },

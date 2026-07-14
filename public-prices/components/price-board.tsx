@@ -113,7 +113,7 @@ function IconPhone({ className = "h-5 w-5" }: { className?: string }) {
   )
 }
 
-const SPOT_META = [
+const METAL_META = [
   {
     key: "gold" as const,
     label: "Gold",
@@ -248,7 +248,7 @@ export function PriceBoard() {
       </div>
 
       <a
-        href="#spot-prices"
+        href="#metal-prices"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
       >
         Skip to prices
@@ -306,17 +306,17 @@ export function PriceBoard() {
           </div>
         </header>
 
-        <section id="spot-prices" className="mb-10 sm:mb-12" aria-labelledby="spot-heading">
+        <section id="metal-prices" className="mb-10 sm:mb-12" aria-labelledby="metal-heading">
           <div className="animate-fade-up mb-6 flex flex-wrap items-end justify-between gap-3 px-1 [animation-delay:60ms]">
             <div>
               <p className="mb-1 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-emerald-700">
-                Live market
+                Daily board
               </p>
               <h2
-                id="spot-heading"
+                id="metal-heading"
                 className="metal-text-brand text-3xl font-extrabold tracking-tight sm:text-4xl"
               >
-                Today&apos;s Spot Prices
+                Today&apos;s Metal Prices
               </h2>
             </div>
             {data ? (
@@ -331,7 +331,7 @@ export function PriceBoard() {
 
           {loading && !data ? (
             <div className="glass-panel px-6 py-14 text-center text-ink-muted" role="status">
-              Loading live prices…
+              Loading prices…
             </div>
           ) : error && !data ? (
             <div className="glass-panel px-6 py-14 text-center font-medium text-red-600" role="alert">
@@ -340,7 +340,7 @@ export function PriceBoard() {
           ) : data ? (
             <>
               <ul className="grid gap-4 sm:grid-cols-3 sm:gap-5">
-                {SPOT_META.map((metal) => {
+                {METAL_META.map((metal) => {
                   const Icon = metal.Icon
                   return (
                     <li
@@ -378,12 +378,9 @@ export function PriceBoard() {
               </ul>
 
               <p className="mt-5 flex flex-wrap items-center gap-2 px-1 text-base text-ink-muted">
-                <span
-                  className="inline-flex h-2.5 w-2.5 animate-live rounded-full bg-emerald-500"
-                  aria-hidden
-                />
-                <span className="font-extrabold text-emerald-700">Live</span>
-                <span>· Last updated</span>
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden />
+                <span className="font-extrabold text-emerald-700">Published</span>
+                <span>· As of</span>
                 <span className="font-bold text-ink-soft">
                   {new Date(data.updatedAt).toLocaleString()}
                 </span>
