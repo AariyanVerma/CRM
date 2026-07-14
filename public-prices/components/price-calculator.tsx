@@ -325,11 +325,11 @@ export function PriceCalculator() {
         </section>
       ) : null}
 
-      <aside className="mt-6 rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 px-5 py-4 shadow-glass-sm sm:px-6 sm:py-5">
+      <aside className="mt-6 rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 px-4 py-3 shadow-glass-sm sm:px-5 sm:py-3.5">
         <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-amber-900">
           Disclaimer
         </p>
-        <p className="mt-2 text-justify text-sm leading-relaxed text-ink-soft sm:text-base">
+        <p className="mt-1.5 text-justify text-sm leading-snug text-ink-soft sm:text-[0.95rem] sm:leading-relaxed">
           This calculator provides an estimated value based on current market rates. Final payouts are
           subject to in-person verification of exact weight, purity, and metal content. Official
           appraisals are completed exclusively at our window. Prices are subject to live market
@@ -339,13 +339,13 @@ export function PriceCalculator() {
           href={MAPS_HREF}
           target="_blank"
           rel="noopener noreferrer"
-          className="mx-auto mt-4 flex max-w-md items-center justify-center gap-2.5 rounded-2xl border border-amber-200/80 bg-white/90 px-4 py-3 text-center text-sm font-bold text-amber-950 shadow-glass-sm transition hover:border-amber-300 hover:bg-white hover:shadow-glass-md sm:text-base"
+          className="mx-auto mt-2.5 flex w-fit max-w-full items-center justify-center gap-2 rounded-full border border-amber-200/80 bg-white/90 px-3.5 py-2 text-center text-xs font-bold text-amber-950 shadow-glass-sm transition hover:border-amber-300 hover:bg-white hover:shadow-glass-md sm:gap-2.5 sm:px-4 sm:text-sm"
         >
           <span
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 sm:h-8 sm:w-8"
             aria-hidden
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
               <path
                 d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11z"
                 strokeLinecap="round"
@@ -354,7 +354,7 @@ export function PriceCalculator() {
               <circle cx="12" cy="10" r="2.5" />
             </svg>
           </span>
-          <span>33W 47th Street · Window #2 · New York, NY 10036</span>
+          <span className="whitespace-nowrap">33W 47th Street · Window #2 · New York, NY 10036</span>
         </a>
       </aside>
 
