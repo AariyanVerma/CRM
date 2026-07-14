@@ -249,12 +249,19 @@ export function PriceBoard() {
       <div className="animate-fade-up mt-10 flex justify-center [animation-delay:260ms]">
         <Link
           href="/calculator"
-          className="calc-cta group relative inline-flex min-h-[54px] items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white px-9 text-lg font-extrabold text-ink shadow-glass-sm transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:border-slate-400 hover:bg-white hover:shadow-glass-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-400 active:scale-[0.98]"
+          className="calc-cta group relative inline-flex min-h-[58px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 px-10 text-lg font-extrabold text-white shadow-[0_12px_30px_rgba(201,162,39,0.35)] transition-transform duration-300 hover:-translate-y-2 hover:scale-[1.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 active:scale-[0.97]"
         >
+          <span className="calc-cta-glow pointer-events-none absolute -inset-1 rounded-full" aria-hidden />
           <span className="calc-cta-shine pointer-events-none absolute inset-0" aria-hidden />
-          <span className="relative z-10 flex items-center gap-2">
+          <span className="relative z-10 flex items-center gap-2.5 tracking-wide drop-shadow-sm">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition duration-300 group-hover:rotate-12 group-hover:bg-white/30" aria-hidden>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.25">
+                <path d="M4 12h14" strokeLinecap="round" />
+                <path d="M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
             Calculate Your Price
-            <span className="inline-block transition duration-300 group-hover:translate-x-1.5" aria-hidden>
+            <span className="transition duration-300 group-hover:translate-x-1.5" aria-hidden>
               →
             </span>
           </span>
