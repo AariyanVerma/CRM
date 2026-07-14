@@ -46,6 +46,7 @@ function CalculatorTable({
   unit,
   weights,
   onWeightChange,
+  sectionTotal,
 }: {
   title: string
   titleClass: string
@@ -56,6 +57,7 @@ function CalculatorTable({
   unit: WeightUnit
   weights: Record<string, string>
   onWeightChange: (purity: string, value: string) => void
+  sectionTotal: number
 }) {
   return (
     <section className={`glass-panel p-4 sm:p-5 ${accentBorder}`}>
@@ -125,6 +127,17 @@ function CalculatorTable({
           )
         })}
       </ul>
+
+      <div
+        className={`mt-4 flex items-center justify-between gap-3 rounded-2xl border bg-gradient-to-r from-white via-white to-white/70 px-4 py-3.5 shadow-glass-sm ${accentBorder}`}
+      >
+        <span className="text-sm font-bold uppercase tracking-[0.14em] text-ink-faint">
+          {title} total
+        </span>
+        <span className={`num text-2xl font-extrabold sm:text-3xl ${valueClass}`}>
+          ${formatMoney(sectionTotal)}
+        </span>
+      </div>
     </section>
   )
 }
@@ -274,6 +287,7 @@ export function PriceCalculator() {
               onWeightChange={(purity, value) =>
                 setGoldWeights((prev) => ({ ...prev, [purity]: value }))
               }
+              sectionTotal={goldTotal}
             />
             <CalculatorTable
               title="Silver"
@@ -287,6 +301,7 @@ export function PriceCalculator() {
               onWeightChange={(purity, value) =>
                 setSilverWeights((prev) => ({ ...prev, [purity]: value }))
               }
+              sectionTotal={silverTotal}
             />
           </div>
         ) : null}
