@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link"
 import type { DailyPricesPayload, PurityPrice } from "@/lib/prices"
 import { formatBoardDate, formatMoney } from "@/lib/prices"
-import { fromDwt, lineTotal, toDwt, type WeightUnit } from "@/lib/brand"
+import { fromDwt, lineTotal, MAPS_HREF, toDwt, type WeightUnit } from "@/lib/brand"
 import { IconGold, IconPlatinum, IconSilver } from "@/components/icons"
 import { SiteShell } from "@/components/site-shell"
 
@@ -211,7 +211,7 @@ export function PriceCalculator() {
 
   return (
     <SiteShell
-      subtitle="Estimate your buyout using today’s published On Stone and Silver rates."
+      subtitle="Estimate your buyout with today's published On Stone and Silver rates. Final value is confirmed in store."
       skipHref="#calculator"
       skipLabel="Skip to calculator"
     >
@@ -322,11 +322,27 @@ export function PriceCalculator() {
               ${formatMoney(grandTotal)}
             </p>
           </div>
-          <p className="mt-4 text-sm text-ink-faint">
-            Estimates use today’s published rates. Final appraisal is done at the window.
-          </p>
         </section>
       ) : null}
+
+      <aside className="mt-6 rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 px-5 py-4 text-left shadow-glass-sm sm:px-6 sm:py-5">
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-900">
+          Disclaimer
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:text-base">
+          This calculator provides an <strong className="font-extrabold text-ink">estimate only</strong>.
+          The exact price may vary based on your metal&apos;s actual purity, correct weight, and metal
+          content. The real price and final appraisal will be completed at our store:
+        </p>
+        <a
+          href={MAPS_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-block text-sm font-bold text-amber-900 underline decoration-amber-400/70 underline-offset-2 transition hover:text-ink sm:text-base"
+        >
+          33W 47th Street · Window #2 · New York, NY 10036
+        </a>
+      </aside>
     </SiteShell>
   )
 }
