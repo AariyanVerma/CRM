@@ -325,24 +325,49 @@ export function PriceCalculator() {
         </section>
       ) : null}
 
-      <aside className="mt-6 rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 px-5 py-4 text-left shadow-glass-sm sm:px-6 sm:py-5">
-        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-900">
-          Disclaimer
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:text-base">
-          This calculator provides an estimated value based on current market rates. Final payouts are
-          subject to in-person verification of exact weight, purity, and metal content. Official
-          appraisals are completed exclusively at our window. Prices are subject to live market
-          fluctuations.
-        </p>
-        <a
-          href={MAPS_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-block text-sm font-bold text-amber-900 underline decoration-amber-400/70 underline-offset-2 transition hover:text-ink sm:text-base"
-        >
-          33W 47th Street · Window #2 · New York, NY 10036
-        </a>
+      <aside className="mt-6 overflow-hidden rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 text-left shadow-glass-sm">
+        <div className="px-5 py-4 sm:px-6 sm:py-5">
+          <p className="text-center text-xs font-extrabold uppercase tracking-[0.16em] text-amber-900">
+            Disclaimer
+          </p>
+          <p className="mt-2 text-center text-sm leading-relaxed text-ink-soft sm:text-base">
+            This calculator provides an estimated value based on current market rates. Final payouts are
+            subject to in-person verification of exact weight, purity, and metal content. Official
+            appraisals are completed exclusively at our window. Prices are subject to live market
+            fluctuations.
+          </p>
+          <a
+            href={MAPS_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mx-auto mt-4 flex max-w-md items-center justify-center gap-2.5 rounded-2xl border border-amber-200/80 bg-white/90 px-4 py-3 text-center text-sm font-bold text-amber-950 shadow-glass-sm transition hover:border-amber-300 hover:bg-white hover:shadow-glass-md sm:text-base"
+          >
+            <span
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800"
+              aria-hidden
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                <path
+                  d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+            </span>
+            <span>33W 47th Street · Window #2 · New York, NY 10036</span>
+          </a>
+        </div>
+        <div className="relative h-56 w-full border-t border-amber-200/70 bg-slate-100 sm:h-72">
+          <iframe
+            title="New York Gold Market location map"
+            src="https://maps.google.com/maps?q=33%20W%2047th%20Street%20New%20York%20NY%2010036&z=16&output=embed"
+            className="absolute inset-0 h-full w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
+        </div>
       </aside>
     </SiteShell>
   )
