@@ -358,12 +358,7 @@ export function PriceCalculator() {
         </a>
       </aside>
 
-      <section className="glass-panel mt-5 overflow-hidden p-0">
-        <div className="border-b border-black/[0.05] px-5 py-3 text-center sm:px-6">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-faint">
-            Find us
-          </p>
-        </div>
+      <section className="mt-5 overflow-hidden rounded-[1.5rem] shadow-glass-md ring-1 ring-black/[0.04]">
         <div className="relative h-56 w-full bg-slate-100 sm:h-72">
           <iframe
             title="New York Gold Market location map"
