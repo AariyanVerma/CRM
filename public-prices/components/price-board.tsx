@@ -71,28 +71,24 @@ function RateList({
         </div>
       </div>
 
-      <div className="mb-2 grid grid-cols-[1fr_auto_auto] gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-ink-faint sm:px-4">
-        <span>Purity</span>
-        <span className="w-[5.5rem] text-right sm:w-[6.5rem]">DWT</span>
-        <span className="w-[5.5rem] text-right sm:w-[6.5rem]">Gram</span>
+      <div className="mb-2 grid grid-cols-3 gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-ink-faint sm:px-4">
+        <span className="text-left">Purity</span>
+        <span className="text-center">DWT</span>
+        <span className="text-center">Gram</span>
       </div>
 
       <ul className="flex flex-col gap-2.5">
         {rows.map((row, i) => (
           <li
             key={row.purity}
-            className={`animate-row-in group grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:bg-white hover:shadow-glass-lg sm:px-4 sm:py-4 ${accentBorder}`}
+            className={`animate-row-in group grid grid-cols-3 items-center gap-2 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:bg-white hover:shadow-glass-lg sm:px-4 sm:py-4 ${accentBorder}`}
             style={{ animationDelay: `${baseDelay + i * 60}ms` }}
           >
-            <span className="text-lg font-extrabold text-ink-soft sm:text-xl">{row.purity}</span>
-            <span
-              className={`num w-[5.5rem] text-right text-lg font-extrabold sm:w-[6.5rem] sm:text-xl ${valueClass}`}
-            >
+            <span className="text-left text-lg font-extrabold text-ink-soft sm:text-xl">{row.purity}</span>
+            <span className={`num text-center text-lg font-extrabold sm:text-xl ${valueClass}`}>
               ${formatMoney(row.dwt)}
             </span>
-            <span
-              className={`num w-[5.5rem] text-right text-lg font-extrabold sm:w-[6.5rem] sm:text-xl ${valueClass}`}
-            >
+            <span className={`num text-center text-lg font-extrabold sm:text-xl ${valueClass}`}>
               ${formatMoney(row.gram)}
             </span>
           </li>
