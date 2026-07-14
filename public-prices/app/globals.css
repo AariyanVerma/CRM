@@ -4,25 +4,21 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
-    @apply min-h-screen bg-midnight-950 font-sans text-slate-100 antialiased;
+    @apply min-h-screen bg-snow-soft font-sans text-ink antialiased;
   }
 
   ::selection {
-    @apply bg-gold/30 text-white;
+    @apply bg-gold/25 text-ink;
   }
 }
 
 @layer components {
   .glass {
-    @apply border border-white/[0.08] bg-white/[0.04] shadow-glass backdrop-blur-2xl;
-  }
-
-  .glass-strong {
-    @apply border border-white/[0.1] bg-white/[0.06] shadow-glass backdrop-blur-3xl;
+    @apply border border-white/80 bg-white/70 shadow-glass backdrop-blur-2xl;
   }
 
   .num {
