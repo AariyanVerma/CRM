@@ -12,7 +12,7 @@
   }
 
   ::selection {
-    @apply bg-gold/25 text-ink;
+    @apply bg-gold/30 text-ink;
   }
 }
 
@@ -23,7 +23,7 @@
   }
 
   .glass-panel {
-    @apply relative overflow-hidden rounded-[1.75rem] border border-white/90 bg-white/65 shadow-glass-md backdrop-blur-2xl;
+    @apply relative overflow-hidden rounded-[1.75rem] border border-white/95 bg-white/70 shadow-glass-md backdrop-blur-2xl;
   }
 
   .glass-panel::before {
@@ -31,26 +31,38 @@
     @apply pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent;
   }
 
+  .metal-text-gold,
+  .metal-text-silver,
+  .metal-text-platinum,
+  .metal-text-brand {
+    background-size: 200% 200%;
+    @apply bg-clip-text text-transparent;
+  }
+
   .metal-text-gold {
-    @apply bg-text-gold bg-clip-text text-transparent;
+    @apply animate-shine bg-text-gold;
   }
 
   .metal-text-silver {
-    @apply bg-text-silver bg-clip-text text-transparent;
+    @apply animate-shine bg-text-silver;
   }
 
   .metal-text-platinum {
-    @apply bg-text-platinum bg-clip-text text-transparent;
+    @apply animate-shine bg-text-platinum;
   }
 
   .metal-text-brand {
-    @apply bg-text-brand bg-clip-text text-transparent;
+    @apply bg-text-brand;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
-  .animate-live {
+  .animate-live,
+  .animate-floaty,
+  .animate-shine,
+  .animate-aurora,
+  .animate-row-in {
     animation: none !important;
   }
 }
