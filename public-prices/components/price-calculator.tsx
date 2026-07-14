@@ -73,7 +73,7 @@ function CalculatorTable({
         </div>
       </div>
 
-      <div className="mb-2 hidden grid-cols-[0.7fr_0.9fr_1.1fr_1fr] gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-ink-faint sm:grid sm:px-4">
+      <div className="mb-2 hidden grid-cols-[minmax(4rem,0.8fr)_minmax(4.5rem,1fr)_minmax(6.5rem,1.2fr)_minmax(4.5rem,1fr)] gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-faint sm:grid sm:px-4">
         <span>Purity</span>
         <span className="text-right">Rate / {unit === "DWT" ? "DWT" : "Gram"}</span>
         <span className="text-right">Weight ({unit === "DWT" ? "DWT" : "g"})</span>
@@ -89,7 +89,7 @@ function CalculatorTable({
           return (
             <li
               key={row.purity}
-              className={`grid grid-cols-1 gap-3 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm sm:grid-cols-[0.7fr_0.9fr_1.1fr_1fr] sm:items-center sm:gap-2 sm:px-4 ${accentBorder}`}
+              className={`grid grid-cols-1 gap-3 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm sm:grid-cols-[minmax(4rem,0.8fr)_minmax(4.5rem,1fr)_minmax(6.5rem,1.2fr)_minmax(4.5rem,1fr)] sm:items-center sm:gap-2 sm:px-4 ${accentBorder}`}
             >
               <div className="flex items-center justify-between gap-2 sm:block">
                 <span className="text-lg font-extrabold text-ink-soft sm:text-xl">{row.purity}</span>
@@ -274,7 +274,7 @@ export function PriceCalculator() {
             {error}
           </div>
         ) : data ? (
-          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="grid gap-5 lg:grid-cols-2">
             <CalculatorTable
               title="On Stone"
               titleClass="metal-text-gold"

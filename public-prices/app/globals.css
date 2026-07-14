@@ -54,44 +54,6 @@
   .metal-text-brand {
     @apply bg-text-brand;
   }
-
-  .calc-cta {
-    animation: ctaPulse 2.8s ease-in-out infinite;
-  }
-
-  .calc-cta-shine {
-    background: linear-gradient(
-      110deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.45) 45%,
-      transparent 70%
-    );
-    background-size: 200% 100%;
-    animation: ctaShine 2.8s ease-in-out infinite;
-  }
-
-  .calc-cta:hover .calc-cta-shine {
-    animation-duration: 1.2s;
-  }
-}
-
-@keyframes ctaPulse {
-  0%,
-  100% {
-    box-shadow: 0 16px 40px rgba(201, 162, 39, 0.28);
-  }
-  50% {
-    box-shadow: 0 18px 48px rgba(201, 162, 39, 0.48), 0 0 0 8px rgba(201, 162, 39, 0.12);
-  }
-}
-
-@keyframes ctaShine {
-  0% {
-    background-position: 160% 0;
-  }
-  100% {
-    background-position: -60% 0;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -100,9 +62,7 @@
   .animate-floaty,
   .animate-shine,
   .animate-aurora,
-  .animate-row-in,
-  .calc-cta,
-  .calc-cta-shine {
+  .animate-row-in {
     animation: none !important;
   }
 }

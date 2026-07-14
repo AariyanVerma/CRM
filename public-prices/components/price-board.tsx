@@ -224,7 +224,7 @@ export function PriceBoard() {
       </section>
 
       {data ? (
-        <div className="animate-fade-up grid gap-5 [animation-delay:200ms] lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="animate-fade-up grid gap-5 [animation-delay:200ms] lg:grid-cols-2">
           <RateList
             title="On Stone"
             titleClass="metal-text-gold"
@@ -249,13 +249,9 @@ export function PriceBoard() {
       <div className="animate-fade-up mt-10 flex justify-center [animation-delay:260ms]">
         <Link
           href="/calculator"
-          className="calc-cta group relative inline-flex min-h-[58px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-700 px-10 text-lg font-extrabold text-white shadow-gold-glow transition duration-300 hover:-translate-y-1.5 hover:scale-[1.05] hover:shadow-[0_22px_50px_rgba(201,162,39,0.45)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 active:scale-[0.98]"
+          className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-slate-300 bg-white px-8 text-lg font-extrabold text-ink shadow-glass-sm transition duration-200 hover:border-slate-400 hover:bg-slate-50 hover:shadow-glass-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-400 active:scale-[0.99]"
         >
-          <span className="calc-cta-shine pointer-events-none absolute inset-0" aria-hidden />
-          <span className="relative z-10 flex items-center gap-2">
-            Calculate Your Price
-            <span className="inline-block transition duration-300 group-hover:translate-x-1">→</span>
-          </span>
+          Calculate Your Price
         </Link>
       </div>
     </SiteShell>
