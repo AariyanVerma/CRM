@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link"
 import type { DailyPricesPayload, PurityPrice } from "@/lib/prices"
 import { formatBoardDate, formatMoney } from "@/lib/prices"
-import { fromDwt, lineTotal, MAPS_EMBED_SRC, MAPS_HREF, toDwt, type WeightUnit } from "@/lib/brand"
+import { fromDwt, lineTotal, MAPS_DIRECTIONS_HREF, MAPS_EMBED_SRC, MAPS_HREF, toDwt, type WeightUnit } from "@/lib/brand"
 import { IconGold, IconPlatinum, IconSilver } from "@/components/icons"
 import { SiteShell } from "@/components/site-shell"
 
@@ -358,7 +358,7 @@ export function PriceCalculator() {
         </a>
       </aside>
 
-      <section className="mt-5 overflow-hidden rounded-[1.5rem] shadow-glass-md ring-1 ring-black/[0.04]">
+      <section className="relative mt-5 overflow-hidden rounded-[1.5rem] shadow-glass-md ring-1 ring-black/[0.04]">
         <div className="relative h-56 w-full bg-slate-100 sm:h-72">
           <iframe
             title="New York Gold Market location map"
@@ -368,6 +368,20 @@ export function PriceCalculator() {
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
           />
+        </div>
+        <div className="absolute bottom-4 left-1/2 z-10 w-[calc(100%-2rem)] max-w-xs -translate-x-1/2">
+          <a
+            href={MAPS_DIRECTIONS_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-extrabold text-white shadow-glass-lg transition hover:bg-slate-800 active:scale-[0.99] sm:text-base"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M12 3 L20 12 L12 21 L4 12 Z" strokeLinejoin="round" />
+              <path d="M12 7 V17" strokeLinecap="round" />
+            </svg>
+            Get Directions
+          </a>
         </div>
       </section>
     </SiteShell>

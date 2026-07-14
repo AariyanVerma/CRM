@@ -2,6 +2,8 @@ export const PHONE_DISPLAY = "(917) 204-0009"
 export const PHONE_HREF = "tel:+19172040009"
 export const MAPS_QUERY = "newyorkgoldmarket"
 export const MAPS_HREF = "https://www.google.com/maps/search/?api=1&query=newyorkgoldmarket"
+export const MAPS_DIRECTIONS_HREF =
+  "https://www.google.com/maps/dir/?api=1&destination=newyorkgoldmarket"
 export const MAPS_EMBED_SRC =
   "https://maps.google.com/maps?q=newyorkgoldmarket&z=17&hl=en&output=embed"
 export const PUBLIC_GRAMS_PER_DWT = 1.55517
