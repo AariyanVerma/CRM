@@ -73,7 +73,7 @@ function CalculatorTable({
         </div>
       </div>
 
-      <div className="mb-2 hidden grid-cols-4 gap-3 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-faint sm:grid sm:px-4 [&>*]:min-w-0 [&>*]:text-center">
+      <div className="mb-2 hidden gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-faint sm:grid sm:grid-cols-[0.7fr_1fr_1.05fr_1.45fr] sm:px-4 [&>*]:min-w-0 [&>*]:text-center">
         <span>Purity</span>
         <span>Rate / {unit === "DWT" ? "DWT" : "Gram"}</span>
         <span>Weight ({unit === "DWT" ? "DWT" : "g"})</span>
@@ -86,10 +86,11 @@ function CalculatorTable({
           const raw = weights[row.purity] ?? ""
           const weightNum = raw === "" ? 0 : Number(raw)
           const total = lineTotal(weightNum, unit, row.dwt)
+          const totalLabel = `$${formatMoney(total)}`
           return (
             <li
               key={row.purity}
-              className={`grid grid-cols-1 gap-3 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm sm:grid-cols-4 sm:items-center sm:gap-3 sm:px-4 [&>*]:min-w-0 ${accentBorder}`}
+              className={`grid grid-cols-1 gap-3 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm sm:grid-cols-[0.7fr_1fr_1.05fr_1.45fr] sm:items-center sm:gap-2 sm:px-4 [&>*]:min-w-0 ${accentBorder}`}
             >
               <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
                 <span className="text-lg font-extrabold text-ink-soft sm:text-xl">{row.purity}</span>
@@ -115,12 +116,17 @@ function CalculatorTable({
                   className="num w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-center text-base font-bold text-ink outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
                 />
               </label>
-              <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
-                <span className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-ink-faint sm:hidden">
+              <div className="flex min-w-0 items-center justify-between gap-2 sm:justify-center sm:text-center">
+                <span className="shrink-0 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-ink-faint sm:hidden">
                   Total
                 </span>
-                <span className={`num text-lg font-extrabold sm:text-xl ${valueClass}`}>
-                  ${formatMoney(total)}
+                <span
+                  className={`num max-w-full text-right font-extrabold leading-tight sm:text-center ${valueClass} ${
+                    totalLabel.length > 10 ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+                  }`}
+                  title={totalLabel}
+                >
+                  {totalLabel}
                 </span>
               </div>
             </li>
@@ -131,10 +137,15 @@ function CalculatorTable({
       <div
         className={`mt-4 flex items-center justify-between gap-3 rounded-2xl border bg-gradient-to-r from-white via-white to-white/70 px-4 py-3.5 shadow-glass-sm ${accentBorder}`}
       >
-        <span className="text-sm font-bold uppercase tracking-[0.14em] text-ink-faint">
+        <span className="shrink-0 text-sm font-bold uppercase tracking-[0.14em] text-ink-faint">
           {title} total
         </span>
-        <span className={`num text-2xl font-extrabold sm:text-3xl ${valueClass}`}>
+        <span
+          className={`num min-w-0 max-w-[70%] text-right font-extrabold leading-tight ${valueClass} ${
+            formatMoney(sectionTotal).length > 9 ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"
+          }`}
+          title={`$${formatMoney(sectionTotal)}`}
+        >
           ${formatMoney(sectionTotal)}
         </span>
       </div>
@@ -323,7 +334,7 @@ export function PriceCalculator() {
                   <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-amber-800/80">
                     On Stone
                   </p>
-                  <p className="num metal-text-gold mt-1 text-2xl font-extrabold">
+                  <p className="num metal-text-gold mt-1 break-all text-xl font-extrabold leading-tight sm:text-2xl">
                     ${formatMoney(goldTotal)}
                   </p>
                 </div>
@@ -331,17 +342,17 @@ export function PriceCalculator() {
                   <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-slate-500">
                     Silver
                   </p>
-                  <p className="num metal-text-silver mt-1 text-2xl font-extrabold">
+                  <p className="num metal-text-silver mt-1 break-all text-xl font-extrabold leading-tight sm:text-2xl">
                     ${formatMoney(silverTotal)}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex shrink-0 flex-col items-stretch justify-center rounded-2xl bg-ink px-6 py-4 text-center sm:min-w-[15rem] sm:items-end sm:px-8 sm:text-right md:min-w-[17rem]">
+            <div className="flex min-w-0 shrink-0 flex-col items-stretch justify-center rounded-2xl bg-ink px-5 py-4 text-center sm:min-w-[15rem] sm:max-w-[40%] sm:items-end sm:px-7 sm:text-right md:min-w-[17rem]">
               <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/50">
                 Combined
               </p>
-              <p className="num mt-1 text-3xl font-extrabold tracking-tight text-amber-300 sm:text-4xl">
+              <p className="num mt-1 max-w-full break-all text-2xl font-extrabold leading-tight tracking-tight text-amber-300 sm:text-3xl md:text-4xl">
                 ${formatMoney(grandTotal)}
               </p>
             </div>
