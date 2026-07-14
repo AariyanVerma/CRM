@@ -7,35 +7,35 @@ import { formatBoardDate, formatMoney } from "@/lib/prices"
 const POLL_MS = Number(process.env.NEXT_PUBLIC_POLL_MS) || 30000
 const PHONE_DISPLAY = "(917) 204-0009"
 const PHONE_HREF = "tel:+19172040009"
+const THEME_KEY = "nygm-theme"
+
+type Theme = "light" | "dark"
 
 function PriceTable({
   title,
-  accent,
   rows,
 }: {
   title: string
-  accent: "gold" | "silver"
   rows: { purity: string; dwt: number; gram: number }[]
 }) {
   return (
-    <section className={`metal metal-${accent}`}>
-      <div className="metal-title">
-        <h2>{title}</h2>
-        <span className="metal-rule" aria-hidden />
-      </div>
+    <section className="metal" aria-labelledby={`heading-${title.replace(/\s+/g, "-").toLowerCase()}`}>
+      <h2 id={`heading-${title.replace(/\s+/g, "-").toLowerCase()}`}>{title}</h2>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Purity</th>
-              <th>DWT</th>
-              <th>Gram</th>
+              <th scope="col">Purity</th>
+              <th scope="col">Per DWT</th>
+              <th scope="col">Per Gram</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={row.purity} style={{ animationDelay: `${0.05 * i}s` }}>
-                <td className="purity">{row.purity}</td>
+            {rows.map((row) => (
+              <tr key={row.purity}>
+                <th scope="row" className="purity">
+                  {row.purity}
+                </th>
                 <td className="price">${formatMoney(row.dwt)}</td>
                 <td className="price">${formatMoney(row.gram)}</td>
               </tr>
@@ -47,10 +47,53 @@ function PriceTable({
   )
 }
 
+function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
+  const next = theme === "light" ? "dark" : "light"
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={onToggle}
+      aria-label={`Switch to ${next} mode`}
+      title={`Switch to ${next} mode`}
+    >
+      <span className="theme-toggle-icon" aria-hidden>
+        {theme === "light" ? "☾" : "☀"}
+      </span>
+      <span className="theme-toggle-text">{theme === "light" ? "Dark mode" : "Light mode"}</span>
+    </button>
+  )
+}
+
 export function PriceBoard() {
   const [data, setData] = useState<DailyPricesPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [theme, setTheme] = useState<Theme>("light")
+
+  useEffect(() => {
+    const current = document.documentElement.getAttribute("data-theme")
+    if (current === "light" || current === "dark") {
+      setTheme(current)
+      return
+    }
+    const preferred = window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark"
+    document.documentElement.setAttribute("data-theme", preferred)
+    setTheme(preferred)
+  }, [])
+
+  function toggleTheme() {
+    const next: Theme = theme === "light" ? "dark" : "light"
+    document.documentElement.setAttribute("data-theme", next)
+    try {
+      localStorage.setItem(THEME_KEY, next)
+    } catch {
+      /* ignore */
+    }
+    setTheme(next)
+  }
 
   const load = useCallback(async () => {
     try {
@@ -80,56 +123,61 @@ export function PriceBoard() {
 
   return (
     <div className="page">
-      <div className="atmosphere" aria-hidden>
-        <div className="sheen" />
-        <div className="grain" />
+      <a className="skip-link" href="#prices">
+        Skip to prices
+      </a>
+
+      <div className="topbar">
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </div>
 
       <main className="board">
         <header className="hero">
           <p className="brand">New York Gold Market</p>
-          <p className="line">We buy gold</p>
+          <h1 className="line">We Buy Gold</h1>
           <p className="tagline">Live buy prices · Diamond District</p>
           <div className="contact">
-            <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>
-            <span>33W 47th Street · Window #2 · New York, NY 10036</span>
+            <a className="phone" href={PHONE_HREF}>
+              {PHONE_DISPLAY}
+            </a>
+            <p className="address">33W 47th Street · Window #2 · New York, NY 10036</p>
           </div>
         </header>
 
-        <section className="spots" aria-label="Today's spot prices">
+        <section className="spots" id="prices" aria-labelledby="spot-heading">
           <div className="section-label">
-            <h2>Today&apos;s spot</h2>
+            <h2 id="spot-heading">Today&apos;s Spot Prices</h2>
             {data ? <time dateTime={data.date}>{formatBoardDate(data.date)}</time> : null}
           </div>
 
           {loading && !data ? (
-            <p className="status">Loading prices…</p>
+            <p className="status" role="status">
+              Loading prices…
+            </p>
           ) : error && !data ? (
-            <p className="status error">{error}</p>
+            <p className="status error" role="alert">
+              {error}
+            </p>
           ) : data ? (
-            <div className="spot-row">
+            <ul className="spot-row">
               {(
                 [
                   ["Gold", data.spots.gold],
                   ["Silver", data.spots.silver],
                   ["Platinum", data.spots.platinum],
                 ] as const
-              ).map(([label, value], i) => (
-                <div
-                  className="spot"
-                  key={label}
-                  style={{ animationDelay: `${0.08 + i * 0.07}s` }}
-                >
+              ).map(([label, value]) => (
+                <li className="spot" key={label}>
                   <span className="spot-label">{label}</span>
                   <span className="spot-value">${formatMoney(value)}</span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : null}
 
           {data ? (
             <p className="updated">
-              Updated {new Date(data.updatedAt).toLocaleString()}
+              Last updated {new Date(data.updatedAt).toLocaleString()}
               {error ? <span className="refresh-warn"> · refresh delayed</span> : null}
             </p>
           ) : null}
@@ -137,8 +185,8 @@ export function PriceBoard() {
 
         {data ? (
           <div className="metals">
-            <PriceTable title="On Stone" accent="gold" rows={data.onStone} />
-            <PriceTable title="Silver" accent="silver" rows={data.silver} />
+            <PriceTable title="On Stone" rows={data.onStone} />
+            <PriceTable title="Silver" rows={data.silver} />
           </div>
         ) : null}
 
