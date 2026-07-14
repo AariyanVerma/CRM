@@ -325,11 +325,11 @@ export function PriceCalculator() {
         </section>
       ) : null}
 
-      <aside className="mt-6 rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 px-5 py-4 text-center shadow-glass-sm sm:px-6 sm:py-5">
-        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-900">
+      <aside className="mt-6 rounded-[1.5rem] border border-amber-300/60 bg-amber-50/80 px-5 py-4 shadow-glass-sm sm:px-6 sm:py-5">
+        <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-amber-900">
           Disclaimer
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:text-base">
+        <p className="mt-2 text-justify text-sm leading-relaxed text-ink-soft sm:text-base">
           This calculator provides an estimated value based on current market rates. Final payouts are
           subject to in-person verification of exact weight, purity, and metal content. Official
           appraisals are completed exclusively at our window. Prices are subject to live market
