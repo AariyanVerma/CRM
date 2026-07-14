@@ -78,7 +78,7 @@ export function SiteShell({
               href={MAPS_HREF}
               target="_blank"
               rel="noopener noreferrer"
-              className="whitespace-nowrap text-center text-base font-extrabold text-red-600 transition duration-200 hover:text-red-700 sm:text-lg"
+              className="mx-auto block w-full max-w-full px-1 text-center text-[clamp(0.72rem,2.9vw+0.35rem,1.125rem)] font-extrabold leading-snug text-red-600 transition duration-200 hover:text-red-700 sm:whitespace-nowrap"
             >
               33W 47th Street · Window #2 · New York, NY 10036
             </a>
