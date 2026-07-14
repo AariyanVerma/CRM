@@ -5,15 +5,8 @@ import type { DailyPricesPayload } from "@/lib/prices"
 import { formatBoardDate, formatMoney } from "@/lib/prices"
 
 const POLL_MS = Number(process.env.NEXT_PUBLIC_POLL_MS) || 30000
-
-function SpotCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="spot-card">
-      <span className="spot-label">{label}</span>
-      <span className="spot-value">${formatMoney(value)}</span>
-    </div>
-  )
-}
+const PHONE_DISPLAY = "(917) 204-0009"
+const PHONE_HREF = "tel:+19172040009"
 
 function PriceTable({
   title,
@@ -25,9 +18,10 @@ function PriceTable({
   rows: { purity: string; dwt: number; gram: number }[]
 }) {
   return (
-    <section className={`panel panel-${accent}`}>
-      <div className="panel-head">
+    <section className={`metal metal-${accent}`}>
+      <div className="metal-title">
         <h2>{title}</h2>
+        <span className="metal-rule" aria-hidden />
       </div>
       <div className="table-wrap">
         <table>
@@ -39,8 +33,8 @@ function PriceTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.purity}>
+            {rows.map((row, i) => (
+              <tr key={row.purity} style={{ animationDelay: `${0.05 * i}s` }}>
                 <td className="purity">{row.purity}</td>
                 <td className="price">${formatMoney(row.dwt)}</td>
                 <td className="price">${formatMoney(row.gram)}</td>
@@ -61,7 +55,9 @@ export function PriceBoard() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/prices", { cache: "no-store" })
-      const json = await res.json().catch(() => ({})) as DailyPricesPayload & { message?: string }
+      const json = (await res.json().catch(() => ({}))) as DailyPricesPayload & {
+        message?: string
+      }
       if (!res.ok) {
         throw new Error(json.message || "Failed to load prices")
       }
@@ -83,51 +79,73 @@ export function PriceBoard() {
   }, [load])
 
   return (
-    <div className="board">
-      <header className="hero">
-        <p className="brand">New York Gold Market</p>
-        <h1>We Buy Gold</h1>
-        <p className="tagline">Live buy prices · Updated throughout the day</p>
-        <div className="contact">
-          <a href="tel:+19172507774">(917) 250-7774</a>
-          <span>33W 47th Street Window #2 · New York, NY 10036</span>
-        </div>
-      </header>
+    <div className="page">
+      <div className="atmosphere" aria-hidden>
+        <div className="sheen" />
+        <div className="grain" />
+      </div>
 
-      <section className="spots">
-        <div className="spots-head">
-          <h2>Today&apos;s Spot Prices</h2>
-          {data ? <time dateTime={data.date}>{formatBoardDate(data.date)}</time> : null}
-        </div>
-        {loading && !data ? (
-          <p className="status">Loading prices…</p>
-        ) : error && !data ? (
-          <p className="status error">{error}</p>
-        ) : data ? (
-          <div className="spots-grid">
-            <SpotCard label="Gold" value={data.spots.gold} />
-            <SpotCard label="Silver" value={data.spots.silver} />
-            <SpotCard label="Platinum" value={data.spots.platinum} />
+      <main className="board">
+        <header className="hero">
+          <p className="brand">New York Gold Market</p>
+          <p className="line">We buy gold</p>
+          <p className="tagline">Live buy prices · Diamond District</p>
+          <div className="contact">
+            <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>
+            <span>33W 47th Street · Window #2 · New York, NY 10036</span>
+          </div>
+        </header>
+
+        <section className="spots" aria-label="Today's spot prices">
+          <div className="section-label">
+            <h2>Today&apos;s spot</h2>
+            {data ? <time dateTime={data.date}>{formatBoardDate(data.date)}</time> : null}
+          </div>
+
+          {loading && !data ? (
+            <p className="status">Loading prices…</p>
+          ) : error && !data ? (
+            <p className="status error">{error}</p>
+          ) : data ? (
+            <div className="spot-row">
+              {(
+                [
+                  ["Gold", data.spots.gold],
+                  ["Silver", data.spots.silver],
+                  ["Platinum", data.spots.platinum],
+                ] as const
+              ).map(([label, value], i) => (
+                <div
+                  className="spot"
+                  key={label}
+                  style={{ animationDelay: `${0.08 + i * 0.07}s` }}
+                >
+                  <span className="spot-label">{label}</span>
+                  <span className="spot-value">${formatMoney(value)}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {data ? (
+            <p className="updated">
+              Updated {new Date(data.updatedAt).toLocaleString()}
+              {error ? <span className="refresh-warn"> · refresh delayed</span> : null}
+            </p>
+          ) : null}
+        </section>
+
+        {data ? (
+          <div className="metals">
+            <PriceTable title="On Stone" accent="gold" rows={data.onStone} />
+            <PriceTable title="Silver" accent="silver" rows={data.silver} />
           </div>
         ) : null}
-        {data ? (
-          <p className="updated">
-            Last updated {new Date(data.updatedAt).toLocaleString()}
-            {error ? <span className="refresh-warn"> · refresh delayed</span> : null}
-          </p>
-        ) : null}
-      </section>
 
-      {data ? (
-        <div className="tables">
-          <PriceTable title="On Stone" accent="gold" rows={data.onStone} />
-          <PriceTable title="Silver" accent="silver" rows={data.silver} />
-        </div>
-      ) : null}
-
-      <footer className="foot">
-        <p>Prices subject to change without notice. Visit our store for the final appraisal.</p>
-      </footer>
+        <footer className="foot">
+          <p>Prices subject to change. Final appraisal at the window.</p>
+        </footer>
+      </main>
     </div>
   )
 }
