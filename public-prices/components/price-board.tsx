@@ -261,7 +261,7 @@ export function PriceBoard() {
               <img
                 src="/logo.png"
                 alt="New York Gold Market"
-                className="h-16 w-auto max-w-[260px] object-contain sm:h-[5.25rem] sm:max-w-[300px]"
+                className="h-24 w-auto max-w-[280px] object-contain sm:h-28 sm:max-w-[320px]"
                 onError={() => setLogoFailed(true)}
               />
             ) : (
@@ -272,7 +272,7 @@ export function PriceBoard() {
           </div>
 
           <p className="mb-2 text-[0.7rem] font-bold uppercase tracking-[0.34em] text-amber-800">
-            Fortuna Metals · Diamond District
+            Diamond District · New York
           </p>
           <h1 className="metal-text-brand text-balance text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-[3.4rem]">
             New York Gold Market
@@ -415,8 +415,7 @@ export function PriceBoard() {
 
         <footer className="animate-fade-up mt-14 border-t border-slate-300/60 pt-8 text-center [animation-delay:320ms]">
           <p className="text-sm text-ink-faint sm:text-base">
-            © New York Gold Market · Fortuna Metals. Prices subject to change. Final appraisal at
-            the window.
+            © New York Gold Market. Prices subject to change. Final appraisal at the window.
           </p>
         </footer>
       </div>
