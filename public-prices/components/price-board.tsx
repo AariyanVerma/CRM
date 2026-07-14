@@ -257,18 +257,24 @@ export function PriceBoard() {
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12 lg:px-8">
         <header className="animate-fade-up mb-12 text-center sm:mb-14">
           <div className="mb-7 flex justify-center">
-            {!logoFailed ? (
-              <img
-                src="/logo.png"
-                alt="New York Gold Market"
-                className="h-24 w-auto max-w-[280px] object-contain sm:h-28 sm:max-w-[320px]"
-                onError={() => setLogoFailed(true)}
+            <div className="relative flex items-center justify-center">
+              <div
+                className="absolute h-32 w-32 rounded-full bg-black/35 blur-2xl sm:h-40 sm:w-40"
+                aria-hidden
               />
-            ) : (
-              <div className="flex h-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold-wash px-6 text-2xl font-extrabold tracking-tight text-gold-deep sm:h-20 sm:text-3xl">
-                NYGM
-              </div>
-            )}
+              {!logoFailed ? (
+                <img
+                  src="/logo.png"
+                  alt="New York Gold Market"
+                  className="relative z-10 h-24 w-auto max-w-[280px] object-contain sm:h-28 sm:max-w-[320px]"
+                  onError={() => setLogoFailed(true)}
+                />
+              ) : (
+                <div className="relative z-10 flex h-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold-wash px-6 text-2xl font-extrabold tracking-tight text-gold-deep sm:h-20 sm:text-3xl">
+                  NYGM
+                </div>
+              )}
+            </div>
           </div>
 
           <p className="mb-2 text-[0.7rem] font-bold uppercase tracking-[0.34em] text-amber-800">
@@ -279,7 +285,7 @@ export function PriceBoard() {
           </h1>
           <p className="metal-text-gold mt-3 text-xl font-extrabold sm:text-2xl">We Buy Gold</p>
           <p className="mx-auto mt-2 max-w-lg text-base text-ink-muted sm:text-lg">
-            Live buy prices for the floor — colorful, clear, and always updating.
+            Current buy prices for gold, silver, and platinum — updated throughout the day.
           </p>
 
           <div className="mt-9 flex flex-col items-center gap-3">
