@@ -257,20 +257,17 @@ export function PriceBoard() {
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12 lg:px-8">
         <header className="animate-fade-up mb-12 text-center sm:mb-14">
           <div className="mb-7 flex justify-center">
-            <div className="relative inline-flex items-center justify-center px-6 py-4 sm:px-8 sm:py-5">
-              <div
-                className="absolute inset-0 rounded-[2rem] bg-black/40 blur-2xl sm:rounded-[2.5rem] sm:blur-3xl"
-                aria-hidden
-              />
+            <div className="inline-flex items-center justify-center rounded-[1.75rem] bg-[#141210] px-7 py-5 shadow-[0_18px_50px_rgba(20,18,16,0.35)] ring-1 ring-white/10 sm:rounded-[2rem] sm:px-9 sm:py-6">
               {!logoFailed ? (
                 <img
                   src="/logo.png"
                   alt="New York Gold Market"
-                  className="relative z-10 h-24 w-auto max-w-[280px] object-contain sm:h-28 sm:max-w-[320px]"
+                  className="h-24 w-auto max-w-[280px] object-contain sm:h-28 sm:max-w-[320px]"
+                  draggable={false}
                   onError={() => setLogoFailed(true)}
                 />
               ) : (
-                <div className="relative z-10 flex h-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold-wash px-6 text-2xl font-extrabold tracking-tight text-gold-deep sm:h-20 sm:text-3xl">
+                <div className="flex h-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold-wash px-6 text-2xl font-extrabold tracking-tight text-gold-deep sm:h-20 sm:text-3xl">
                   NYGM
                 </div>
               )}
