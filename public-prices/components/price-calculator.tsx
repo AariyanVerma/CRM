@@ -363,7 +363,7 @@ export function PriceCalculator() {
           href={MAPS_HREF}
           target="_blank"
           rel="noopener noreferrer"
-          className="mx-auto mt-2.5 flex w-fit max-w-full items-center justify-center gap-2 rounded-full border border-amber-200/80 bg-white/90 px-3.5 py-2 text-center text-xs font-bold text-amber-950 shadow-glass-sm transition hover:border-amber-300 hover:bg-white hover:shadow-glass-md sm:gap-2.5 sm:px-4 sm:text-sm"
+          className="mx-auto mt-2.5 flex w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-amber-200/80 bg-white/90 px-3 py-2.5 text-center text-[clamp(0.7rem,2.5vw+0.3rem,0.875rem)] font-bold leading-snug text-amber-950 shadow-glass-sm transition hover:border-amber-300 hover:bg-white hover:shadow-glass-md sm:w-fit sm:gap-2.5 sm:rounded-full sm:px-4 sm:text-sm"
         >
           <span
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 sm:h-8 sm:w-8"
@@ -378,7 +378,9 @@ export function PriceCalculator() {
               <circle cx="12" cy="10" r="2.5" />
             </svg>
           </span>
-          <span className="whitespace-nowrap">33W 47th Street · Window #2 · New York, NY 10036</span>
+          <span className="min-w-0 break-words text-pretty sm:whitespace-nowrap">
+            33W 47th Street · Window #2 · New York, NY 10036
+          </span>
         </a>
       </aside>
 
