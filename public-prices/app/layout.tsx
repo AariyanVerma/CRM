@@ -5,7 +5,16 @@ export const metadata: Metadata = {
   title: "Daily Prices | New York Gold Market",
   description: "Gold, silver, and platinum buy prices from New York Gold Market.",
   icons: {
-    icon: "/icon-512.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
   },
 }
 
