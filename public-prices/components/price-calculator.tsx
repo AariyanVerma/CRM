@@ -337,7 +337,7 @@ export function PriceCalculator() {
                 </div>
               </div>
             </div>
-            <div className="flex shrink-0 flex-col items-stretch justify-center rounded-2xl bg-ink px-5 py-4 text-center sm:min-w-[11rem] sm:items-end sm:text-right">
+            <div className="flex shrink-0 flex-col items-stretch justify-center rounded-2xl bg-ink px-6 py-4 text-center sm:min-w-[15rem] sm:items-end sm:px-8 sm:text-right md:min-w-[17rem]">
               <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/50">
                 Combined
               </p>
