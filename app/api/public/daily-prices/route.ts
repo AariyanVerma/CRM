@@ -6,12 +6,14 @@ import {
   type GoldPurity,
   type SilverPurity,
 } from "@/lib/pricing"
-import { GRAMS_PER_DWT } from "@/lib/weight-units"
 
 export const dynamic = "force-dynamic"
 
 const PUBLIC_GOLD_PURITIES: GoldPurity[] = ["10K", "14K", "18K", "22K", "24K"]
 const PUBLIC_SILVER_PURITIES: SilverPurity[] = ["800", "900", "925"]
+const PUBLIC_GOLD_PERCENTAGE = 99
+const PUBLIC_SILVER_PERCENTAGE = 80
+const PUBLIC_GRAMS_PER_DWT = 1.55517
 
 function corsHeaders(request: NextRequest): HeadersInit {
   const origin = request.headers.get("origin") || ""
@@ -43,9 +45,13 @@ function formatDateOnly(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
-function pricePerGram(pricePerDwt: number): number {
-  if (!Number.isFinite(pricePerDwt) || GRAMS_PER_DWT <= 0) return 0
-  return pricePerDwt / GRAMS_PER_DWT
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+function pricePerGramFromDwt(pricePerDwt: number): number {
+  if (!Number.isFinite(pricePerDwt) || PUBLIC_GRAMS_PER_DWT <= 0) return 0
+  return pricePerDwt / PUBLIC_GRAMS_PER_DWT
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -61,8 +67,6 @@ export async function GET(request: NextRequest) {
         gold: true,
         silver: true,
         platinum: true,
-        scrapGoldPercentage: true,
-        scrapSilverPercentage: true,
         updatedAt: true,
       },
     })
@@ -70,26 +74,24 @@ export async function GET(request: NextRequest) {
     const gold = latest?.gold ?? 0
     const silver = latest?.silver ?? 0
     const platinum = latest?.platinum ?? 0
-    const scrapGoldPct = latest?.scrapGoldPercentage ?? 95
-    const scrapSilverPct = latest?.scrapSilverPercentage ?? 95
     const date = latest ? formatDateOnly(latest.date) : formatDateOnly(new Date())
     const updatedAt = latest?.updatedAt.getTime() ?? Date.now()
 
     const onStone = PUBLIC_GOLD_PURITIES.map((purity) => {
-      const dwt = calculateScrapGoldPricePerDWT(purity, gold, scrapGoldPct)
+      const dwt = calculateScrapGoldPricePerDWT(purity, gold, PUBLIC_GOLD_PERCENTAGE)
       return {
         purity,
-        dwt: Math.round(dwt * 100) / 100,
-        gram: Math.round(pricePerGram(dwt) * 100) / 100,
+        dwt: roundMoney(dwt),
+        gram: roundMoney(pricePerGramFromDwt(dwt)),
       }
     })
 
     const silverRows = PUBLIC_SILVER_PURITIES.map((purity) => {
-      const dwt = calculateScrapSilverPricePerDWT(purity, silver, scrapSilverPct)
+      const dwt = calculateScrapSilverPricePerDWT(purity, silver, PUBLIC_SILVER_PERCENTAGE)
       return {
         purity,
-        dwt: Math.round(dwt * 100) / 100,
-        gram: Math.round(pricePerGram(dwt) * 100) / 100,
+        dwt: roundMoney(dwt),
+        gram: roundMoney(pricePerGramFromDwt(dwt)),
       }
     })
 
@@ -98,9 +100,9 @@ export async function GET(request: NextRequest) {
         date,
         updatedAt,
         spots: {
-          gold: Math.round(gold * 100) / 100,
-          silver: Math.round(silver * 100) / 100,
-          platinum: Math.round(platinum * 100) / 100,
+          gold: roundMoney(gold),
+          silver: roundMoney(silver),
+          platinum: roundMoney(platinum),
         },
         onStone,
         silver: silverRows,
