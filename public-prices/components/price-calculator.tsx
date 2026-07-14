@@ -308,36 +308,19 @@ export function PriceCalculator() {
       </section>
 
       {data ? (
-        <section className="relative overflow-hidden rounded-[1.75rem] border border-slate-900/10 bg-gradient-to-br from-slate-900 via-slate-800 to-ink p-6 text-white shadow-[0_20px_50px_rgba(15,23,42,0.28)] sm:p-8">
-          <div
-            className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -bottom-12 left-8 h-36 w-36 rounded-full bg-sky-400/15 blur-2xl"
-            aria-hidden
-          />
-          <div className="relative flex flex-wrap items-end justify-between gap-5">
+        <section className="glass-panel border-amber-200/70 p-5 sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/55">
-                Combined total
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-ink-faint">
+                Estimated total
               </p>
-              <p className="mt-2 text-sm font-semibold text-white/70 sm:text-base">
-                On Stone{" "}
-                <span className="num text-white/90">${formatMoney(goldTotal)}</span>
-                <span className="mx-2 text-white/35">·</span>
-                Silver{" "}
-                <span className="num text-white/90">${formatMoney(silverTotal)}</span>
+              <p className="mt-1 text-sm font-semibold text-ink-muted">
+                On Stone ${formatMoney(goldTotal)} · Silver ${formatMoney(silverTotal)}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-white/45">
-                Estimated payout
-              </p>
-              <p className="num mt-1 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-                ${formatMoney(grandTotal)}
-              </p>
-            </div>
+            <p className="num metal-text-gold text-4xl font-extrabold sm:text-5xl">
+              ${formatMoney(grandTotal)}
+            </p>
           </div>
         </section>
       ) : null}
