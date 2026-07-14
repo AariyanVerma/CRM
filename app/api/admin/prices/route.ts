@@ -198,8 +198,6 @@ export async function PATCH(request: NextRequest) {
         }
       }
     }
-    // New calendar day: clone last saved spots/%, then overlay this request.
-    // Without this, create fell back to hardcoded 95% / placeholder spots.
     const createData: any = {
       date: today,
       gold:

@@ -17,7 +17,6 @@ export default async function PricesPage() {
   const todayPrice = await prisma.dailyPrice.findUnique({
     where: { date: today },
   })
-  // When today has no row yet, show last saved day so % and spots don't look "reset" to 95/0.
   const initialPrices = todayPrice ?? (await getPreviousDailyPrice(today))
 
   return (
