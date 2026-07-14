@@ -89,7 +89,7 @@ export function SiteShell({
 
         <footer className="animate-fade-up mt-14 border-t border-slate-300/60 pt-8 text-center [animation-delay:320ms]">
           <p className="text-sm text-ink-faint sm:text-base">
-            © New York Gold Market. Prices subject to change. Final appraisal at the window.
+            © New York Gold Market. Prices subject to change. Final appraisal in store.
           </p>
         </footer>
       </div>
