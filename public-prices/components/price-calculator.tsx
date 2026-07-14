@@ -314,9 +314,19 @@ export function PriceCalculator() {
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-ink-faint">
                 Estimated total
               </p>
-              <p className="mt-1 text-sm font-semibold text-ink-muted">
-                On Stone ${formatMoney(goldTotal)} · Silver ${formatMoney(silverTotal)}
-              </p>
+              <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+                <p className="text-sm font-semibold">
+                  <span className="text-amber-800">On Stone</span>{" "}
+                  <span className="num metal-text-gold font-extrabold">${formatMoney(goldTotal)}</span>
+                </p>
+                <span className="hidden text-slate-300 sm:inline" aria-hidden>
+                  ·
+                </span>
+                <p className="text-sm font-semibold">
+                  <span className="text-slate-600">Silver</span>{" "}
+                  <span className="num metal-text-silver font-extrabold">${formatMoney(silverTotal)}</span>
+                </p>
+              </div>
             </div>
             <p className="num metal-text-gold text-4xl font-extrabold sm:text-5xl">
               ${formatMoney(grandTotal)}
@@ -339,10 +349,10 @@ export function PriceCalculator() {
           href={MAPS_HREF}
           target="_blank"
           rel="noopener noreferrer"
-          className="mx-auto mt-2.5 flex w-fit max-w-full items-center justify-center gap-2 rounded-full border border-red-200/80 bg-white/90 px-3.5 py-2 text-center text-xs font-bold text-red-600 shadow-glass-sm transition hover:border-red-300 hover:bg-white hover:text-red-700 hover:shadow-glass-md sm:gap-2.5 sm:px-4 sm:text-sm"
+          className="mx-auto mt-2.5 flex w-fit max-w-full items-center justify-center gap-2 rounded-full border border-amber-200/80 bg-white/90 px-3.5 py-2 text-center text-xs font-bold text-amber-950 shadow-glass-sm transition hover:border-amber-300 hover:bg-white hover:shadow-glass-md sm:gap-2.5 sm:px-4 sm:text-sm"
         >
           <span
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 sm:h-8 sm:w-8"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 sm:h-8 sm:w-8"
             aria-hidden
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
