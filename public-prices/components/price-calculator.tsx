@@ -73,11 +73,11 @@ function CalculatorTable({
         </div>
       </div>
 
-      <div className="mb-2 hidden grid-cols-4 gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-faint sm:grid sm:px-4">
-        <span className="text-left">Purity</span>
-        <span className="text-center">Rate / {unit === "DWT" ? "DWT" : "Gram"}</span>
-        <span className="text-center">Weight ({unit === "DWT" ? "DWT" : "g"})</span>
-        <span className="text-center">Total</span>
+      <div className="mb-2 hidden grid-cols-4 gap-3 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-faint sm:grid sm:px-4 [&>*]:min-w-0 [&>*]:text-center">
+        <span>Purity</span>
+        <span>Rate / {unit === "DWT" ? "DWT" : "Gram"}</span>
+        <span>Weight ({unit === "DWT" ? "DWT" : "g"})</span>
+        <span>Total</span>
       </div>
 
       <ul className="flex flex-col gap-2.5">
@@ -89,9 +89,9 @@ function CalculatorTable({
           return (
             <li
               key={row.purity}
-              className={`grid grid-cols-1 gap-3 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm sm:grid-cols-4 sm:items-center sm:gap-2 sm:px-4 ${accentBorder}`}
+              className={`grid grid-cols-1 gap-3 rounded-2xl border bg-white/80 px-3 py-3.5 shadow-glass-sm sm:grid-cols-4 sm:items-center sm:gap-3 sm:px-4 [&>*]:min-w-0 ${accentBorder}`}
             >
-              <div className="flex items-center justify-between gap-2 sm:block">
+              <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
                 <span className="text-lg font-extrabold text-ink-soft sm:text-xl">{row.purity}</span>
                 <span className={`num text-base font-extrabold sm:hidden ${valueClass}`}>
                   ${formatMoney(rate)}
@@ -100,7 +100,7 @@ function CalculatorTable({
               <span className={`num hidden text-center text-lg font-extrabold sm:block ${valueClass}`}>
                 ${formatMoney(rate)}
               </span>
-              <label className="block sm:text-center">
+              <label className="block w-full sm:text-center">
                 <span className="mb-1 block text-[0.68rem] font-bold uppercase tracking-[0.14em] text-ink-faint sm:hidden">
                   Weight ({unit === "DWT" ? "DWT" : "g"})
                 </span>
@@ -109,10 +109,10 @@ function CalculatorTable({
                   inputMode="decimal"
                   min="0"
                   step="any"
-                  placeholder={unit === "DWT" ? "0.00 DWT" : "0.00 g"}
+                  placeholder="0.00"
                   value={raw}
                   onChange={(e) => onWeightChange(row.purity, e.target.value)}
-                  className="num w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-bold text-ink outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-200 sm:text-center"
+                  className="num w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-center text-base font-bold text-ink outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
                 />
               </label>
               <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
