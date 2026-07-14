@@ -257,9 +257,9 @@ export function PriceBoard() {
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12 lg:px-8">
         <header className="animate-fade-up mb-12 text-center sm:mb-14">
           <div className="mb-7 flex justify-center">
-            <div className="relative flex items-center justify-center">
+            <div className="relative inline-flex items-center justify-center px-6 py-4 sm:px-8 sm:py-5">
               <div
-                className="absolute h-32 w-32 rounded-full bg-black/35 blur-2xl sm:h-40 sm:w-40"
+                className="absolute inset-0 rounded-[2rem] bg-black/40 blur-2xl sm:rounded-[2.5rem] sm:blur-3xl"
                 aria-hidden
               />
               {!logoFailed ? (
