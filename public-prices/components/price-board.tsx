@@ -282,7 +282,7 @@ export function PriceBoard() {
           </h1>
           <p className="metal-text-gold mt-3 text-xl font-extrabold sm:text-2xl">We Buy Gold</p>
           <p className="mx-auto mt-2 max-w-lg text-base text-ink-muted sm:text-lg">
-            Current buy prices for gold, silver, and platinum — updated throughout the day.
+            Today&apos;s published buy rates for gold, silver, and platinum.
           </p>
 
           <div className="mt-9 flex flex-col items-center gap-3">
