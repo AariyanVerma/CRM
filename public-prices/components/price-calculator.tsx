@@ -308,29 +308,43 @@ export function PriceCalculator() {
       </section>
 
       {data ? (
-        <section className="glass-panel border-amber-200/70 p-5 sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-ink-faint">
+        <section className="relative overflow-hidden rounded-[1.75rem] border-2 border-amber-400/50 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 shadow-[0_16px_40px_rgba(180,140,40,0.14)] sm:p-7">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-slate-400"
+            aria-hidden
+          />
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-900/70">
                 Estimated total
               </p>
-              <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-                <p className="text-sm font-semibold">
-                  <span className="text-amber-800">On Stone</span>{" "}
-                  <span className="num metal-text-gold font-extrabold">${formatMoney(goldTotal)}</span>
-                </p>
-                <span className="hidden text-slate-300 sm:inline" aria-hidden>
-                  ·
-                </span>
-                <p className="text-sm font-semibold">
-                  <span className="text-slate-600">Silver</span>{" "}
-                  <span className="num metal-text-silver font-extrabold">${formatMoney(silverTotal)}</span>
-                </p>
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                <div className="rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-amber-800/80">
+                    On Stone
+                  </p>
+                  <p className="num metal-text-gold mt-1 text-2xl font-extrabold">
+                    ${formatMoney(goldTotal)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-300/80 bg-slate-100/80 px-4 py-3">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Silver
+                  </p>
+                  <p className="num metal-text-silver mt-1 text-2xl font-extrabold">
+                    ${formatMoney(silverTotal)}
+                  </p>
+                </div>
               </div>
             </div>
-            <p className="num metal-text-gold text-4xl font-extrabold sm:text-5xl">
-              ${formatMoney(grandTotal)}
-            </p>
+            <div className="flex shrink-0 flex-col items-stretch justify-center rounded-2xl bg-ink px-5 py-4 text-center sm:min-w-[11rem] sm:items-end sm:text-right">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/50">
+                Combined
+              </p>
+              <p className="num mt-1 text-3xl font-extrabold tracking-tight text-amber-300 sm:text-4xl">
+                ${formatMoney(grandTotal)}
+              </p>
+            </div>
           </div>
         </section>
       ) : null}
