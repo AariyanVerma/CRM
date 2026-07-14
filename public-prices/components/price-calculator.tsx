@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link"
 import type { DailyPricesPayload, PurityPrice } from "@/lib/prices"
 import { formatBoardDate, formatMoney } from "@/lib/prices"
-import { fromDwt, lineTotal, MAPS_HREF, toDwt, type WeightUnit } from "@/lib/brand"
+import { fromDwt, lineTotal, MAPS_EMBED_SRC, MAPS_HREF, toDwt, type WeightUnit } from "@/lib/brand"
 import { IconGold, IconPlatinum, IconSilver } from "@/components/icons"
 import { SiteShell } from "@/components/site-shell"
 
@@ -362,7 +362,7 @@ export function PriceCalculator() {
         <div className="relative h-56 w-full bg-slate-100 sm:h-72">
           <iframe
             title="New York Gold Market location map"
-            src="https://maps.google.com/maps?q=33%20W%2047th%20Street%20New%20York%20NY%2010036&z=16&output=embed"
+            src={MAPS_EMBED_SRC}
             className="absolute inset-0 h-full w-full border-0"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
