@@ -330,9 +330,10 @@ export function PriceCalculator() {
           Disclaimer
         </p>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:text-base">
-          This calculator provides an <strong className="font-extrabold text-ink">estimate only</strong>.
-          The exact price may vary based on your metal&apos;s actual purity, correct weight, and metal
-          content. The real price and final appraisal will be completed at our store:
+          This calculator provides an estimated value based on current market rates. Final payouts are
+          subject to in-person verification of exact weight, purity, and metal content. Official
+          appraisals are completed exclusively at our window. Prices are subject to live market
+          fluctuations.
         </p>
         <a
           href={MAPS_HREF}
