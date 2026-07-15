@@ -117,13 +117,15 @@ export function SiteShell({
         aria-label={`Call ${PHONE_DISPLAY}`}
         aria-hidden={!showFab}
         tabIndex={showFab ? 0 : -1}
-        className={`fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-700 text-white shadow-[0_12px_28px_rgba(180,120,20,0.4)] ring-1 ring-white/30 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16 ${
+        className={`phone-fab fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-700 text-white shadow-[0_12px_28px_rgba(180,120,20,0.4)] ring-1 ring-white/30 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16 ${
           showFab
-            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+            ? "phone-fab-active pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-none translate-y-3 scale-90 opacity-0"
         }`}
       >
-        <IconPhone className="h-6 w-6 sm:h-7 sm:w-7" />
+        <span className="phone-fab-icon inline-flex">
+          <IconPhone className="h-6 w-6 sm:h-7 sm:w-7" />
+        </span>
       </a>
     </div>
   )

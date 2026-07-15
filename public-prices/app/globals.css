@@ -114,6 +114,15 @@
     opacity: 1;
     animation: calcShine 0.7s ease-out forwards;
   }
+
+  .phone-fab-active {
+    animation: phoneFabBounce 2.4s ease-in-out infinite;
+  }
+
+  .phone-fab-active .phone-fab-icon {
+    animation: phoneFabRing 2.4s ease-in-out infinite;
+    transform-origin: 50% 50%;
+  }
 }
 
 @keyframes calcPulse {
@@ -135,6 +144,41 @@
   }
 }
 
+@keyframes phoneFabBounce {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  78% {
+    transform: translateY(-6px) scale(1.04);
+  }
+  86% {
+    transform: translateY(0) scale(1);
+  }
+  92% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+@keyframes phoneFabRing {
+  0%,
+  12%,
+  28%,
+  100% {
+    transform: rotate(0deg);
+  }
+  16% {
+    transform: rotate(16deg);
+  }
+  20% {
+    transform: rotate(-14deg);
+  }
+  24% {
+    transform: rotate(10deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-live,
@@ -144,7 +188,9 @@
   .animate-row-in,
   .calc-cta,
   .calc-cta-glow,
-  .calc-cta-shine {
+  .calc-cta-shine,
+  .phone-fab-active,
+  .phone-fab-active .phone-fab-icon {
     animation: none !important;
   }
 
