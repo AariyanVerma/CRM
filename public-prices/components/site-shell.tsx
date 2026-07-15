@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { MAPS_HREF, PHONE_DISPLAY, PHONE_HREF } from "@/lib/brand"
 import { IconPhone } from "@/components/icons"
 
@@ -16,6 +16,23 @@ export function SiteShell({
   skipLabel?: string
 }) {
   const [logoFailed, setLogoFailed] = useState(false)
+  const [showFab, setShowFab] = useState(false)
+  const phoneRef = useRef<HTMLAnchorElement>(null)
+
+  useEffect(() => {
+    const node = phoneRef.current
+    if (!node) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowFab(!entry.isIntersecting)
+      },
+      { threshold: 0, rootMargin: "0px" }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-mesh">
@@ -66,6 +83,7 @@ export function SiteShell({
 
           <div className="mt-9 flex flex-col items-center gap-3">
             <a
+              ref={phoneRef}
               href={PHONE_HREF}
               className="group inline-flex min-h-[58px] items-center justify-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-700 px-9 text-lg font-bold tracking-wide text-white shadow-gold-glow transition duration-300 hover:-translate-y-1 hover:scale-[1.04] hover:shadow-glass-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 active:scale-[0.99] sm:text-xl"
             >
@@ -93,6 +111,20 @@ export function SiteShell({
           </p>
         </footer>
       </div>
+
+      <a
+        href={PHONE_HREF}
+        aria-label={`Call ${PHONE_DISPLAY}`}
+        aria-hidden={!showFab}
+        tabIndex={showFab ? 0 : -1}
+        className={`fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-700 text-white shadow-[0_12px_28px_rgba(180,120,20,0.4)] ring-1 ring-white/30 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-500 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16 ${
+          showFab
+            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+            : "pointer-events-none translate-y-3 scale-90 opacity-0"
+        }`}
+      >
+        <IconPhone className="h-6 w-6 sm:h-7 sm:w-7" />
+      </a>
     </div>
   )
 }
