@@ -65,6 +65,9 @@ export async function PATCH(
         meltPlatinumPercentage?: number
       }
       salePremiumPerOz?: number
+      goldSpot?: number
+      silverSpot?: number
+      platinumSpot?: number
     }
     const { status, percentages: bodyPercentages } = body
     const updateData: Record<string, unknown> = {}
@@ -86,6 +89,12 @@ export async function PATCH(
     if (typeof body.salePremiumPerOz === "number" && !Number.isNaN(body.salePremiumPerOz) && body.salePremiumPerOz >= 0) {
       updateData.salePremiumPerOz = body.salePremiumPerOz
     }
+
+    const spot = (v: number | undefined) =>
+      typeof v === "number" && !Number.isNaN(v) && v >= 0 ? v : undefined
+    if (spot(body.goldSpot) !== undefined) updateData.goldSpot = spot(body.goldSpot)
+    if (spot(body.silverSpot) !== undefined) updateData.silverSpot = spot(body.silverSpot)
+    if (spot(body.platinumSpot) !== undefined) updateData.platinumSpot = spot(body.platinumSpot)
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(

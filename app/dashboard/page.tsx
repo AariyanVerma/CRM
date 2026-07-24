@@ -26,11 +26,11 @@ export default async function DashboardPage() {
     prisma.transaction.count({ where: { status: { in: ['OPEN', 'PENDING_APPROVAL', 'APPROVED'] } } }),
     prisma.transaction.findMany({
       where: { createdAt: { gte: todayStart, lt: todayEnd } },
-      select: { type: true, createdAt: true, lineItems: { select: { lineTotal: true } } },
+      select: { type: true, createdAt: true, lineItems: { select: { lineTotal: true, metalType: true } } },
     }),
     prisma.transaction.findMany({
       where: { status: 'PRINTED' },
-      select: { type: true, createdAt: true, lineItems: { select: { lineTotal: true } } },
+      select: { type: true, createdAt: true, lineItems: { select: { lineTotal: true, metalType: true } } },
     }),
   ])
 

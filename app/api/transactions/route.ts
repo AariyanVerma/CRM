@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const summarySelect = {
       type: true,
       createdAt: true,
-      lineItems: { select: { lineTotal: true } },
+      lineItems: { select: { lineTotal: true, metalType: true } },
     } as const
 
     const [transactions, total, summaryTransactions, grandTotalTransactions] = await Promise.all([

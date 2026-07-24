@@ -1,10 +1,10 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, CreditCard, TrendingUp, CalendarDays, History } from "lucide-react"
+import { Users, CreditCard, TrendingUp, CalendarDays, History, ChevronDown } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { formatCurrency, type TransactionTypeTotals } from "@/lib/transaction-totals"
+import { formatCurrency, emptyTypeTotals, type TransactionTypeTotals } from "@/lib/transaction-totals"
 
 const statCardShell = "flex-1 min-w-[min(100%,11.5rem)] h-44 shrink-0"
 const WIDE_CARD_MIN_PX = 280
@@ -95,12 +95,18 @@ function CompactTypeChip({
   tone,
   variant,
   scale,
+  expandable,
+  expanded,
+  onToggle,
 }: {
   label: string
   amount: number
   tone: "scrap" | "sale" | "melt"
   variant: ChipVariant
   scale: ChipScale
+  expandable?: boolean
+  expanded?: boolean
+  onToggle?: () => void
 }) {
   const styles = chipScaleStyles[scale]
   const formatted = formatCurrency(amount)
@@ -117,18 +123,86 @@ function CompactTypeChip({
         ? "text-violet-700 dark:text-violet-300"
         : "text-rose-700 dark:text-rose-300"
 
-  return (
-    <div
-      className={cn(
-        "flex h-full w-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border text-center",
-        variant === "rows" ? styles.padRows : styles.pad,
-        shell
-      )}
-    >
-      <span className={cn("w-full min-w-0 truncate uppercase tracking-[0.08em] leading-none", styles.label, labelClass)}>
+  const className = cn(
+    "flex h-full w-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border text-center",
+    variant === "rows" ? styles.padRows : styles.pad,
+    shell,
+    expandable && "cursor-pointer transition hover:brightness-95",
+    expandable && expanded && "ring-1 ring-primary/30"
+  )
+
+  const body = (
+    <>
+      <span className={cn("inline-flex w-full min-w-0 items-center justify-center gap-0.5 truncate uppercase tracking-[0.08em] leading-none", styles.label, labelClass)}>
         {label}
+        {expandable ? (
+          <ChevronDown
+            className={cn("h-3 w-3 shrink-0 opacity-70 transition-transform duration-200", expanded && "rotate-180")}
+            aria-hidden
+          />
+        ) : null}
       </span>
       <FitAmount text={formatted} className={cn("font-extrabold text-foreground", styles.amount)} />
+    </>
+  )
+
+  if (expandable) {
+    return (
+      <button type="button" onClick={onToggle} aria-expanded={expanded} className={className}>
+        {body}
+      </button>
+    )
+  }
+
+  return <div className={className}>{body}</div>
+}
+
+function MetalBreakdownRow({
+  breakdown,
+}: {
+  breakdown: TransactionTypeTotals["scrapByMetal"]
+  tone?: "scrap" | "melt"
+}) {
+  const metals = [
+    {
+      label: "Gold",
+      amount: breakdown.gold,
+      shell: "border-amber-400/40 bg-gradient-to-br from-amber-50 to-amber-100/70 dark:from-amber-500/15 dark:to-amber-500/5",
+      labelClass: "text-amber-800 dark:text-amber-300",
+      amountClass: "text-amber-950 dark:text-amber-100",
+      dot: "bg-amber-500",
+    },
+    {
+      label: "Silver",
+      amount: breakdown.silver,
+      shell: "border-slate-400/40 bg-gradient-to-br from-slate-50 to-slate-100/80 dark:from-slate-500/15 dark:to-slate-500/5",
+      labelClass: "text-slate-600 dark:text-slate-300",
+      amountClass: "text-slate-900 dark:text-slate-100",
+      dot: "bg-slate-500",
+    },
+    {
+      label: "Platinum",
+      amount: breakdown.platinum,
+      shell: "border-sky-400/40 bg-gradient-to-br from-sky-50 to-sky-100/70 dark:from-sky-500/15 dark:to-sky-500/5",
+      labelClass: "text-sky-700 dark:text-sky-300",
+      amountClass: "text-sky-950 dark:text-sky-100",
+      dot: "bg-sky-500",
+    },
+  ]
+
+  return (
+    <div className="mt-2 grid animate-in fade-in-0 slide-in-from-top-1 duration-200 grid-cols-3 gap-1.5">
+      {metals.map((metal) => (
+        <div key={metal.label} className={cn("min-w-0 rounded-lg border px-1.5 py-1.5 text-center shadow-sm", metal.shell)}>
+          <div className="flex items-center justify-center gap-1">
+            <span className={cn("h-1.5 w-1.5 rounded-full", metal.dot)} aria-hidden />
+            <p className={cn("truncate text-[9px] font-bold uppercase tracking-[0.1em]", metal.labelClass)}>{metal.label}</p>
+          </div>
+          <p className={cn("mt-1 truncate text-[10px] font-extrabold tabular-nums", metal.amountClass)}>
+            {formatCurrency(metal.amount)}
+          </p>
+        </div>
+      ))}
     </div>
   )
 }
@@ -302,12 +376,13 @@ function SummaryCard({
   const cardRef = useRef<HTMLDivElement>(null)
   const { layout: chipLayout, scale: chipScale, stacked } = useCardChipLayout(cardRef)
   const showChips = chipLayout !== "hidden"
+  const [expanded, setExpanded] = useState<{ scrap: boolean; melt: boolean }>({ scrap: false, melt: false })
 
   return (
     <Card
       ref={cardRef}
       className={cn(
-        "relative overflow-hidden border-0 shadow-lg hover:shadow-xl group cursor-pointer transform hover:-translate-y-1 w-full flex flex-col min-h-44 h-auto",
+        "relative overflow-hidden border-0 shadow-lg hover:shadow-xl group transform hover:-translate-y-1 w-full flex flex-col min-h-44 h-auto",
         showChips ? "flex-1 min-w-[min(100%,11.5rem)] shrink-0" : statCardShell
       )}
     >
@@ -345,21 +420,42 @@ function SummaryCard({
         </div>
 
         {showChips && (
-          <div
-            className={cn(
-              "grid min-h-[5.5rem] min-w-0 max-w-full gap-1.5 overflow-hidden",
-              stacked ? "w-full" : "h-full w-[60%] flex-1",
-              chipLayout === "rows"
-                ? "grid-cols-3 grid-rows-[minmax(0,1.15fr)_minmax(0,0.9fr)]"
-                : "grid-cols-2 grid-rows-2"
-            )}
-          >
-            <CompactTypeChip label="Scrap" amount={typeTotals.scrap} tone="scrap" variant={chipLayout} scale={chipScale} />
-            <CompactTypeChip label="Sale" amount={typeTotals.sale} tone="sale" variant={chipLayout} scale={chipScale} />
-            <CompactTypeChip label="Melt" amount={typeTotals.melt} tone="melt" variant={chipLayout} scale={chipScale} />
-            <div className={cn("min-h-0 min-w-0 overflow-hidden", chipLayout === "rows" && "col-span-3")}>
-              <CompactTotalChip amount={typeTotals.total} variant={chipLayout} scale={chipScale} />
+          <div className={cn("min-w-0 max-w-full", stacked ? "w-full" : "h-full w-[60%] flex-1")}>
+            <div
+              className={cn(
+                "grid min-h-[5.5rem] min-w-0 max-w-full gap-1.5 overflow-hidden",
+                chipLayout === "rows"
+                  ? "grid-cols-3 grid-rows-[minmax(0,1.15fr)_minmax(0,0.9fr)]"
+                  : "grid-cols-2 grid-rows-2"
+              )}
+            >
+              <CompactTypeChip
+                label="Scrap"
+                amount={typeTotals.scrap}
+                tone="scrap"
+                variant={chipLayout}
+                scale={chipScale}
+                expandable
+                expanded={expanded.scrap}
+                onToggle={() => setExpanded((prev) => ({ ...prev, scrap: !prev.scrap }))}
+              />
+              <CompactTypeChip label="Sale" amount={typeTotals.sale} tone="sale" variant={chipLayout} scale={chipScale} />
+              <CompactTypeChip
+                label="Melt"
+                amount={typeTotals.melt}
+                tone="melt"
+                variant={chipLayout}
+                scale={chipScale}
+                expandable
+                expanded={expanded.melt}
+                onToggle={() => setExpanded((prev) => ({ ...prev, melt: !prev.melt }))}
+              />
+              <div className={cn("min-h-0 min-w-0 overflow-hidden", chipLayout === "rows" && "col-span-3")}>
+                <CompactTotalChip amount={typeTotals.total} variant={chipLayout} scale={chipScale} />
+              </div>
             </div>
+            {expanded.scrap ? <MetalBreakdownRow breakdown={typeTotals.scrapByMetal} /> : null}
+            {expanded.melt ? <MetalBreakdownRow breakdown={typeTotals.meltByMetal} /> : null}
           </div>
         )}
       </CardContent>
@@ -376,7 +472,7 @@ interface DashboardStatsProps {
   isAdmin?: boolean
 }
 
-const emptyTotals: TransactionTypeTotals = { scrap: 0, sale: 0, melt: 0, total: 0, count: 0 }
+const emptyTotals: TransactionTypeTotals = emptyTypeTotals()
 
 export function DashboardStats({
   customerCount,

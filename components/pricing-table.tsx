@@ -457,6 +457,8 @@ export function PricingTable({
   const lastPushedSaleItemsRef = useRef<string>("")
   const originalPercentagesRef = useRef<Record<string, number | string | undefined>>({})
   const localOverrideKeysRef = useRef<Set<string>>(new Set())
+  const originalSpotPricesRef = useRef<{ gold?: number; silver?: number; platinum?: number }>({})
+  const localSpotOverrideKeysRef = useRef<Set<"gold" | "silver" | "platinum">>(new Set())
 
   const isDraft = !transaction.id
   const isStaffLocked = userRole === "STAFF" && approvalStatus !== null
@@ -500,6 +502,12 @@ export function PricingTable({
     scope: "GLOBAL" | "LOCAL" | null
   } | null>(null)
   const [isPercentageScopeDialogOpen, setIsPercentageScopeDialogOpen] = useState(false)
+  const [pendingSpotChange, setPendingSpotChange] = useState<{
+    metalKey: "gold" | "silver" | "platinum"
+    value: number
+    scope: "GLOBAL" | "LOCAL" | null
+  } | null>(null)
+  const [isSpotScopeDialogOpen, setIsSpotScopeDialogOpen] = useState(false)
 
   useEffect(() => {
     if (isDraft) {
@@ -598,11 +606,11 @@ export function PricingTable({
 
   useSocketPrices(
     useCallback((prices) => {
-      setSpotPrices({
-        gold: prices.gold,
-        silver: prices.silver,
-        platinum: prices.platinum,
-      })
+      setSpotPrices((prev) => ({
+        gold: localSpotOverrideKeysRef.current.has("gold") ? prev.gold : prices.gold,
+        silver: localSpotOverrideKeysRef.current.has("silver") ? prev.silver : prices.silver,
+        platinum: localSpotOverrideKeysRef.current.has("platinum") ? prev.platinum : prices.platinum,
+      }))
 
       const isTypingAnyPercentage = Object.keys(isTypingRef.current).some(key => 
         key.startsWith('percentage-') && isTypingRef.current[key]
@@ -1019,6 +1027,13 @@ export function PricingTable({
     if (raw === "" || raw === null || raw === undefined) return
     const num = parseFloat(raw)
     if (isNaN(num) || num < 0) return
+
+    if (userRole === "ADMIN") {
+      setPendingSpotChange({ metalKey, value: num, scope: null })
+      setIsSpotScopeDialogOpen(true)
+      return
+    }
+
     try {
       const res = await fetch("/api/admin/prices", {
         method: "PATCH",
@@ -1038,7 +1053,131 @@ export function PricingTable({
   }
 
   function handleSpotFocus(metalKey: "gold" | "silver" | "platinum") {
+    const current = spotPricesRef.current[metalKey]
+    const num = typeof current === "number" ? current : parseFloat(String(current))
+    if (!Number.isNaN(num)) {
+      originalSpotPricesRef.current[metalKey] = num
+    }
     setSpotPrices((prev) => ({ ...prev, [metalKey]: "" }))
+  }
+
+  async function applySpotChangeScope() {
+    if (!pendingSpotChange || !pendingSpotChange.scope) return
+    const { metalKey, value, scope } = pendingSpotChange
+
+    if (scope === "GLOBAL") {
+      try {
+        const res = await fetch("/api/admin/prices", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ metalType: metalKey, price: value }),
+          credentials: "include",
+        })
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: "Failed to update price" }))
+          throw new Error((errorData as { message?: string }).message || "Failed to update price")
+        }
+        await res.json()
+        localSpotOverrideKeysRef.current.delete(metalKey)
+        setSpotPrices((prev) => ({ ...prev, [metalKey]: value }))
+        if (onLineItemsUpdate) {
+          const premium =
+            typeof salePremiumRef.current === "number"
+              ? salePremiumRef.current
+              : parseFloat(String(salePremiumRef.current)) || 0
+          const items = buildDraftLineItems(
+            transaction.type,
+            dwtValuesRef.current,
+            purityPercentagesRef.current,
+            { ...spotPricesRef.current, [metalKey]: value },
+            percentagesRef.current,
+            saleRowsRef.current,
+            premium,
+            customGoldScrapRowsRef.current,
+            customGoldCoinRowsRef.current
+          )
+          onLineItemsUpdate(items)
+        }
+        toast({
+          title: "Price updated",
+          description: `${metalKey} spot updated to $${formatDecimal(value)} for everyone`,
+          variant: "success",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update price",
+          variant: "destructive",
+        })
+      }
+    } else {
+      localSpotOverrideKeysRef.current.add(metalKey)
+      setSpotPrices((prev) => ({ ...prev, [metalKey]: value }))
+      if (onLineItemsUpdate) {
+        const premium =
+          typeof salePremiumRef.current === "number"
+            ? salePremiumRef.current
+            : parseFloat(String(salePremiumRef.current)) || 0
+        const items = buildDraftLineItems(
+          transaction.type,
+          dwtValuesRef.current,
+          purityPercentagesRef.current,
+          { ...spotPricesRef.current, [metalKey]: value },
+          percentagesRef.current,
+          saleRowsRef.current,
+          premium,
+          customGoldScrapRowsRef.current,
+          customGoldCoinRowsRef.current
+        )
+        onLineItemsUpdate(items)
+      }
+      if (transaction.id) {
+        const spotField =
+          metalKey === "gold" ? "goldSpot" : metalKey === "silver" ? "silverSpot" : "platinumSpot"
+        try {
+          const res = await fetch(`/api/transactions/${transaction.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ [spotField]: value }),
+          })
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: "Failed to update price" }))
+            throw new Error((errorData as { message?: string }).message || "Failed to update price")
+          }
+          toast({
+            title: "Price updated for this customer",
+            description: `${metalKey} spot set to $${formatDecimal(value)} only on this transaction. Daily board and other transactions are unchanged.`,
+            variant: "success",
+          })
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: error instanceof Error ? error.message : "Failed to update this transaction",
+            variant: "destructive",
+          })
+        }
+      } else {
+        toast({
+          title: "Price updated for this customer",
+          description: `${metalKey} spot set to $${formatDecimal(value)} only on this transaction. Daily board and other transactions are unchanged.`,
+          variant: "success",
+        })
+      }
+    }
+
+    setIsSpotScopeDialogOpen(false)
+    setPendingSpotChange(null)
+  }
+
+  function resetPendingSpotToOriginal() {
+    if (!pendingSpotChange) return
+    const { metalKey } = pendingSpotChange
+    const original = originalSpotPricesRef.current[metalKey]
+    setSpotPrices((prev) => ({
+      ...prev,
+      [metalKey]: original === undefined ? prev[metalKey] : original,
+    }))
   }
 
   function handlePercentageFocus(metalType: MetalType) {
@@ -3348,6 +3487,133 @@ export function PricingTable({
                   className="px-4 font-extrabold"
                   disabled={!pendingPercentageChange.scope}
                   onClick={() => void applyPercentageChangeScope()}
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {userRole === "ADMIN" && pendingSpotChange && (
+        <Dialog
+          open={isSpotScopeDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              resetPendingSpotToOriginal()
+              setIsSpotScopeDialogOpen(false)
+              setPendingSpotChange(null)
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-lg border border-primary/40 bg-gradient-to-br from-white via-slate-50 to-primary/10 text-slate-900 shadow-2xl shadow-primary/20 rounded-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+            <DialogHeader className="space-y-2 pb-2 border-b border-primary/20">
+              <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl font-extrabold tracking-tight">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/40 flex items-center justify-center shadow-inner shadow-primary/20">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <span className="bg-gradient-to-r from-red-600 via-amber-500 to-primary bg-clip-text text-transparent">
+                  Apply Spot Price Change
+                </span>
+              </DialogTitle>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600">
+                Decide whether this new spot price should apply only to this customer or update
+                everyone&apos;s open transactions.
+              </p>
+            </DialogHeader>
+            <div className="mt-3 space-y-4">
+              <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-amber-100 px-4 py-3 text-xs sm:text-sm font-extrabold text-slate-900 shadow-sm capitalize">
+                {pendingSpotChange.metalKey} spot →{" "}
+                <span className="text-red-600">
+                  ${formatDecimal(pendingSpotChange.value)}
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div
+                  className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
+                    pendingSpotChange.scope === "LOCAL"
+                      ? "border-emerald-500 bg-emerald-50 shadow-md scale-[1.01]"
+                      : "border-slate-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/70"
+                  }`}
+                  onClick={() =>
+                    setPendingSpotChange((prev) =>
+                      prev ? { ...prev, scope: "LOCAL" } : prev
+                    )
+                  }
+                >
+                  <div
+                    className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
+                      pendingSpotChange.scope === "LOCAL"
+                        ? "border-emerald-500 bg-emerald-500"
+                        : "border-slate-400"
+                    }`}
+                  >
+                    {pendingSpotChange.scope === "LOCAL" && (
+                      <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
+                      Only this customer
+                    </p>
+                    <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
+                      Use this spot only on this transaction. The daily board and other open
+                      transactions will not change.
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition-all ${
+                    pendingSpotChange.scope === "GLOBAL"
+                      ? "border-sky-500 bg-sky-50 shadow-md scale-[1.01]"
+                      : "border-slate-300 bg-white hover:border-sky-400 hover:bg-sky-50/70"
+                  }`}
+                  onClick={() =>
+                    setPendingSpotChange((prev) =>
+                      prev ? { ...prev, scope: "GLOBAL" } : prev
+                    )
+                  }
+                >
+                  <div
+                    className={`mt-1 h-5 w-5 rounded-full border flex items-center justify-center ${
+                      pendingSpotChange.scope === "GLOBAL"
+                        ? "border-sky-500 bg-sky-500"
+                        : "border-slate-400"
+                    }`}
+                  >
+                    {pendingSpotChange.scope === "GLOBAL" && (
+                      <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
+                      For everyone
+                    </p>
+                    <p className="text-[11px] sm:text-xs font-semibold text-slate-600">
+                      Update today&apos;s global spot and apply it to all open transactions.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="px-3 font-extrabold"
+                  onClick={() => {
+                    resetPendingSpotToOriginal()
+                    setIsSpotScopeDialogOpen(false)
+                    setPendingSpotChange(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="px-4 font-extrabold"
+                  disabled={!pendingSpotChange.scope}
+                  onClick={() => void applySpotChangeScope()}
                 >
                   Apply
                 </Button>

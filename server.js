@@ -3,11 +3,27 @@ const { parse } = require('url');
 const next = require('next');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { Server: SocketIOServer } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = '0.0.0.0';
+const listenHost = '0.0.0.0';
+const hostname = 'localhost';
 const port = 3000;
+
+function getLanAddresses() {
+  const nets = os.networkInterfaces();
+  const addresses = [];
+  for (const entries of Object.values(nets)) {
+    if (!entries) continue;
+    for (const net of entries) {
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push(net.address);
+      }
+    }
+  }
+  return addresses;
+}
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -27,9 +43,10 @@ const httpsOptions = {
 };
 
 app.prepare().then(() => {
+  const lanAddresses = getLanAddresses();
   const httpsServer = createServer(httpsOptions, async (req, res) => {
     try {
-      const parsedUrl = parse(req.url, true);
+      const parsedUrl = parse(req.url || '/', true);
       await handle(req, res, parsedUrl);
     } catch (err) {
       console.error('Error occurred handling', req.url, err);
@@ -43,9 +60,9 @@ app.prepare().then(() => {
       origin: dev ? [
         `https://localhost:${port}`,
         `https://127.0.0.1:${port}`,
-        `https://192.168.1.108:${port}`,
-        `https://192.168.56.1:${port}`,
-        /^https:\/\/192\.168\.\d+\.\d+:\d+$/
+        ...lanAddresses.map((ip) => `https://${ip}:${port}`),
+        /^https:\/\/192\.168\.\d+\.\d+:\d+$/,
+        /^https:\/\/10\.\d+\.\d+\.\d+:\d+$/,
       ] : false,
       methods: ['GET', 'POST'],
       credentials: true,
@@ -101,17 +118,17 @@ app.prepare().then(() => {
     });
   });
 
-  httpsServer.listen(port, hostname, (err) => {
+  httpsServer.listen(port, listenHost, (err) => {
     if (err) throw err;
     console.log(`✓ HTTPS enabled for development`);
-    console.log(`✓ Server ready on https://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${port}`);
-    console.log(`✓ Network access: https://192.168.1.108:${port} or https://192.168.56.1:${port}`);
+    console.log(`✓ Server ready on https://localhost:${port}`);
+    if (lanAddresses.length) {
+      for (const ip of lanAddresses) {
+        console.log(`✓ Network access: https://${ip}:${port}`);
+      }
+    } else {
+      console.log(`✓ Network access: no LAN IPv4 detected`);
+    }
     console.log(`✓ Socket.IO server initialized`);
   });
 });
-
-
-
-
-
-

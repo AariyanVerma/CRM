@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
-import { Search, Loader2, Printer, CalendarDays, Layers, Sparkles, TrendingUp } from "lucide-react"
+import { Search, Loader2, Printer, CalendarDays, Layers, Sparkles, TrendingUp, ChevronDown } from "lucide-react"
 import { TransactionTableSkeleton } from "@/components/skeletons"
 import { TransactionActions } from "@/components/transaction-actions"
 import { useToast } from "@/hooks/use-toast"
@@ -26,6 +26,7 @@ import {
   formatTransactionDateLabel,
   getTransactionDateKey,
   type DailyTransactionTotals,
+  type MetalBreakdown,
   type TransactionTypeTotals,
 } from "@/lib/transaction-totals"
 
@@ -69,6 +70,11 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [expandedMetalChips, setExpandedMetalChips] = useState<Record<string, boolean>>({})
+
+  const toggleMetalChip = (key: string) => {
+    setExpandedMetalChips((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -178,28 +184,126 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
     return groups
   }, [data?.transactions])
 
-  const renderTypeChip = (label: string, amount: number, tone: "scrap" | "sale" | "melt") => (
-    <div
-      className={`inline-flex min-w-[7.5rem] flex-col rounded-lg border px-3 py-2 ${
-        tone === "scrap"
-          ? "border-blue-500/20 bg-blue-500/10"
-          : tone === "sale"
-            ? "border-violet-500/20 bg-violet-500/10"
-            : "border-rose-500/20 bg-rose-500/10"
-      }`}
-    >
-      <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${
-        tone === "scrap"
-          ? "text-blue-700 dark:text-blue-300"
-          : tone === "sale"
-            ? "text-violet-700 dark:text-violet-300"
-            : "text-rose-700 dark:text-rose-300"
-      }`}>
-        {label}
-      </span>
-      <span className="mt-0.5 text-sm font-bold tabular-nums text-foreground">{formatCurrency(amount)}</span>
-    </div>
-  )
+  const renderMetalBreakdown = (breakdown: MetalBreakdown | undefined) => {
+    const metals = [
+      {
+        label: "Gold",
+        amount: breakdown?.gold ?? 0,
+        shell: "border-amber-400/40 bg-gradient-to-br from-amber-50 to-amber-100/70 dark:from-amber-500/15 dark:to-amber-500/5",
+        labelClass: "text-amber-800 dark:text-amber-300",
+        amountClass: "text-amber-950 dark:text-amber-100",
+        dot: "bg-amber-500",
+      },
+      {
+        label: "Silver",
+        amount: breakdown?.silver ?? 0,
+        shell: "border-slate-400/40 bg-gradient-to-br from-slate-50 to-slate-100/80 dark:from-slate-500/15 dark:to-slate-500/5",
+        labelClass: "text-slate-600 dark:text-slate-300",
+        amountClass: "text-slate-900 dark:text-slate-100",
+        dot: "bg-slate-500",
+      },
+      {
+        label: "Platinum",
+        amount: breakdown?.platinum ?? 0,
+        shell: "border-sky-400/40 bg-gradient-to-br from-sky-50 to-sky-100/70 dark:from-sky-500/15 dark:to-sky-500/5",
+        labelClass: "text-sky-700 dark:text-sky-300",
+        amountClass: "text-sky-950 dark:text-sky-100",
+        dot: "bg-sky-500",
+      },
+    ]
+
+    return (
+      <div className="mt-2 grid w-full min-w-[16.5rem] animate-in fade-in-0 slide-in-from-top-1 duration-200 grid-cols-3 gap-2">
+        {metals.map((metal) => (
+          <div
+            key={metal.label}
+            className={`rounded-xl border px-2.5 py-2 shadow-sm ${metal.shell}`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <span className={`h-1.5 w-1.5 rounded-full ${metal.dot}`} aria-hidden />
+              <p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${metal.labelClass}`}>
+                {metal.label}
+              </p>
+            </div>
+            <p className={`mt-1.5 text-center text-xs font-extrabold tabular-nums leading-tight ${metal.amountClass}`}>
+              {formatCurrency(metal.amount)}
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderTypeChip = (
+    label: string,
+    amount: number,
+    tone: "scrap" | "sale" | "melt",
+    options?: {
+      expandable?: boolean
+      expanded?: boolean
+      onToggle?: () => void
+      breakdown?: MetalBreakdown
+    }
+  ) => {
+    const expandable = Boolean(options?.expandable)
+    const expanded = Boolean(options?.expanded)
+    const shell =
+      tone === "scrap"
+        ? "border-blue-500/25 bg-gradient-to-br from-blue-500/15 to-blue-500/5"
+        : tone === "sale"
+          ? "border-violet-500/25 bg-gradient-to-br from-violet-500/15 to-violet-500/5"
+          : "border-rose-500/25 bg-gradient-to-br from-rose-500/15 to-rose-500/5"
+    const labelClass =
+      tone === "scrap"
+        ? "text-blue-700 dark:text-blue-300"
+        : tone === "sale"
+          ? "text-violet-700 dark:text-violet-300"
+          : "text-rose-700 dark:text-rose-300"
+
+    const content = (
+      <>
+        <span className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] ${labelClass}`}>
+          {label}
+          {expandable ? (
+            <ChevronDown
+              className={`h-3 w-3 opacity-70 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          ) : null}
+        </span>
+        <span className="mt-1 text-sm font-extrabold tabular-nums tracking-tight text-foreground">
+          {formatCurrency(amount)}
+        </span>
+        {expandable && !expanded ? (
+          <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/80">
+            Tap for metals
+          </span>
+        ) : null}
+      </>
+    )
+
+    return (
+      <div className={`flex flex-col ${expanded ? "min-w-[16.5rem]" : ""}`}>
+        {expandable ? (
+          <button
+            type="button"
+            onClick={options?.onToggle}
+            aria-expanded={expanded}
+            className={`inline-flex min-w-[8rem] flex-col rounded-xl border px-3.5 py-2.5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${shell} ${
+              expanded ? "border-primary/35 shadow-md ring-1 ring-primary/20" : ""
+            }`}
+          >
+            {content}
+          </button>
+        ) : (
+          <div className={`inline-flex min-w-[8rem] flex-col rounded-xl border px-3.5 py-2.5 shadow-sm ${shell}`}>
+            {content}
+          </div>
+        )}
+        {expandable && expanded ? renderMetalBreakdown(options?.breakdown) : null}
+      </div>
+    )
+  }
 
   const renderGrandStatCard = (
     title: string,
@@ -359,10 +463,20 @@ export function TransactionsListClient({ customerId = null, showCustomerColumn =
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {renderTypeChip("Scrap", dayTotals?.scrap ?? 0, "scrap")}
+          <div className="flex flex-wrap items-start gap-2.5">
+            {renderTypeChip("Scrap", dayTotals?.scrap ?? 0, "scrap", {
+              expandable: true,
+              expanded: Boolean(expandedMetalChips[`${dateKey}:scrap`]),
+              onToggle: () => toggleMetalChip(`${dateKey}:scrap`),
+              breakdown: dayTotals?.scrapByMetal,
+            })}
             {renderTypeChip("Sale", dayTotals?.sale ?? 0, "sale")}
-            {renderTypeChip("Melt", dayTotals?.melt ?? 0, "melt")}
+            {renderTypeChip("Melt", dayTotals?.melt ?? 0, "melt", {
+              expandable: true,
+              expanded: Boolean(expandedMetalChips[`${dateKey}:melt`]),
+              onToggle: () => toggleMetalChip(`${dateKey}:melt`),
+              breakdown: dayTotals?.meltByMetal,
+            })}
             <div className="inline-flex min-w-[8.5rem] flex-col rounded-xl border border-primary/30 bg-primary px-4 py-2.5 text-primary-foreground shadow-md shadow-primary/20">
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/85">Day total</span>
               <span className="mt-0.5 text-xl font-bold tabular-nums">{formatCurrency(dayTotals?.total ?? 0)}</span>

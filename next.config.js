@@ -1,4 +1,6 @@
-const withPWA = process.env.NODE_ENV === 'production' 
+const os = require('os')
+
+const withPWA = process.env.NODE_ENV === 'production'
   ? require('@ducanh2912/next-pwa').default({
       dest: 'public',
       cacheOnFrontEndNav: true,
@@ -11,11 +13,28 @@ const withPWA = process.env.NODE_ENV === 'production'
     })
   : (config) => config
 
+function getLanHosts() {
+  const hosts = ['localhost', '127.0.0.1']
+  const nets = os.networkInterfaces()
+  for (const entries of Object.values(nets)) {
+    if (!entries) continue
+    for (const net of entries) {
+      if (net.family === 'IPv4' && !net.internal) {
+        hosts.push(net.address)
+      }
+    }
+  }
+  return hosts
+}
+
+const isDev = process.env.NODE_ENV === 'development'
+
 const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
   outputFileTracingRoot: require('path').join(__dirname),
   images: {
+    unoptimized: isDev,
     remotePatterns: [
       { protocol: 'https', hostname: '**', pathname: '/uploads/**' },
       { protocol: 'http', hostname: '**', pathname: '/uploads/**' },
@@ -27,13 +46,8 @@ const nextConfig = {
     workerThreads: false,
     cpus: 1,
   },
-  ...(process.env.NODE_ENV === 'development' && {
-    allowedDevOrigins: [
-      '192.168.56.1',
-      '192.168.1.108',
-      'localhost',
-      '127.0.0.1',
-    ],
+  ...(isDev && {
+    allowedDevOrigins: getLanHosts(),
   }),
 }
 

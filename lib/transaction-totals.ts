@@ -1,11 +1,19 @@
 export const BUSINESS_TIMEZONE = "America/New_York"
 
+export type MetalBreakdown = {
+  gold: number
+  silver: number
+  platinum: number
+}
+
 export type TransactionTypeTotals = {
   scrap: number
   sale: number
   melt: number
   total: number
   count: number
+  scrapByMetal: MetalBreakdown
+  meltByMetal: MetalBreakdown
 }
 
 export type DailyTransactionTotals = TransactionTypeTotals & {
@@ -15,7 +23,7 @@ export type DailyTransactionTotals = TransactionTypeTotals & {
 type TransactionForTotals = {
   type: string
   createdAt: Date | string
-  lineItems: Array<{ lineTotal: number }>
+  lineItems: Array<{ lineTotal: number; metalType?: string | null }>
 }
 
 export function getTransactionDateKey(date: Date | string): string {
@@ -47,8 +55,34 @@ export function getTransactionTotal(transaction: Pick<TransactionForTotals, "lin
   return transaction.lineItems.reduce((sum, item) => sum + item.lineTotal, 0)
 }
 
+export function emptyMetalBreakdown(): MetalBreakdown {
+  return { gold: 0, silver: 0, platinum: 0 }
+}
+
 export function emptyTypeTotals(): TransactionTypeTotals {
-  return { scrap: 0, sale: 0, melt: 0, total: 0, count: 0 }
+  return {
+    scrap: 0,
+    sale: 0,
+    melt: 0,
+    total: 0,
+    count: 0,
+    scrapByMetal: emptyMetalBreakdown(),
+    meltByMetal: emptyMetalBreakdown(),
+  }
+}
+
+function addMetalBreakdown(
+  breakdown: MetalBreakdown,
+  lineItems: Array<{ lineTotal: number; metalType?: string | null }>
+): MetalBreakdown {
+  const next = { ...breakdown }
+  for (const item of lineItems) {
+    const metal = (item.metalType || "").toUpperCase()
+    if (metal === "GOLD") next.gold += item.lineTotal
+    else if (metal === "SILVER") next.silver += item.lineTotal
+    else if (metal === "PLATINUM") next.platinum += item.lineTotal
+  }
+  return next
 }
 
 export function accumulateTransactionTotals(
@@ -56,10 +90,22 @@ export function accumulateTransactionTotals(
   transaction: Pick<TransactionForTotals, "type" | "lineItems">
 ): TransactionTypeTotals {
   const amount = getTransactionTotal(transaction)
-  const next = { ...totals, total: totals.total + amount, count: totals.count + 1 }
-  if (transaction.type === "SCRAP") next.scrap += amount
-  else if (transaction.type === "SALE") next.sale += amount
-  else if (transaction.type === "MELT") next.melt += amount
+  const next: TransactionTypeTotals = {
+    ...totals,
+    scrapByMetal: { ...totals.scrapByMetal },
+    meltByMetal: { ...totals.meltByMetal },
+    total: totals.total + amount,
+    count: totals.count + 1,
+  }
+  if (transaction.type === "SCRAP") {
+    next.scrap += amount
+    next.scrapByMetal = addMetalBreakdown(next.scrapByMetal, transaction.lineItems)
+  } else if (transaction.type === "SALE") {
+    next.sale += amount
+  } else if (transaction.type === "MELT") {
+    next.melt += amount
+    next.meltByMetal = addMetalBreakdown(next.meltByMetal, transaction.lineItems)
+  }
   return next
 }
 

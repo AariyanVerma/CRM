@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:https": "cross-env NODE_ENV=development node server.js",
+    "https": "cross-env NODE_ENV=development node server.js",
     "setup:https": "node setup-https.js",
     "build": "prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=2048 next build --webpack",
     "start": "next start",
